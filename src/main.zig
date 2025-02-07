@@ -2,9 +2,11 @@ const std = @import("std");
 const rl = @import("raylib");
 const zigics = @import("world.zig");
 
+// hello world
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer gpa.deinit();
+    defer _ = gpa.deinit();
 
     const allocator = gpa.allocator();
 
