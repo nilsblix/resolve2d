@@ -14,6 +14,7 @@ pub fn main() !void {
     const screen_height = 720;
 
     const world = zigics.World.init(allocator, zigics.Units.Size{ .width = screen_width, .height = screen_height }, 10);
+    // world.deinit();
     _ = world;
 
     rl.initWindow(screen_width, screen_height, "hello world");
