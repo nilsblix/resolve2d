@@ -73,49 +73,56 @@ pub const Units = struct {
     }
 };
 
-// okay i will maybe have to transform these into interfaces
-const RigidBody = struct {};
-// yeah will not have springs and motors inside a single struct
-const Force = struct {};
-const Joint = struct {};
-
-pub const Physics = struct {
-    units: Units,
-    bodies: std.ArrayList(RigidBody),
-    forces: std.ArrayList(Force),
-    joints: std.ArrayList(Joint),
-
-    const Self = @This();
-    /// Assumes that screen_size and world_size have the same proportions.
-    /// Assumes that in screen units top left is (0,0).
-    pub fn init(alloc: Allocator, screen_size: Units.Size, default_world_width: f32) Self {
-        return .{
-            .units = Units.init(screen_size, default_world_width),
-            .bodies = std.ArrayList(RigidBody).init(alloc),
-            .forces = std.ArrayList(Force).init(alloc),
-            .joints = std.ArrayList(Joint).init(alloc),
-        };
-    }
-
-    pub fn processSingleStep(self: *Self, dt: f32) void {
-        _ = self;
-        _ = dt;
-    }
-
-    pub fn getbodies(self: *Self) *std.ArrayList(RigidBody) {
-        return &self.bodies;
-    }
-};
-
-pub const World = struct {
-    physics: Physics,
-    // entity_manager,
-    //      -> entity_factory (responsible for creating things)
-    //      -> blablabla bloat-like js
-
-    pub fn init(alloc: Allocator, screen_size: Units.Size, default_world_width: f32) World {
-        return .{
-            .physics = Physics.init(alloc, screen_size, default_world_width),
-        };
-    }
-};
+// const Force = struct {};
+// const Joint = struct {};
+//
+// pub const Physics = struct {
+//     alloc: *Allocator,
+//     bodies: std.ArrayList(RigidBody),
+//     forces: std.ArrayList(Force),
+//     joints: std.ArrayList(Joint),
+//
+//     const Self = @This();
+//     /// Assumes that screen_size and world_size have the same proportions.
+//     /// Assumes that in screen units top left is (0,0).
+//     pub fn init(alloc: Allocator) Self {
+//         return .{
+//             .alloc = &alloc,
+//             .bodies = std.ArrayList(RigidBody).init(alloc),
+//             .forces = std.ArrayList(Force).init(alloc),
+//             .joints = std.ArrayList(Joint).init(alloc),
+//         };
+//     }
+//
+//     pub fn deinit(self: *Self) void {
+//         self.forces.deinit();
+//         self.joints.deinit();
+//         self.bodies.deinit();
+//     }
+//
+//     pub fn process(self: *Self, dt: f32) void {
+//         _ = self;
+//         _ = dt;
+//     }
+// };
+//
+// pub const World = struct {
+//     physics: Physics,
+//     units: ?Units,
+//
+//     const Self = @This();
+//     pub fn init(alloc: Allocator, screen_size: Units.Size, default_world_width: f32) World {
+//         return .{
+//             .physics = Physics.init(alloc, screen_size, default_world_width),
+//             .units = null,
+//         };
+//     }
+//
+//     pub fn deinit(self: *Self) void {
+//         self.physics.deinit();
+//     }
+//
+//     pub fn process(self: *Self, dt: f32) void {
+//         self.physics.process(dt);
+//     }
+// };

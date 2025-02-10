@@ -1,6 +1,9 @@
 const std = @import("std");
 const rl = @import("raylib");
-const zigics = @import("world.zig");
+const zigics = @import("zigics.zig");
+const rigidbody = @import("rigidbody.zig");
+const nmath = @import("nmath.zig");
+const Vector2 = nmath.Vector2;
 
 // hello world
 
@@ -13,9 +16,9 @@ pub fn main() !void {
     const screen_width = 1280;
     const screen_height = 720;
 
-    const world = zigics.World.init(allocator, zigics.Units.Size{ .width = screen_width, .height = screen_height }, 10);
-    // world.deinit();
-    _ = world;
+    var disc = try rigidbody.DiscBody.init(allocator, Vector2.init(3, 4), 3.14, 2.0, 3.0);
+    defer disc.deinit(allocator);
+    disc.print();
 
     rl.initWindow(screen_width, screen_height, "hello world");
     defer rl.closeWindow();
