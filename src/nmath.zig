@@ -24,6 +24,10 @@ pub fn sub2(a: Vector2, b: Vector2) Vector2 {
     return .{ .x = a.x - b.x, .y = a.y - b.y };
 }
 
+pub fn scale2(a: Vector2, s: f32) Vector2 {
+    return Vector2.init(a.x * s, a.y * s);
+}
+
 pub fn multelem2(a: Vector2, b: Vector2) Vector2 {
     return .{ .x = a.x * b.x, .y = a.y * b.y };
 }
@@ -47,6 +51,16 @@ pub fn length2sq(a: Vector2) f32 {
 
 pub fn length2(a: Vector2) f32 {
     return @sqrt(length2sq(a));
+}
+
+pub fn normalize2(a: Vector2) Vector2 {
+    const len = length2(a);
+    if (len < 1e-6) std.debug.print("nmath.normalize2 has calculated a low len = {}", .{len});
+    return scale2(a, 1 / len);
+}
+
+pub fn addmult2(a: Vector2, b: Vector2, s: f32) Vector2 {
+    return add2(a, scale2(b, s));
 }
 
 fn equals2(a: Vector2, b: Vector2) bool {

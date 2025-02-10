@@ -70,7 +70,6 @@ pub const DiscBody = struct {
 
     pub fn deinit(ptr: *anyopaque, alloc: Allocator) void {
         const self: *Self = @ptrCast(@alignCast(ptr));
-        std.debug.print("deinited discbody\n", .{});
         alloc.destroy(self);
     }
 

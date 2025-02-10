@@ -2,6 +2,10 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
+const rb_mod = @import("rigidbody.zig");
+const RigidBody = rb_mod.RigidBody;
+const fg_mod = @import("force-generator.zig");
+const ForceGenerator = fg_mod.ForceGenerator;
 
 // FIXME: transform camera / and always update properties like mult and size and viewport and fuck all else
 pub const Units = struct {
@@ -73,38 +77,53 @@ pub const Units = struct {
     }
 };
 
-// const Force = struct {};
-// const Joint = struct {};
-//
-// pub const Physics = struct {
-//     alloc: *Allocator,
-//     bodies: std.ArrayList(RigidBody),
-//     forces: std.ArrayList(Force),
-//     joints: std.ArrayList(Joint),
-//
-//     const Self = @This();
-//     /// Assumes that screen_size and world_size have the same proportions.
-//     /// Assumes that in screen units top left is (0,0).
-//     pub fn init(alloc: Allocator) Self {
-//         return .{
-//             .alloc = &alloc,
-//             .bodies = std.ArrayList(RigidBody).init(alloc),
-//             .forces = std.ArrayList(Force).init(alloc),
-//             .joints = std.ArrayList(Joint).init(alloc),
-//         };
-//     }
-//
-//     pub fn deinit(self: *Self) void {
-//         self.forces.deinit();
-//         self.joints.deinit();
-//         self.bodies.deinit();
-//     }
-//
-//     pub fn process(self: *Self, dt: f32) void {
-//         _ = self;
-//         _ = dt;
-//     }
-// };
+pub const Physics = struct {
+    bodies: std.ArrayList(RigidBody),
+    force_generators: std.ArrayList(ForceGenerator),
+    // joints: std.ArrayList(Joint),
+
+    const Self = @This();
+    /// Assumes that screen_size and world_size have the same proportions.
+    /// Assumes that in screen units top left is (0,0).
+    pub fn init(alloc: Allocator) Self {
+        return .{
+            .bodies = std.ArrayList(RigidBody).init(alloc),
+            .force_generators = std.ArrayList(ForceGenerator).init(alloc),
+            // .joints = std.ArrayList(Joint).init(alloc),
+        };
+    }
+
+    pub fn deinit(self: *Self) void {
+        self.force_generators.deinit();
+        // self.joints.deinit();
+        self.bodies.deinit();
+    }
+
+    pub fn process(self: *Self, dt: f32) void {
+        for (self.force_generators.items) |*gen| {
+            gen.apply(self.bodies);
+        }
+
+        for (self.bodies.items) |*body| {
+            std.debug.print("before \n", .{});
+            body.print();
+
+            var props: *RigidBody.Props = &body.props;
+
+            props.momentum = nmath.addmult2(props.momentum, props.force, dt);
+            props.pos = nmath.addmult2(props.pos, props.momentum, dt);
+
+            props.ang_momentum += props.torque * dt;
+            props.angle += props.ang_momentum * dt;
+
+            props.force = Vector2.zero;
+            props.torque = 0;
+
+            std.debug.print("after \n", .{});
+            body.print();
+        }
+    }
+};
 //
 // pub const World = struct {
 //     physics: Physics,
