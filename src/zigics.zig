@@ -97,6 +97,9 @@ test "unit mapping" {
 pub const Renderer = struct {
     units: Units,
 
+    const thickness: f32 = 0.01;
+    const segment_resolution: i32 = 30;
+
     const Self = @This();
     pub fn init(screen_size: Units.Size, default_world_width: f32) Renderer {
         return .{
@@ -104,14 +107,24 @@ pub const Renderer = struct {
         };
     }
 
-    pub fn render(self: *const Self, physics: Physics) void {
+    pub fn render(self: *const Self, physics: Physics, debug_mode: bool) void {
         for (physics.bodies.items) |body| {
             const screen_pos = self.units.w2s(body.props.pos);
             const int_pos = nmath.toInt2(screen_pos);
             const name = body.type_name;
+            _ = int_pos;
 
             if (std.mem.eql(u8, name, rb_mod.DiscBody.name)) {
-                rl.drawCircle(int_pos.x, int_pos.y, self.units.mult.w2s * 0.5, rl.Color.orange);
+                // FIXME: use disc.radius instead.
+                const rad = 0.3;
+                if (debug_mode) {
+                    const inner = self.units.mult.w2s * (rad - 0.5 * Self.thickness);
+                    const outer = self.units.mult.w2s * (rad + 0.5 * Self.thickness);
+                    rl.drawRing(.{ .x = screen_pos.x, .y = screen_pos.y }, inner, outer, 0, 360, Self.segment_resolution, rl.Color.green);
+                    continue;
+                }
+
+                rl.drawCircleV(.{ .x = screen_pos.x, .y = screen_pos.y }, self.units.mult.w2s * rad, rl.Color.orange);
                 continue;
             }
 
@@ -187,10 +200,8 @@ pub const World = struct {
     }
 
     pub fn render(self: *Self, debug_mode: bool) void {
-        // FIXME: add debug render mode
-        _ = debug_mode;
         if (self.renderer) |rend| {
-            rend.render(self.physics);
+            rend.render(self.physics, debug_mode);
         }
     }
 };
