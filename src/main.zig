@@ -17,25 +17,27 @@ pub fn main() !void {
     const screen_width = 1280;
     const screen_height = 720;
 
-    var physics = zigics.Physics.init(allocator);
-    defer physics.deinit();
+    var world = zigics.World.init(allocator, .{ .width = screen_width, .height = screen_height }, 10, true);
+    defer world.deinit(allocator);
 
-    var disc = try rigidbody.DiscBody.init(allocator, Vector2.init(3, 4), 3.14, 2.0, 3.0);
-    defer disc.deinit(allocator);
+    var disc = try rigidbody.DiscBody.init(allocator, Vector2.init(3, 5), 3.14, 2.0, 3.0);
     disc.print();
+    try world.physics.bodies.append(disc);
 
-    try physics.bodies.append(disc);
+    // const gravity = try forcegenerator.DownwardsGravity.init(allocator, 1);
+    // try world.physics.force_generators.append(gravity);
+    const point_gravity = try forcegenerator.PointGravity.init(allocator, 1.0, .{ .x = 5, .y = 3 });
+    try world.physics.force_generators.append(point_gravity);
 
-    var gravity = try forcegenerator.DownwardsGravity.init(allocator, 10);
-    defer gravity.deinit(allocator);
-
-    try physics.force_generators.append(gravity);
+    const point2_gravity = try forcegenerator.PointGravity.init(allocator, 1.0, .{ .x = 8, .y = 4 });
+    try world.physics.force_generators.append(point2_gravity);
 
     rl.initWindow(screen_width, screen_height, "hello world");
     defer rl.closeWindow();
 
-    const DT = 1 / 120;
-    rl.setTargetFPS(120);
+    const HZ: i32 = 120;
+    const DT: f32 = 1 / @as(f32, HZ);
+    rl.setTargetFPS(HZ);
 
     var pos = rl.Vector2.init(0, 0);
 
@@ -43,14 +45,23 @@ pub fn main() !void {
         rl.beginDrawing();
         defer rl.endDrawing();
 
-        physics.process(DT);
+        world.process(DT);
 
-        rl.clearBackground(.{ .r = 60, .g = 18, .b = 18, .a = 1 });
+        rl.clearBackground(.{ .r = 18, .g = 18, .b = 18, .a = 1 });
 
         pos = rl.getMousePosition();
 
-        rl.drawRectangle(screen_width / 2, screen_height / 2, screen_width / 2, screen_height / 2, rl.Color.sky_blue);
+        circle(Vector2.init(pos.x, pos.y), 50, rl.Color.green);
 
-        rl.drawCircle(@intFromFloat(pos.x), @intFromFloat(pos.y), 100, rl.Color.green);
+        world.render(false);
+        // for (physics.bodies.items) |body| {
+        //     var inv_disc_pos = body.props.pos;
+        //     inv_disc_pos.y = screen_height - inv_disc_pos.y;
+        //     circle(inv_disc_pos, 30, rl.Color.lime);
+        // }
     }
+}
+
+pub fn circle(pos: Vector2, rad: f32, color: rl.Color) void {
+    rl.drawCircle(@intFromFloat(pos.x), @intFromFloat(pos.y), rad, color);
 }

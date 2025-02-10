@@ -5,14 +5,27 @@ pub const Vector2 = struct {
     x: f32 = 0.0,
     y: f32 = 0.0,
 
-    pub const zero = Vector2.init(0, 0);
-
     const Self = @This();
     pub fn init(x: f32, y: f32) Self {
         return .{
             .x = x,
             .y = y,
         };
+    }
+
+    pub fn add(self: *Self, v: Vector2) void {
+        self.x += v.x;
+        self.y += v.y;
+    }
+
+    pub fn sub(self: *Self, v: Vector2) void {
+        self.x -= v.x;
+        self.y -= v.y;
+    }
+
+    pub fn addmult(self: *Self, v: Vector2, s: f32) void {
+        self.x += v.x * s;
+        self.y += v.y * s;
     }
 };
 
@@ -25,7 +38,7 @@ pub fn sub2(a: Vector2, b: Vector2) Vector2 {
 }
 
 pub fn scale2(a: Vector2, s: f32) Vector2 {
-    return Vector2.init(a.x * s, a.y * s);
+    return .{ .x = a.x * s, .y = a.y * s };
 }
 
 pub fn multelem2(a: Vector2, b: Vector2) Vector2 {
@@ -63,8 +76,12 @@ pub fn addmult2(a: Vector2, b: Vector2, s: f32) Vector2 {
     return add2(a, scale2(b, s));
 }
 
-fn equals2(a: Vector2, b: Vector2) bool {
+pub fn equals2(a: Vector2, b: Vector2) bool {
     return a.x == b.x and a.y == b.y;
+}
+
+pub fn toInt2(a: Vector2) struct { x: i32, y: i32 } {
+    return .{ .x = @intFromFloat(a.x), .y = @intFromFloat(a.y) };
 }
 
 test "vector2" {

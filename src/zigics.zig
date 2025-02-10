@@ -6,6 +6,7 @@ const rb_mod = @import("rigidbody.zig");
 const RigidBody = rb_mod.RigidBody;
 const fg_mod = @import("force-generator.zig");
 const ForceGenerator = fg_mod.ForceGenerator;
+const rl = @import("raylib");
 
 // FIXME: transform camera / and always update properties like mult and size and viewport and fuck all else
 pub const Units = struct {
@@ -20,27 +21,28 @@ pub const Units = struct {
     };
 
     const Camera = struct {
-        pos: nmath.Vector2,
+        pos: Vector2,
         zoom: f32,
         viewport: Size,
     };
 
     camera: Camera,
     mult: TransformMult,
+    default_world_size: Size,
     screen_size: Size,
 
     const Self = @This();
     /// Assumes that screen_size and world_size have the same proportions.
     /// Assumes that in screen units top left is (0,0).
     pub fn init(screen_size: Size, default_world_width: f32) Self {
-        const aspect_ratio = screen_size.width / screen_size.height;
+        const aspect_ratio = screen_size.height / screen_size.width;
 
         const default_world_size = Size{ .width = default_world_width, .height = default_world_width * aspect_ratio };
 
-        const x = default_world_size.width / 2;
-        const y = default_world_size.height / 2;
+        // const x = default_world_size.width / 2;
+        // const y = default_world_size.height / 2;
         const camera = Camera{
-            .pos = Vector2.init(x, y),
+            .pos = .{},
             .zoom = 1.0,
             .viewport = default_world_size,
         };
@@ -53,21 +55,23 @@ pub const Units = struct {
         return .{
             .camera = camera,
             .mult = mult,
+            .default_world_size = default_world_size,
             .screen_size = screen_size,
         };
     }
 
     /// Will flip y as world bottom-left is (0,0)
     pub fn w2s(self: Self, pos: Vector2) Vector2 {
-        const x = pos.x * self.mult.s2w / self.camera.zoom - self.camera.pos.x;
-        const y = self.screen_size.height - (pos.y * self.mult.s2w) / self.camera.zoom - self.camera.pos.y;
+        const x = self.mult.w2s * (pos.x - self.camera.pos.x) / self.camera.zoom;
+        const y = self.screen_size.height - self.mult.w2s * (pos.y - self.camera.pos.y) / self.camera.zoom;
+
         return Vector2.init(x, y);
     }
 
     /// Will flip y as world bottom-left is (0,0)
     pub fn s2w(self: Self, pos: Vector2) Vector2 {
-        const x = (pos.x + self.x) * self.camera.zoom * self.mult.s2w;
-        const y = (pos.y + self.camera.pos.y - self.screen_size.height) * self.camera.zoom * self.mult.w2s;
+        const x = self.camera.zoom * pos.x * self.mult.s2w + self.camera.pos.x;
+        const y = self.camera.zoom * (self.screen_size.height - pos.y) * self.mult.s2w + self.camera.pos.y;
         return Vector2.init(x, y);
     }
 
@@ -77,14 +81,51 @@ pub const Units = struct {
     }
 };
 
+test "s2w and w2s should be inverses" {
+    var units = Units.init(.{ .width = 1000, .height = 500 }, 20);
+    const vec = Vector2.init(23, 34);
+    const ret = units.s2w(units.w2s(vec));
+    try std.testing.expect(nmath.equals2(ret, vec));
+}
+
+test "unit mapping" {
+    const x = 0.8;
+    const y = Units.map(x, 0, 1, 10, 20);
+    try std.testing.expect(y == 18);
+}
+
+pub const Renderer = struct {
+    units: Units,
+
+    const Self = @This();
+    pub fn init(screen_size: Units.Size, default_world_width: f32) Renderer {
+        return .{
+            .units = Units.init(screen_size, default_world_width),
+        };
+    }
+
+    pub fn render(self: *const Self, physics: Physics) void {
+        for (physics.bodies.items) |body| {
+            const screen_pos = self.units.w2s(body.props.pos);
+            const int_pos = nmath.toInt2(screen_pos);
+            const name = body.type_name;
+
+            if (std.mem.eql(u8, name, rb_mod.DiscBody.name)) {
+                rl.drawCircle(int_pos.x, int_pos.y, self.units.mult.w2s * 0.5, rl.Color.orange);
+                continue;
+            }
+
+            unreachable;
+        }
+    }
+};
+
 pub const Physics = struct {
     bodies: std.ArrayList(RigidBody),
     force_generators: std.ArrayList(ForceGenerator),
     // joints: std.ArrayList(Joint),
 
     const Self = @This();
-    /// Assumes that screen_size and world_size have the same proportions.
-    /// Assumes that in screen units top left is (0,0).
     pub fn init(alloc: Allocator) Self {
         return .{
             .bodies = std.ArrayList(RigidBody).init(alloc),
@@ -93,9 +134,15 @@ pub const Physics = struct {
         };
     }
 
-    pub fn deinit(self: *Self) void {
+    pub fn deinit(self: *Self, alloc: Allocator) void {
+        for (self.force_generators.items) |*gen| {
+            gen.deinit(alloc);
+        }
         self.force_generators.deinit();
         // self.joints.deinit();
+        for (self.bodies.items) |*body| {
+            body.deinit(alloc);
+        }
         self.bodies.deinit();
     }
 
@@ -105,43 +152,45 @@ pub const Physics = struct {
         }
 
         for (self.bodies.items) |*body| {
-            std.debug.print("before \n", .{});
-            body.print();
-
             var props: *RigidBody.Props = &body.props;
 
-            props.momentum = nmath.addmult2(props.momentum, props.force, dt);
-            props.pos = nmath.addmult2(props.pos, props.momentum, dt);
+            props.momentum.addmult(props.force, dt);
+            props.pos.addmult(props.momentum, dt);
 
             props.ang_momentum += props.torque * dt;
             props.angle += props.ang_momentum * dt;
 
-            props.force = Vector2.zero;
+            props.force = .{};
             props.torque = 0;
-
-            std.debug.print("after \n", .{});
-            body.print();
         }
     }
 };
-//
-// pub const World = struct {
-//     physics: Physics,
-//     units: ?Units,
-//
-//     const Self = @This();
-//     pub fn init(alloc: Allocator, screen_size: Units.Size, default_world_width: f32) World {
-//         return .{
-//             .physics = Physics.init(alloc, screen_size, default_world_width),
-//             .units = null,
-//         };
-//     }
-//
-//     pub fn deinit(self: *Self) void {
-//         self.physics.deinit();
-//     }
-//
-//     pub fn process(self: *Self, dt: f32) void {
-//         self.physics.process(dt);
-//     }
-// };
+
+pub const World = struct {
+    physics: Physics,
+    renderer: ?Renderer,
+
+    const Self = @This();
+    pub fn init(alloc: Allocator, screen_size: Units.Size, default_world_width: f32, init_renderer: bool) World {
+        return .{
+            .physics = Physics.init(alloc),
+            .renderer = if (init_renderer) Renderer.init(screen_size, default_world_width) else null,
+        };
+    }
+
+    pub fn deinit(self: *Self, alloc: Allocator) void {
+        self.physics.deinit(alloc);
+    }
+
+    pub fn process(self: *Self, dt: f32) void {
+        self.physics.process(dt);
+    }
+
+    pub fn render(self: *Self, debug_mode: bool) void {
+        // FIXME: add debug render mode
+        _ = debug_mode;
+        if (self.renderer) |rend| {
+            rend.render(self.physics);
+        }
+    }
+};

@@ -25,6 +25,7 @@ pub const RigidBody = struct {
     };
 
     props: Props,
+    type_name: []const u8,
     ptr: *anyopaque,
     vtable: VTable,
 
@@ -34,7 +35,7 @@ pub const RigidBody = struct {
         self.vtable.deinit(self.ptr, alloc);
     }
 
-    pub fn print(self: *Self) void {
+    pub fn print(self: Self) void {
         self.vtable.print(self.ptr, self.props);
     }
 };
@@ -47,7 +48,9 @@ pub const DiscBody = struct {
         .print = DiscBody.print,
     };
 
+    pub const name: []const u8 = "DiscBody";
     const Self = @This();
+
     pub fn init(alloc: Allocator, pos: Vector2, angle: f32, mass: f32, radius: f32) !RigidBody {
         var self: *Self = try alloc.create(Self);
         self.radius = radius;
@@ -55,14 +58,15 @@ pub const DiscBody = struct {
         return RigidBody{
             .props = .{
                 .pos = pos,
-                .momentum = Vector2.zero,
-                .force = Vector2.zero,
+                .momentum = .{},
+                .force = .{},
                 .angle = angle,
                 .ang_momentum = 0,
                 .torque = 0,
                 .mass = mass,
                 .inertia = 0.5 * mass * radius * radius,
             },
+            .type_name = "DiscBody",
             .ptr = self,
             .vtable = DiscBody.rigidbody_vtable,
         };
