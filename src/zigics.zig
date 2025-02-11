@@ -111,24 +111,22 @@ pub const Renderer = struct {
         for (physics.bodies.items) |body| {
             const screen_pos = self.units.w2s(body.props.pos);
             const int_pos = nmath.toInt2(screen_pos);
-            const name = body.type_name;
             _ = int_pos;
 
-            if (std.mem.eql(u8, name, rb_mod.DiscBody.name)) {
-                // FIXME: use disc.radius instead.
-                const rad = 0.3;
-                if (debug_mode) {
-                    const inner = self.units.mult.w2s * (rad - 0.5 * Self.thickness);
-                    const outer = self.units.mult.w2s * (rad + 0.5 * Self.thickness);
-                    rl.drawRing(.{ .x = screen_pos.x, .y = screen_pos.y }, inner, outer, 0, 360, Self.segment_resolution, rl.Color.green);
-                    continue;
-                }
+            switch (body.type) {
+                .disc => {
+                    const b: *rb_mod.DiscBody = @ptrCast(@alignCast(body.ptr));
+                    const rad = b.radius;
+                    if (debug_mode) {
+                        const inner = self.units.mult.w2s * (rad - 0.5 * Self.thickness);
+                        const outer = self.units.mult.w2s * (rad + 0.5 * Self.thickness);
+                        rl.drawRing(.{ .x = screen_pos.x, .y = screen_pos.y }, inner, outer, 0, 360, Self.segment_resolution, rl.Color.green);
+                        break;
+                    }
 
-                rl.drawCircleV(.{ .x = screen_pos.x, .y = screen_pos.y }, self.units.mult.w2s * rad, rl.Color.orange);
-                continue;
+                    rl.drawCircleV(.{ .x = screen_pos.x, .y = screen_pos.y }, self.units.mult.w2s * rad, rl.Color.orange);
+                },
             }
-
-            unreachable;
         }
     }
 };
@@ -168,10 +166,10 @@ pub const Physics = struct {
             var props: *RigidBody.Props = &body.props;
 
             props.momentum.addmult(props.force, dt);
-            props.pos.addmult(props.momentum, dt);
+            props.pos.addmult(props.momentum, dt / props.mass);
 
             props.ang_momentum += props.torque * dt;
-            props.angle += props.ang_momentum * dt;
+            props.angle += props.ang_momentum * dt / props.inertia;
 
             props.force = .{};
             props.torque = 0;

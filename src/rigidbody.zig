@@ -3,6 +3,10 @@ const Allocator = std.mem.Allocator;
 const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
 
+pub const RigidBodies = enum {
+    disc,
+};
+
 /// All integraton is handled in the solver ==> basically only geometric properties/functions needs
 /// to be implemented by the struct.
 pub const RigidBody = struct {
@@ -24,8 +28,8 @@ pub const RigidBody = struct {
         inertia: f32,
     };
 
+    type: RigidBodies,
     props: Props,
-    type_name: []const u8,
     ptr: *anyopaque,
     vtable: VTable,
 
@@ -66,7 +70,7 @@ pub const DiscBody = struct {
                 .mass = mass,
                 .inertia = 0.5 * mass * radius * radius,
             },
-            .type_name = "DiscBody",
+            .type = RigidBodies.disc,
             .ptr = self,
             .vtable = DiscBody.rigidbody_vtable,
         };

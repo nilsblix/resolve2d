@@ -101,7 +101,7 @@ pub const PointGravity = struct {
             // F = G * m1 * m2 / r^2 * r_hat
             const vec = nmath.sub2(self.pos, body.props.pos);
             const dist = nmath.length2(vec);
-            if (dist < 1e-4) continue;
+            if (dist < 1e-2) continue;
             const dir = nmath.scale2(vec, 1 / dist);
             const F = self.G * body.props.mass / (dist * dist);
             body.props.force.addmult(dir, F);

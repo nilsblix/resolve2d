@@ -20,7 +20,7 @@ pub fn main() !void {
     var world = zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true);
     defer world.deinit(alloc);
 
-    const disc = try rigidbody.DiscBody.init(alloc, Vector2.init(3, 5), 3.14, 2.0, 3.0);
+    const disc = try rigidbody.DiscBody.init(alloc, Vector2.init(3, 5), 3.14, 2.0, 0.5);
     try world.physics.bodies.append(disc);
 
     try world.physics.bodies.append(try rigidbody.DiscBody.init(alloc, Vector2.init(8, 1), 0, 2.0, 1));
