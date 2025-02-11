@@ -5,6 +5,11 @@ const RigidBody = rg_mod.RigidBody;
 const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
 
+pub const ForceGenerators = enum {
+    downwards_gravity,
+    point_gravity,
+};
+
 pub const ForceGenerator = struct {
     const VTable = struct {
         deinit: *const fn (ptr: *anyopaque, alloc: Allocator) void,
@@ -12,6 +17,7 @@ pub const ForceGenerator = struct {
         energy: *const fn (ptr: *anyopaque, bodies: std.ArrayList(RigidBody)) f32,
     };
 
+    type: ForceGenerators,
     vtable: VTable,
     ptr: *anyopaque,
 
@@ -42,6 +48,7 @@ pub const DownwardsGravity = struct {
         self.g = g;
         self.g_vec = Vector2.init(0, -g);
         return ForceGenerator{
+            .type = .downwards_gravity,
             .ptr = self,
             .vtable = Self.forcegenerator_vtable,
         };
@@ -85,6 +92,7 @@ pub const PointGravity = struct {
         self.G = G;
         self.pos = pos;
         return ForceGenerator{
+            .type = .point_gravity,
             .ptr = self,
             .vtable = Self.forcegenerator_vtable,
         };

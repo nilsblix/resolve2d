@@ -107,8 +107,27 @@ pub const Renderer = struct {
         };
     }
 
-    pub fn render(self: *const Self, physics: Physics, debug_mode: bool) void {
-        for (physics.bodies.items) |body| {
+    pub fn render(self: *Self, physics: Physics, debug_mode: bool) void {
+        for (physics.force_generators.items) |*gen| {
+            switch (gen.type) {
+                .downwards_gravity => continue,
+                .point_gravity => {
+                    const g: *fg_mod.PointGravity = @ptrCast(@alignCast(gen.ptr));
+                    const screen_pos = self.units.w2s(g.pos);
+                    const vec = rl.Vector2.init(screen_pos.x, screen_pos.y);
+                    const rad = g.G / 30;
+                    if (debug_mode) {
+                        const inner = self.units.mult.w2s * (rad - 0.5 * Self.thickness);
+                        const outer = self.units.mult.w2s * (rad + 0.5 * Self.thickness);
+                        rl.drawRing(vec, inner, outer, 0, 360, Self.segment_resolution, rl.Color.pink);
+                        continue;
+                    }
+
+                    rl.drawCircleV(vec, self.units.mult.w2s * rad, rl.Color.pink);
+                },
+            }
+        }
+        for (physics.bodies.items) |*body| {
             const screen_pos = self.units.w2s(body.props.pos);
             const int_pos = nmath.toInt2(screen_pos);
             _ = int_pos;
@@ -117,14 +136,15 @@ pub const Renderer = struct {
                 .disc => {
                     const b: *rb_mod.DiscBody = @ptrCast(@alignCast(body.ptr));
                     const rad = b.radius;
+                    const vec = rl.Vector2.init(screen_pos.x, screen_pos.y);
                     if (debug_mode) {
                         const inner = self.units.mult.w2s * (rad - 0.5 * Self.thickness);
                         const outer = self.units.mult.w2s * (rad + 0.5 * Self.thickness);
-                        rl.drawRing(.{ .x = screen_pos.x, .y = screen_pos.y }, inner, outer, 0, 360, Self.segment_resolution, rl.Color.green);
-                        break;
+                        rl.drawRing(vec, inner, outer, 0, 360, Self.segment_resolution, rl.Color.green);
+                        continue;
                     }
 
-                    rl.drawCircleV(.{ .x = screen_pos.x, .y = screen_pos.y }, self.units.mult.w2s * rad, rl.Color.orange);
+                    rl.drawCircleV(vec, self.units.mult.w2s * rad, rl.Color.orange);
                 },
             }
         }
@@ -132,27 +152,26 @@ pub const Renderer = struct {
 };
 
 pub const Physics = struct {
+    alloc: Allocator,
     bodies: std.ArrayList(RigidBody),
     force_generators: std.ArrayList(ForceGenerator),
-    // joints: std.ArrayList(Joint),
 
     const Self = @This();
     pub fn init(alloc: Allocator) Self {
         return .{
+            .alloc = alloc,
             .bodies = std.ArrayList(RigidBody).init(alloc),
             .force_generators = std.ArrayList(ForceGenerator).init(alloc),
-            // .joints = std.ArrayList(Joint).init(alloc),
         };
     }
 
-    pub fn deinit(self: *Self, alloc: Allocator) void {
+    pub fn deinit(self: *Self) void {
         for (self.force_generators.items) |*gen| {
-            gen.deinit(alloc);
+            gen.deinit(self.alloc);
         }
         self.force_generators.deinit();
-        // self.joints.deinit();
         for (self.bodies.items) |*body| {
-            body.deinit(alloc);
+            body.deinit(self.alloc);
         }
         self.bodies.deinit();
     }
@@ -175,6 +194,12 @@ pub const Physics = struct {
             props.torque = 0;
         }
     }
+
+    pub fn makeDiscBody(self: *Self, pos: Vector2, mass: f32, radius: f32) !*rb_mod.RigidBody {
+        var body: rb_mod.RigidBody = try rb_mod.DiscBody.init(self.alloc, pos, 0, mass, radius);
+        try self.bodies.append(body);
+        return &body;
+    }
 };
 
 pub const World = struct {
@@ -189,8 +214,8 @@ pub const World = struct {
         };
     }
 
-    pub fn deinit(self: *Self, alloc: Allocator) void {
-        self.physics.deinit(alloc);
+    pub fn deinit(self: *Self) void {
+        self.physics.deinit();
     }
 
     pub fn process(self: *Self, dt: f32) void {
@@ -198,7 +223,7 @@ pub const World = struct {
     }
 
     pub fn render(self: *Self, debug_mode: bool) void {
-        if (self.renderer) |rend| {
+        if (self.renderer) |*rend| {
             rend.render(self.physics, debug_mode);
         }
     }
