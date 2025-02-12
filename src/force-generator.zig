@@ -31,6 +31,10 @@ pub const ForceGenerator = struct {
     pub fn apply(self: *Self, bodies: std.ArrayList(RigidBody)) void {
         self.vtable.apply(self.ptr, bodies);
     }
+
+    pub fn energy(self: *Self, bodies: std.ArrayList(RigidBody)) f32 {
+        return self.vtable.energy(self.ptr, bodies);
+    }
 };
 
 pub const DownwardsGravity = struct {

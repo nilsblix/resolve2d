@@ -117,11 +117,11 @@ pub fn main() !void {
     const gravity = try forcegenerator.DownwardsGravity.init(alloc, 20);
     try world.physics.force_generators.append(gravity);
 
-    const point_gravity = try forcegenerator.PointGravity.init(alloc, 1.0, .{ .x = 5, .y = 3 });
-    try world.physics.force_generators.append(point_gravity);
-
-    const point2_gravity = try forcegenerator.PointGravity.init(alloc, 4.0, .{ .x = 8, .y = 4 });
-    try world.physics.force_generators.append(point2_gravity);
+    // const point_gravity = try forcegenerator.PointGravity.init(alloc, 1.0, .{ .x = 5, .y = 3 });
+    // try world.physics.force_generators.append(point_gravity);
+    //
+    // const point2_gravity = try forcegenerator.PointGravity.init(alloc, 4.0, .{ .x = 8, .y = 4 });
+    // try world.physics.force_generators.append(point2_gravity);
 
     rl.initWindow(screen_width, screen_height, "zigics");
     defer rl.closeWindow();
@@ -151,11 +151,15 @@ pub fn main() !void {
         }
 
         rl.clearBackground(.{ .r = 18, .g = 18, .b = 18, .a = 1 });
-        world.render(true);
+        world.render(false);
 
         if (!simulating) {
             rl.drawText("paused", 5, 0, 64, rl.Color.white);
         }
+
+        rl.drawText(rl.textFormat("energy = %.0f", .{world.physics.getEnergy()}), 5, screen_height - 3 * 24, 24, rl.Color.white);
+        rl.drawText(rl.textFormat("dt = %.3f ms", .{DT * 1e3}), 5, screen_height - 2 * 24, 24, rl.Color.white);
+        rl.drawText(rl.textFormat("steps = %d", .{steps}), 5, screen_height - 24, 24, rl.Color.white);
 
         // var buf: [256]u8 = undefined;
         // const str = try std.fmt.bufPrint(&buf, "{}", .{steps});

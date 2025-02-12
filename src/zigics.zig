@@ -221,6 +221,20 @@ pub const Physics = struct {
         }
     }
 
+    pub fn getEnergy(self: Self) f32 {
+        var E: f32 = 0;
+        for (self.force_generators.items) |*gen| {
+            E += gen.energy(self.bodies);
+        }
+        for (self.bodies.items) |*body| {
+            const len2 = nmath.length2sq(nmath.scale2(body.props.momentum, 1 / body.props.mass));
+            E += 1 / 2 * body.props.mass * len2;
+            const ang_vel = body.props.ang_momentum / body.props.inertia;
+            E += 1 / 2 * body.props.inertia * ang_vel * ang_vel;
+        }
+        return E;
+    }
+
     pub fn makeDiscBody(self: *Self, pos: Vector2, mass: f32, radius: f32) !*rb_mod.RigidBody {
         var body: rb_mod.RigidBody = try rb_mod.DiscBody.init(self.alloc, pos, 0, mass, radius);
         try self.bodies.append(body);
