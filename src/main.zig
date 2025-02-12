@@ -45,55 +45,16 @@ const MouseSpring = struct {
     }
 };
 
-// const MouseSpring = struct {
-//     spring: ?*forcegenerator.ForceGenerator,
-//     active: bool = false,
-//
-//     const stiffness: f32 = 15.0;
-//     const Self = @This();
-//
-//     pub fn update(self: *Self, units: zigics.Units, physics: zigics.Physics) void {
-//         const rl_mouse_pos = rl.getMousePosition();
-//         const mouse_pos = units.s2w(Vector2.init(rl_mouse_pos.x, rl_mouse_pos.y));
-//         const spring: *forcegenerator.StaticSpring = @ptrCast(@alignCast(self.spring.?.ptr));
-//
-//         if (rl.isMouseButtonPressed(.left)) {
-//             for (physics.bodies.items) |*body| {
-//                 if (body.type == .disc) {
-//                     const disc: *rigidbody.DiscBody = @ptrCast(@alignCast(body.ptr));
-//                     const len2 = nmath.length2sq(nmath.sub2(body.props.pos, mouse_pos));
-//                     if (len2 < disc.radius * disc.radius) {
-//                         // spring.body = body;
-//                         // spring.pos = mouse_pos;
-//                         // self.active = true;
-//                         return;
-//                     }
-//                 }
-//             }
-//
-//             self.active = false;
-//         }
-//
-//         spring.pos = mouse_pos;
-//
-//         if (!rl.isMouseButtonDown(.left)) {
-//             self.active = false;
-//         }
-//
-//         if (rl.isMouseButtonReleased(.left)) {
-//             self.active = false;
-//         }
-//     }
-// };
-
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
 
     const alloc = gpa.allocator();
 
-    const screen_width = 1280;
-    const screen_height = 720;
+    const screen_width = 1536;
+    const screen_height = 864;
+    // const screen_width = 1280;
+    // const screen_height = 720;
 
     var world = zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true);
     defer world.deinit();
@@ -157,14 +118,8 @@ pub fn main() !void {
             rl.drawText("paused", 5, 0, 64, rl.Color.white);
         }
 
-        rl.drawText(rl.textFormat("energy = %.0f", .{world.physics.getEnergy()}), 5, screen_height - 3 * 24, 24, rl.Color.white);
-        rl.drawText(rl.textFormat("dt = %.3f ms", .{DT * 1e3}), 5, screen_height - 2 * 24, 24, rl.Color.white);
-        rl.drawText(rl.textFormat("steps = %d", .{steps}), 5, screen_height - 24, 24, rl.Color.white);
+        const font_size = 16;
 
-        // var buf: [256]u8 = undefined;
-        // const str = try std.fmt.bufPrint(&buf, "{}", .{steps});
-        // const str_many_ptr: [*]const u8 = &str;
-        // // rl.drawText(@as([]const u8, str), 5, 64, 32, rl.Color.white);
-        // rl.drawText(str_many_ptr, 5, 64, 32, rl.Color.white);
+        rl.drawText(rl.textFormat("%.3f ms : steps = %d", .{ DT * 1e3, steps }), 5, screen_height - font_size, font_size, rl.Color.white);
     }
 }
