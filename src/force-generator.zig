@@ -149,8 +149,10 @@ pub const StaticSpring = struct {
         self.body = connected_body;
         self.pos = pos;
         self.stiffness = stiffness;
-        const rest_length = nmath.length2(nmath.sub2(connected_body.props.pos, pos));
-        self.rest_length = rest_length;
+        // FIXME: uncomment
+        // const rest_length = nmath.length2(nmath.sub2(connected_body.props.pos, pos));
+        // self.rest_length = rest_length;
+        self.rest_length = 0;
 
         return ForceGenerator{
             .type = .static_spring,
@@ -174,7 +176,7 @@ pub const StaticSpring = struct {
 
         if (len < 1e-3) return;
 
-        const F = len * self.stiffness;
+        const F = (len - self.rest_length) * self.stiffness;
 
         self.body.props.force.addmult(nmath.scale2(vec, 1 / len), F);
     }
