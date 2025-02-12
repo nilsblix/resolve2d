@@ -8,6 +8,7 @@ const Vector2 = nmath.Vector2;
 pub const ForceGenerators = enum {
     downwards_gravity,
     point_gravity,
+    static_spring,
 };
 
 pub const ForceGenerator = struct {
@@ -126,5 +127,68 @@ pub const PointGravity = struct {
             e += W;
         }
         return e;
+    }
+};
+
+pub const StaticSpring = struct {
+    const Self = @This();
+    const forcegenerator_vtable = ForceGenerator.VTable{
+        .deinit = Self.deinit,
+        .apply = Self.apply,
+        .energy = Self.energy,
+    };
+
+    body: *RigidBody,
+    pos: Vector2,
+    stiffness: f32,
+    rest_length: f32,
+
+    /// rest_length is calculated as the distance between pos and connected body.
+    pub fn init(alloc: Allocator, connected_body: *RigidBody, pos: Vector2, stiffness: f32) !ForceGenerator {
+        const self: *Self = try alloc.create(Self);
+        self.body = connected_body;
+        self.pos = pos;
+        self.stiffness = stiffness;
+        const rest_length = nmath.length2(nmath.sub2(connected_body.props.pos, pos));
+        self.rest_length = rest_length;
+
+        return ForceGenerator{
+            .type = .static_spring,
+            .ptr = self,
+            .vtable = Self.forcegenerator_vtable,
+        };
+    }
+
+    pub fn deinit(ptr: *anyopaque, alloc: Allocator) void {
+        const self: *Self = @ptrCast(@alignCast(ptr));
+        alloc.destroy(self);
+    }
+
+    pub fn apply(ptr: *anyopaque, bodies: std.ArrayList(RigidBody)) void {
+        _ = bodies;
+
+        const self: *Self = @ptrCast(@alignCast(ptr));
+
+        const vec = nmath.sub2(self.pos, self.body.props.pos);
+        const len = nmath.length2(vec);
+
+        if (len < 1e-3) return;
+
+        const F = len * self.stiffness;
+
+        self.body.props.force.addmult(nmath.scale2(vec, 1 / len), F);
+    }
+
+    pub fn energy(ptr: *anyopaque, bodies: std.ArrayList(RigidBody)) f32 {
+        _ = bodies;
+
+        const self: *Self = @ptrCast(@alignCast(ptr));
+
+        const vec = nmath.sub2(self.pos, self.body.props.pos);
+        const len2 = nmath.length2sq(vec);
+
+        if (len2 < 1e-3) return 0;
+
+        return 1 / 2 * self.stiffness * len2;
     }
 };

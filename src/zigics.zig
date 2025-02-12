@@ -125,26 +125,52 @@ pub const Renderer = struct {
 
                     rl.drawCircleV(vec, self.units.mult.w2s * rad, rl.Color.pink);
                 },
+                .static_spring => {
+                    const g: *fg_mod.StaticSpring = @ptrCast(@alignCast(gen.ptr));
+                    const screen_pos = self.units.w2s(g.pos);
+                    const vec = rl.Vector2.init(screen_pos.x, screen_pos.y);
+
+                    const body_pos = self.units.w2s(g.body.props.pos);
+                    const body_vec = rl.Vector2.init(body_pos.x, body_pos.y);
+
+                    // const rad = g.stiffness / 30;
+                    const rad = 0.1;
+                    if (debug_mode) {
+                        const inner = self.units.mult.w2s * (rad - 0.5 * Self.thickness);
+                        const outer = self.units.mult.w2s * (rad + 0.5 * Self.thickness);
+                        rl.drawRing(vec, inner, outer, 0, 360, Self.segment_resolution, rl.Color.sky_blue);
+                        rl.drawLineV(vec, body_vec, rl.Color.white);
+                        continue;
+                    }
+
+                    rl.drawLineV(vec, body_vec, rl.Color.white);
+                    rl.drawCircleV(vec, self.units.mult.w2s * rad, rl.Color.sky_blue);
+                },
             }
         }
         for (physics.bodies.items) |*body| {
             const screen_pos = self.units.w2s(body.props.pos);
-            const int_pos = nmath.toInt2(screen_pos);
-            _ = int_pos;
 
             switch (body.type) {
                 .disc => {
                     const b: *rb_mod.DiscBody = @ptrCast(@alignCast(body.ptr));
                     const rad = b.radius;
                     const vec = rl.Vector2.init(screen_pos.x, screen_pos.y);
+                    const rot_vec = Vector2.init(std.math.cos(body.props.angle), std.math.sin(body.props.angle));
+                    const rot_world = nmath.add2(nmath.scale2(rot_vec, b.radius), body.props.pos);
+                    const rot_screen = self.units.w2s(rot_world);
+                    const rl_rot_screen = rl.Vector2.init(rot_screen.x, rot_screen.y);
+
                     if (debug_mode) {
                         const inner = self.units.mult.w2s * (rad - 0.5 * Self.thickness);
                         const outer = self.units.mult.w2s * (rad + 0.5 * Self.thickness);
                         rl.drawRing(vec, inner, outer, 0, 360, Self.segment_resolution, rl.Color.green);
+                        rl.drawLineV(vec, rl_rot_screen, rl.Color.green);
                         continue;
                     }
 
                     rl.drawCircleV(vec, self.units.mult.w2s * rad, rl.Color.orange);
+                    rl.drawLineV(vec, rl_rot_screen, rl.Color.dark_purple);
                 },
             }
         }
