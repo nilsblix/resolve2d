@@ -60,46 +60,42 @@ pub const Units = struct {
 
     fn updateViewPort(self: *Self) void {
         const dims = Vector2.init(self.screen_size.width, self.screen_size.height);
-        const view = self.s2w(dims);
-        self.camera.viewport.width = view.x;
-        self.camera.viewport.height = view.y;
+        const world_view = nmath.scale2(dims, self.mult.s2w);
+        self.camera.viewport = Size{ .width = world_view.x, .height = world_view.y };
     }
 
     pub fn adjustCameraZoom(self: *Self, factor: f32, screen_pos: Vector2) void {
         const old_world_pos = self.s2w(screen_pos);
 
-        self.camera.zoom *= factor;
+        self.camera.zoom /= factor;
 
-        self.mult.w2s = self.screen_size.width / (self.default_world_size.width * self.camera.zoom);
-        self.mult.s2w = self.default_world_size.width / (self.screen_size.width * self.camera.zoom);
+        self.mult.w2s = (self.screen_size.width / self.default_world_size.width) / self.camera.zoom;
+        self.mult.s2w = (self.default_world_size.width / self.screen_size.width) * self.camera.zoom;
 
         const new_world_pos = self.s2w(screen_pos);
         const delta_world = nmath.sub2(new_world_pos, old_world_pos);
-        self.camera.pos.add(delta_world);
+        self.camera.pos.sub(delta_world);
 
         self.updateViewPort();
-
-        self.camera.pos.add(Vector2.init(self.camera.viewport.width / 2, self.camera.viewport.height / 2));
     }
 
     pub fn adjustCameraPos(self: *Self, delta: Vector2) void {
-        self.camera.pos.sub(nmath.scale2(delta, self.camera.zoom * self.camera.zoom));
-
-        self.updateViewPort();
+        // self.camera.pos.sub(nmath.scale2(delta, self.camera.zoom));
+        self.camera.pos.sub(delta);
     }
 
     /// Will flip y as world bottom-left is (0,0)
     pub fn w2s(self: Self, pos: Vector2) Vector2 {
-        const x = self.mult.w2s * (pos.x - self.camera.pos.x) / self.camera.zoom;
-        const y = self.screen_size.height - self.mult.w2s * (pos.y - self.camera.pos.y) / self.camera.zoom;
+        const x = self.mult.w2s * (pos.x - self.camera.pos.x);
+        const y = self.screen_size.height - self.mult.w2s * (pos.y - self.camera.pos.y);
 
         return Vector2.init(x, y);
     }
 
     /// Will flip y as world bottom-left is (0,0)
     pub fn s2w(self: Self, pos: Vector2) Vector2 {
-        const x = self.camera.zoom * pos.x * self.mult.s2w + self.camera.pos.x;
-        const y = self.camera.zoom * (self.screen_size.height - pos.y) * self.mult.s2w + self.camera.pos.y;
+        const x = pos.x * self.mult.s2w + self.camera.pos.x;
+        const y = (self.screen_size.height - pos.y) * self.mult.s2w + self.camera.pos.y;
         return Vector2.init(x, y);
     }
 
@@ -109,10 +105,35 @@ pub const Units = struct {
     }
 };
 
+test "mults should be inverses" {
+    var units = Units.init(.{ .width = 1000, .height = 500 }, 20);
+
+    // units.adjustCameraPos(Vector2.init(1, 0.5));
+    units.adjustCameraZoom(1.3, Vector2.init(-1, 2));
+
+    const val = 3.1415;
+    const ret = units.mult.s2w * units.mult.w2s * val;
+
+    std.debug.print("mults should be inverses \n", .{});
+    std.debug.print("     val = {}\n", .{val});
+    std.debug.print("     ret = {}\n", .{ret});
+
+    try std.testing.expect(ret == val);
+}
+
 test "s2w and w2s should be inverses" {
     var units = Units.init(.{ .width = 1000, .height = 500 }, 20);
+
+    // units.adjustCameraPos(Vector2.init(1, 0.5));
+    units.adjustCameraZoom(1.3, Vector2.init(-1, 2));
+
     const vec = Vector2.init(23, 34);
     const ret = units.s2w(units.w2s(vec));
+
+    std.debug.print("transformations should be inverses \n", .{});
+    std.debug.print("     vec = {}\n", .{vec});
+    std.debug.print("     ret = {}\n", .{ret});
+
     try std.testing.expect(nmath.equals2(ret, vec));
 }
 
@@ -173,6 +194,17 @@ pub const Renderer = struct {
             },
             .body_options = BodyOptions.init(units, rl.Color.red, 0.02),
         };
+    }
+
+    pub fn adjustCameraZoom(self: *Self, factor: f32, screen_pos: Vector2) void {
+        self.units.adjustCameraZoom(factor, screen_pos);
+
+        self.spring_options.segment_width.scr = self.units.mult.w2s * self.spring_options.segment_width.world;
+        self.body_options.edge_thickness.scr = self.units.mult.w2s * self.body_options.edge_thickness.world;
+    }
+
+    pub fn adjustCameraPos(self: *Self, delta: Vector2) void {
+        self.units.adjustCameraPos(delta);
     }
 
     pub fn render(self: *Self, physics: Physics) void {

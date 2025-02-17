@@ -98,6 +98,22 @@ pub const World = struct {
 
     pub fn render(self: *Self) void {
         if (self.renderer) |*rend| {
+            const ext = 0.5;
+            const left = rend.units.w2s(Vector2.init(-ext, 0));
+            const top = rend.units.w2s(Vector2.init(0, ext));
+            const bottom = rend.units.w2s(Vector2.init(0, -ext));
+            const right = rend.units.w2s(Vector2.init(ext, 0));
+
+            const rl_left = rl.Vector2.init(left.x, left.y);
+            const rl_top = rl.Vector2.init(top.x, top.y);
+            const rl_bottom = rl.Vector2.init(bottom.x, bottom.y);
+            const rl_right = rl.Vector2.init(right.x, right.y);
+
+            const width = rend.units.mult.w2s * 0.02;
+
+            rl.drawLineEx(rl_left, rl_right, width, rl.Color.red);
+            rl.drawLineEx(rl_bottom, rl_top, width, rl.Color.red);
+
             rend.render(self.physics);
         }
     }

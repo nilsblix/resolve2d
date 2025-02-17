@@ -64,8 +64,6 @@ pub fn main() !void {
 
     var mouse_spring = MouseSpring{};
 
-    world.physics.bodies.items[0].props.ang_momentum = 1;
-
     const static_spring = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[0], Vector2.init(3, 5), .{}, 20.0);
     try world.physics.force_generators.append(static_spring);
 
@@ -118,16 +116,14 @@ pub fn main() !void {
             try mouse_spring.update(alloc, rend.units, &world.physics);
         }
 
-        std.debug.print("units camera: {}\n\n", .{world.renderer.?.units.camera});
-
         const delta_wheel = rl.getMouseWheelMove();
         if (delta_wheel != 0) {
-            world.renderer.?.units.adjustCameraZoom(std.math.exp(delta_wheel / 100), mouse_pos);
+            world.renderer.?.adjustCameraZoom(std.math.exp(delta_wheel / 100), screen_mouse_pos);
         }
 
         if (rl.isMouseButtonDown(.left)) {
             // const mouse_delta = nmath.sub2(mouse_pos, prev_mouse_pos);
-            world.renderer.?.units.adjustCameraPos(world_delta_mouse_pos);
+            world.renderer.?.adjustCameraPos(world_delta_mouse_pos);
         }
 
         if (rl.isKeyPressed(.space)) {
@@ -141,6 +137,9 @@ pub fn main() !void {
 
         rl.clearBackground(.{ .r = 18, .g = 18, .b = 18, .a = 1 });
         world.render();
+
+        const temp = world.renderer.?.units.w2s(mouse_pos);
+        rl.drawCircleV(rl.Vector2.init(temp.x, temp.y), 10.0, rl.Color.green);
 
         if (!simulating) {
             rl.drawText("paused", 5, 0, 64, rl.Color.white);
