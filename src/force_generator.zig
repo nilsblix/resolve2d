@@ -143,15 +143,17 @@ pub const StaticSpring = struct {
     };
 
     body: *RigidBody,
+    r: Vector2,
     pos: Vector2,
     stiffness: f32,
     rest_length: f32,
 
     /// rest_length is calculated as the distance between pos and connected body.
-    pub fn init(alloc: Allocator, connected_body: *RigidBody, pos: Vector2, stiffness: f32) !ForceGenerator {
+    pub fn init(alloc: Allocator, connected_body: *RigidBody, pos: Vector2, r: Vector2, stiffness: f32) !ForceGenerator {
         const self: *Self = try alloc.create(Self);
         self.body = connected_body;
         self.pos = pos;
+        self.r = r;
         self.stiffness = stiffness;
         // FIXME: uncomment
         // const rest_length = nmath.length2(nmath.sub2(connected_body.props.pos, pos));
@@ -175,14 +177,21 @@ pub const StaticSpring = struct {
 
         const self: *Self = @ptrCast(@alignCast(ptr));
 
-        const vec = nmath.sub2(self.pos, self.body.props.pos);
+        const rotated_r = nmath.rotate2(self.r, self.body.props.angle);
+        const applied_pos = nmath.add2(rotated_r, self.body.props.pos);
+
+        const vec = nmath.sub2(self.pos, applied_pos);
         const len = nmath.length2(vec);
 
         if (len < 1e-3) return;
 
         const F = (len - self.rest_length) * self.stiffness;
 
-        self.body.props.force.addmult(nmath.scale2(vec, 1 / len), F);
+        const vec_normal = nmath.scale2(vec, 1 / len);
+        const force_vec = nmath.scale2(vec_normal, F);
+
+        self.body.props.force.add(force_vec);
+        self.body.props.torque += nmath.cross2(rotated_r, force_vec);
     }
 
     pub fn energy(ptr: *anyopaque, bodies: std.ArrayList(RigidBody)) f32 {

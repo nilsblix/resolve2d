@@ -84,6 +84,15 @@ pub fn toInt2(a: Vector2) struct { x: i32, y: i32 } {
     return .{ .x = @intFromFloat(a.x), .y = @intFromFloat(a.y) };
 }
 
+pub fn rotate2(a: Vector2, angle: f32) Vector2 {
+    const cos = std.math.cos(angle);
+    const sin = std.math.sin(angle);
+    return .{
+        .x = a.x * cos - a.y * sin,
+        .y = a.x * sin + a.y * cos,
+    };
+}
+
 test "vector2" {
     const a = Vector2.init(2, 3);
     const b = Vector2.init(4, 5);

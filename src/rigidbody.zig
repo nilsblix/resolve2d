@@ -13,6 +13,7 @@ pub const RigidBody = struct {
     pub const VTable = struct {
         deinit: *const fn (ptr: *anyopaque, alloc: Allocator) void,
         print: *const fn (ptr: *anyopaque, props: Props) void,
+        isInside: *const fn (ptr: *anyopaque, props: Props, pos: Vector2) bool,
     };
 
     pub const Props = struct {
@@ -42,6 +43,10 @@ pub const RigidBody = struct {
     pub fn print(self: Self) void {
         self.vtable.print(self.ptr, self.props);
     }
+
+    pub fn isInside(self: Self, pos: Vector2) bool {
+        return self.vtable.isInside(self.ptr, self.props, pos);
+    }
 };
 
 pub const DiscBody = struct {
@@ -50,6 +55,7 @@ pub const DiscBody = struct {
     const rigidbody_vtable = RigidBody.VTable{
         .deinit = DiscBody.deinit,
         .print = DiscBody.print,
+        .isInside = DiscBody.isInside,
     };
 
     pub const name: []const u8 = "DiscBody";
@@ -86,5 +92,17 @@ pub const DiscBody = struct {
         std.debug.print("DiscBody =>\n", .{});
         std.debug.print("     Props = {}\n", .{props});
         std.debug.print("     Other = {}\n", .{self});
+    }
+
+    pub fn isInside(ptr: *anyopaque, props: RigidBody.Props, pos: Vector2) bool {
+        const self: *Self = @ptrCast(@alignCast(ptr));
+
+        const dist2 = nmath.length2sq(nmath.sub2(props.pos, pos));
+
+        if (dist2 < self.radius * self.radius) {
+            return true;
+        }
+
+        return false;
     }
 };

@@ -2,7 +2,7 @@ const std = @import("std");
 const rl = @import("raylib");
 const zigics = @import("zigics.zig");
 const rigidbody = @import("rigidbody.zig");
-const forcegenerator = @import("force-generator.zig");
+const forcegenerator = @import("force_generator.zig");
 const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
 const Allocator = std.mem.Allocator;
@@ -16,28 +16,26 @@ const MouseSpring = struct {
         const rl_pos = rl.getMousePosition();
         const mouse_pos = units.s2w(Vector2.init(rl_pos.x, rl_pos.y));
 
-        if (!self.active and rl.isMouseButtonPressed(.left)) {
+        if (!self.active and rl.isKeyPressed(.v)) {
             for (physics.bodies.items) |*body| {
-                if (body.type == .disc) {
-                    const disc: *rigidbody.DiscBody = @ptrCast(@alignCast(body.ptr));
-                    const len2 = nmath.length2sq(nmath.sub2(body.props.pos, mouse_pos));
-                    if (len2 < disc.radius * disc.radius) {
-                        const spring = try forcegenerator.StaticSpring.init(alloc, body, mouse_pos, 20.0);
-                        try physics.force_generators.append(spring);
-                        self.active = true;
-                        return;
-                    }
+                if (body.isInside(mouse_pos)) {
+                    const r_rotated = nmath.sub2(mouse_pos, body.props.pos);
+                    const r = nmath.rotate2(r_rotated, -body.props.angle);
+                    const spring = try forcegenerator.StaticSpring.init(alloc, body, mouse_pos, r, 20.0);
+                    try physics.force_generators.append(spring);
+                    self.active = true;
+                    return;
                 }
             }
         }
 
-        if (self.active and rl.isMouseButtonDown(.left)) {
+        if (self.active and rl.isKeyDown(.v)) {
             const gen = physics.force_generators.items[physics.force_generators.items.len - 1];
             const spring: *forcegenerator.StaticSpring = @ptrCast(@alignCast(gen.ptr));
             spring.pos = mouse_pos;
         }
 
-        if (self.active and rl.isMouseButtonReleased(.left)) {
+        if (self.active and rl.isKeyReleased(.v)) {
             var spring = physics.force_generators.popOrNull();
             spring.?.deinit(alloc);
             self.active = false;
@@ -51,28 +49,30 @@ pub fn main() !void {
 
     const alloc = gpa.allocator();
 
-    const screen_width = 1536;
-    const screen_height = 864;
-    // const screen_width = 1280;
-    // const screen_height = 720;
+    // const screen_width = 1536;
+    // const screen_height = 864;
+    const screen_width = 1280;
+    const screen_height = 720;
 
     var world = zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true);
     defer world.deinit();
 
-    _ = try world.physics.makeDiscBody(Vector2.init(5, 5), 2.0, 0.2);
-    _ = try world.physics.makeDiscBody(Vector2.init(3, 3), 2.0, 0.2);
+    // world.renderer.?.units.camera.zoom = 5.0;
+
+    _ = try world.physics.makeDiscBody(Vector2.init(5, 5), 2.0, 0.6);
+    _ = try world.physics.makeDiscBody(Vector2.init(3, 3), 2.0, 0.4);
 
     var mouse_spring = MouseSpring{};
 
     world.physics.bodies.items[0].props.ang_momentum = 1;
 
-    const static_spring = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[0], Vector2.init(3, 5), 20.0);
+    const static_spring = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[0], Vector2.init(3, 5), .{}, 20.0);
     try world.physics.force_generators.append(static_spring);
 
-    const static_spring3 = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[1], Vector2.init(3, 5), 20.0);
+    const static_spring3 = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[1], Vector2.init(3, 5), .{}, 20.0);
     try world.physics.force_generators.append(static_spring3);
 
-    const static_spring2 = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[0], Vector2.init(8, 5), 20.0);
+    const static_spring2 = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[0], Vector2.init(8, 5), .{}, 20.0);
     try world.physics.force_generators.append(static_spring2);
 
     const gravity = try forcegenerator.DownwardsGravity.init(alloc, 20);
@@ -87,19 +87,47 @@ pub fn main() !void {
     rl.initWindow(screen_width, screen_height, "zigics");
     defer rl.closeWindow();
 
-    const HZ: i32 = 120;
+    const HZ: i32 = 60;
     const DT: f32 = 1 / @as(f32, HZ);
     rl.setTargetFPS(HZ);
 
     var simulating: bool = false;
     var steps: u32 = 0;
 
+    var screen_prev_mouse_pos: Vector2 = .{};
+    var screen_mouse_pos: Vector2 = .{};
+    var prev_mouse_pos: Vector2 = .{};
+    var mouse_pos: Vector2 = .{};
+
     while (!rl.windowShouldClose()) {
+        screen_prev_mouse_pos = screen_mouse_pos;
+        prev_mouse_pos = mouse_pos;
+
+        const rl_pos = rl.getMousePosition();
+        screen_mouse_pos = Vector2.init(rl_pos.x, rl_pos.y);
+        mouse_pos = world.renderer.?.units.s2w(Vector2.init(screen_mouse_pos.x, screen_mouse_pos.y));
+
+        const delta_screen = nmath.sub2(screen_mouse_pos, screen_prev_mouse_pos);
+        var world_delta_mouse_pos = nmath.scale2(delta_screen, world.renderer.?.units.mult.s2w);
+        world_delta_mouse_pos.y *= -1;
+
         rl.beginDrawing();
         defer rl.endDrawing();
 
         if (world.renderer) |rend| {
             try mouse_spring.update(alloc, rend.units, &world.physics);
+        }
+
+        std.debug.print("units camera: {}\n\n", .{world.renderer.?.units.camera});
+
+        const delta_wheel = rl.getMouseWheelMove();
+        if (delta_wheel != 0) {
+            world.renderer.?.units.adjustCameraZoom(std.math.exp(delta_wheel / 100), mouse_pos);
+        }
+
+        if (rl.isMouseButtonDown(.left)) {
+            // const mouse_delta = nmath.sub2(mouse_pos, prev_mouse_pos);
+            world.renderer.?.units.adjustCameraPos(world_delta_mouse_pos);
         }
 
         if (rl.isKeyPressed(.space)) {
@@ -112,7 +140,7 @@ pub fn main() !void {
         }
 
         rl.clearBackground(.{ .r = 18, .g = 18, .b = 18, .a = 1 });
-        world.render(false);
+        world.render();
 
         if (!simulating) {
             rl.drawText("paused", 5, 0, 64, rl.Color.white);
