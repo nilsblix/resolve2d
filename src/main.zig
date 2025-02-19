@@ -143,9 +143,21 @@ pub fn main() !void {
         const b1 = world.physics.bodies.items[0];
         const b2 = world.physics.bodies.items[1];
         var iter = b1.normal_iter;
-        while (iter.next(b1, b2)) |normal| {
-            const start = world.renderer.?.units.w2s(b1.props.pos);
-            const end = world.renderer.?.units.w2s(nmath.add2(b1.props.pos, normal));
+        while (iter.next(b1, b2)) |edge| {
+            const normal = edge.dir;
+            const start = world.renderer.?.units.w2s(edge.middle);
+            const end = world.renderer.?.units.w2s(nmath.add2(edge.middle, normal));
+            const rl_s = rl.Vector2.init(start.x, start.y);
+            const rl_e = rl.Vector2.init(end.x, end.y);
+            const m = world.renderer.?.units.mult.w2s;
+            rl.drawLineEx(rl_s, rl_e, 0.04 * m, rl.Color.green);
+        }
+
+        iter = b2.normal_iter;
+        while (iter.next(b2, b1)) |edge| {
+            const normal = edge.dir;
+            const start = world.renderer.?.units.w2s(edge.middle);
+            const end = world.renderer.?.units.w2s(nmath.add2(edge.middle, normal));
             const rl_s = rl.Vector2.init(start.x, start.y);
             const rl_e = rl.Vector2.init(end.x, end.y);
             const m = world.renderer.?.units.mult.w2s;

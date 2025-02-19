@@ -8,12 +8,24 @@ pub const RigidBodies = enum {
     rectangle,
 };
 
+const Edge = struct {
+    const Points = struct {
+        a: Vector2,
+        b: Vector2,
+    };
+    dir: Vector2,
+    // FIXME: better naming for the point att which the normal is applied?? in rect this is
+    // the avg between the two lines, used primarily for rendering but may have other uses.
+    middle: Vector2,
+    edge: ?Points = null,
+};
+
 const EdgeNormalIterator = struct {
     num_iters: usize,
     iter_performed: usize = 0,
 
     const Self = @This();
-    pub fn next(self: *Self, body: RigidBody, other: RigidBody) ?Vector2 {
+    pub fn next(self: *Self, body: RigidBody, other: RigidBody) ?Edge {
         if (self.iter_performed < self.num_iters) {
             const ret = body.vtable.getNormal(body.ptr, body.props, other, self.iter_performed);
             self.iter_performed += 1;
@@ -31,7 +43,7 @@ pub const RigidBody = struct {
         deinit: *const fn (ptr: *anyopaque, alloc: Allocator) void,
         isInside: *const fn (ptr: *anyopaque, props: Props, pos: Vector2) bool,
         closestPoint: *const fn (ptr: *anyopaque, props: Props, pos: Vector2) Vector2,
-        getNormal: *const fn (ptr: *anyopaque, props: RigidBody.Props, body: RigidBody, iter: usize) ?Vector2,
+        getNormal: *const fn (ptr: *anyopaque, props: RigidBody.Props, body: RigidBody, iter: usize) ?Edge,
         projectAlongNormal: *const fn (ptr: *anyopaque, props: Props, normal: Vector2) [2]f32,
     };
 
@@ -158,12 +170,13 @@ pub const DiscBody = struct {
         return nmath.addmult2(props.pos, normal, self.radius);
     }
 
-    pub fn getNormal(ptr: *anyopaque, props: RigidBody.Props, body: RigidBody, iter: usize) ?Vector2 {
-        _ = ptr;
+    pub fn getNormal(ptr: *anyopaque, props: RigidBody.Props, body: RigidBody, iter: usize) ?Edge {
         _ = iter;
+        const self: *Self = @ptrCast(@alignCast(ptr));
+
         const closest = body.closestPoint(props.pos);
         const normal = nmath.normalize2(nmath.sub2(closest, props.pos));
-        return normal;
+        return Edge{ .dir = normal, .middle = nmath.addmult2(props.pos, normal, self.radius) };
     }
 
     pub fn projectAlongNormal(ptr: *anyopaque, props: RigidBody.Props, normal: Vector2) [2]f32 {
@@ -238,9 +251,12 @@ pub const RectangleBody = struct {
         const self: *Self = @ptrCast(@alignCast(ptr));
 
         const pos_local = nmath.sub2(pos, props.pos);
-        const a = nmath.rotate2(pos_local, -props.angle);
+        const r = nmath.rotate2(pos_local, -props.angle);
 
-        if (a.x > -self.width / 2 and a.x < self.width / 2 and a.y > self.height / 2 and a.y < self.height / 2) return true;
+        const w = self.width / 2;
+        const h = self.height / 2;
+
+        if (r.x > -w and r.x < w and r.y > -h and r.y < h) return true;
 
         return false;
     }
@@ -251,20 +267,19 @@ pub const RectangleBody = struct {
         var best_dist2: f32 = undefined;
         var best_pos: Vector2 = undefined;
 
-        for (self.local_vertices) |vert| {
-            const r = nmath.rotate2(vert, props.angle);
-            const world = nmath.add2(r, props.pos);
-            const dist2 = nmath.length2sq(nmath.sub2(world, pos));
+        const world_vertices = self.getWorldVertices(props);
+        for (world_vertices) |vert| {
+            const dist2 = nmath.length2sq(nmath.sub2(vert, pos));
             if (dist2 < best_dist2 or best_dist2 == undefined) {
                 best_dist2 = dist2;
-                best_pos = world;
+                best_pos = vert;
             }
         }
 
         return best_pos;
     }
 
-    pub fn getNormal(ptr: *anyopaque, props: RigidBody.Props, body: RigidBody, iter: usize) ?Vector2 {
+    pub fn getNormal(ptr: *anyopaque, props: RigidBody.Props, body: RigidBody, iter: usize) ?Edge {
         _ = body;
         const self: *Self = @ptrCast(@alignCast(ptr));
 
@@ -282,7 +297,9 @@ pub const RectangleBody = struct {
         // FIXME: use 1/width or 1/height or something based on iter
         const dir = nmath.normalize2(nmath.sub2(a2, a1));
 
-        return nmath.rotate90clockwise(dir);
+        const avg = nmath.scale2(nmath.add2(a1, a2), 0.5);
+
+        return Edge{ .dir = nmath.rotate90counterclockwise(dir), .middle = avg, .edge = .{ .a = a1, .b = a2 } };
     }
 
     pub fn projectAlongNormal(ptr: *anyopaque, props: RigidBody.Props, normal: Vector2) [2]f32 {

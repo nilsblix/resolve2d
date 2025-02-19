@@ -101,6 +101,10 @@ pub fn rotate90clockwise(a: Vector2) Vector2 {
     return Vector2.init(a.y, -a.x);
 }
 
+pub fn rotate90counterclockwise(a: Vector2) Vector2 {
+    return Vector2.init(-a.y, a.x);
+}
+
 test "vector2" {
     const a = Vector2.init(2, 3);
     const b = Vector2.init(4, 5);
