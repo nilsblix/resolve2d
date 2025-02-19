@@ -15,7 +15,6 @@ const EdgeNormalIterator = struct {
     const Self = @This();
     pub fn next(self: *Self, body: RigidBody, other: RigidBody) ?Vector2 {
         if (self.iter_performed < self.num_iters) {
-            std.debug.print("going to get some normals. iter = {}\n\n", .{self.iter_performed});
             const ret = body.vtable.getNormal(body.ptr, body.props, other, self.iter_performed);
             self.iter_performed += 1;
             return ret;

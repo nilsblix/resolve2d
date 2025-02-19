@@ -253,8 +253,8 @@ pub const Renderer = struct {
         const rot_screen = self.units.w2s(rot_world);
         const rl_rot_screen = rl.Vector2.init(rot_screen.x, rot_screen.y);
 
-        const inner = self.units.mult.w2s * (rad - 0.5 * self.body_options.edge_thickness.world);
-        const outer = self.units.mult.w2s * (rad + 0.5 * self.body_options.edge_thickness.world);
+        const inner = self.units.mult.w2s * (rad - self.body_options.edge_thickness.world);
+        const outer = self.units.mult.w2s * rad;
         rl.drawRing(vec, 0, inner, 0, 360, Self.RING_RES, self.body_options.inner_color);
         rl.drawRing(vec, inner, outer, 0, 360, Self.RING_RES, self.body_options.color);
         rl.drawLineEx(vec, rl_rot_screen, self.body_options.edge_thickness.scr, self.body_options.color);
@@ -263,33 +263,66 @@ pub const Renderer = struct {
     pub fn rectanglebody(self: *Self, body: *rb_mod.RigidBody) void {
         const rect: *rb_mod.RectangleBody = @ptrCast(@alignCast(body.ptr));
 
-        const verts = rect.getWorldVertices(body.props);
-
-        var rlv: [4]rl.Vector2 = undefined;
-        for (verts, 0..) |vert, i| {
-            const screen = self.units.w2s(vert);
-            const rls = rlv2(screen);
-            rlv[i] = rls;
-        }
-
-        for (rlv, 0..) |v, i| {
-            const next = rlv[if (i == 3) 0 else i + 1];
-            rl.drawLineEx(v, next, self.body_options.edge_thickness.scr, self.body_options.color);
-        }
-
         const edge = self.body_options.edge_thickness.world;
-        for (rect.local_vertices, 0..) |vert, i| {
-            var v = vert;
-            v.x += if (v.x > 0) -edge else edge;
-            v.y += if (v.y > 0) -edge else edge;
-            const r = nmath.rotate2(v, body.props.angle);
-            const world = nmath.add2(r, body.props.pos);
-            const screen = self.units.w2s(world);
-            rlv[i] = rlv2(screen);
+        var outer_verts: [4]Vector2 = undefined;
+        var inner_verts: [4]rl.Vector2 = undefined;
+
+        const half_edge = edge / 2;
+
+        for (rect.local_vertices, 0..) |vert, idx| {
+            var v1 = vert;
+            v1.x += if (v1.x > 0) -half_edge else half_edge;
+            v1.y += if (v1.y > 0) -half_edge else half_edge;
+
+            var vi = v1;
+            vi.x += if (vi.x > 0) -half_edge else half_edge;
+            vi.y += if (vi.y > 0) -half_edge else half_edge;
+
+            outer_verts[idx] = v1;
+
+            const r = nmath.rotate2(vi, body.props.angle);
+            const a = nmath.add2(r, body.props.pos);
+            const rlscreen = rlv2(self.units.w2s(a));
+            inner_verts[idx] = rlscreen;
         }
 
-        rl.drawTriangle(rlv[0], rlv[2], rlv[1], self.body_options.inner_color);
-        rl.drawTriangle(rlv[0], rlv[3], rlv[2], self.body_options.inner_color);
+        for (0..4) |idx| {
+            var v1 = outer_verts[idx];
+            var v2 = outer_verts[if (idx == 3) 0 else idx + 1];
+
+            switch (idx) {
+                0 => {
+                    v1.y += half_edge;
+                    v2.y -= half_edge;
+                },
+                1 => {
+                    v1.x -= half_edge;
+                    v2.x += half_edge;
+                },
+                2 => {
+                    v1.y -= half_edge;
+                    v2.y += half_edge;
+                },
+                3 => {
+                    v1.x += half_edge;
+                    v2.x -= half_edge;
+                },
+                else => unreachable,
+            }
+
+            var r = nmath.rotate2(v1, body.props.angle);
+            var a = nmath.add2(r, body.props.pos);
+            const rlscreen1 = rlv2(self.units.w2s(a));
+
+            r = nmath.rotate2(v2, body.props.angle);
+            a = nmath.add2(r, body.props.pos);
+            const rlscreen2 = rlv2(self.units.w2s(a));
+
+            rl.drawLineEx(rlscreen1, rlscreen2, self.body_options.edge_thickness.scr, self.body_options.color);
+        }
+
+        rl.drawTriangle(inner_verts[0], inner_verts[2], inner_verts[1], self.body_options.inner_color);
+        rl.drawTriangle(inner_verts[0], inner_verts[3], inner_verts[2], self.body_options.inner_color);
     }
 };
 

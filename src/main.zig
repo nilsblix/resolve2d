@@ -66,13 +66,13 @@ pub fn main() !void {
 
     var mouse_spring = MouseSpring{};
 
-    const static_spring = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[0], Vector2.init(3, 5), .{}, 20.0);
+    const static_spring = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[0], Vector2.init(3, 5), Vector2.init(-0.6, 0), 20.0);
     try world.physics.force_generators.append(static_spring);
 
-    const static_spring3 = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[1], Vector2.init(3, 5), Vector2.init(-0.25, 0), 20.0);
+    const static_spring3 = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[1], Vector2.init(3, 5), Vector2.init(-0.5, 0.25), 20.0);
     try world.physics.force_generators.append(static_spring3);
 
-    const static_spring2 = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[0], Vector2.init(8, 5), .{}, 20.0);
+    const static_spring2 = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[0], Vector2.init(8, 5), Vector2.init(0.6, 0), 20.0);
     try world.physics.force_generators.append(static_spring2);
 
     const gravity = try forcegenerator.DownwardsGravity.init(alloc, 20);
