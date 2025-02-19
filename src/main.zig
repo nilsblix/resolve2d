@@ -59,15 +59,17 @@ pub fn main() !void {
 
     // world.renderer.?.units.camera.zoom = 5.0;
 
-    _ = try world.physics.makeDiscBody(Vector2.init(5, 5), 2.0, 0.6);
-    _ = try world.physics.makeDiscBody(Vector2.init(3, 3), 2.0, 0.4);
+    try world.physics.makeDiscBody(Vector2.init(5, 5), 2.0, 0.6);
+    // _ = try world.physics.makeDiscBody(Vector2.init(3, 3), 2.0, 0.4);
+    try world.physics.makeRectangleBody(Vector2.init(3, 3), 2.0, 1.0, 0.5);
+    world.physics.bodies.items[1].props.ang_momentum = 1;
 
     var mouse_spring = MouseSpring{};
 
     const static_spring = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[0], Vector2.init(3, 5), .{}, 20.0);
     try world.physics.force_generators.append(static_spring);
 
-    const static_spring3 = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[1], Vector2.init(3, 5), .{}, 20.0);
+    const static_spring3 = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[1], Vector2.init(3, 5), Vector2.init(-0.25, 0), 20.0);
     try world.physics.force_generators.append(static_spring3);
 
     const static_spring2 = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[0], Vector2.init(8, 5), .{}, 20.0);

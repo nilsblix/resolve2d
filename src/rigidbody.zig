@@ -15,10 +15,12 @@ const EdgeNormalIterator = struct {
     const Self = @This();
     pub fn next(self: *Self, body: RigidBody, other: RigidBody) ?Vector2 {
         if (self.iter_performed < self.num_iters) {
+            std.debug.print("going to get some normals. iter = {}\n\n", .{self.iter_performed});
             const ret = body.vtable.getNormal(body.ptr, body.props, other, self.iter_performed);
             self.iter_performed += 1;
             return ret;
         }
+        self.iter_performed = 0;
         return null;
     }
 };
@@ -30,7 +32,6 @@ pub const RigidBody = struct {
         deinit: *const fn (ptr: *anyopaque, alloc: Allocator) void,
         isInside: *const fn (ptr: *anyopaque, props: Props, pos: Vector2) bool,
         closestPoint: *const fn (ptr: *anyopaque, props: Props, pos: Vector2) Vector2,
-
         getNormal: *const fn (ptr: *anyopaque, props: RigidBody.Props, body: RigidBody, iter: usize) ?Vector2,
         projectAlongNormal: *const fn (ptr: *anyopaque, props: Props, normal: Vector2) [2]f32,
     };
@@ -71,7 +72,34 @@ pub const RigidBody = struct {
     pub fn projectAlongNormal(self: Self, normal: Vector2) [2]f32 {
         return self.vtable.projectAlongNormal(self.ptr, self.props, normal);
     }
+
+    pub fn localToWorld(self: Self, pos: Vector2) Vector2 {
+        const r = nmath.rotate2(pos, self.props.angle);
+        const ret = nmath.add2(r, self.props.pos);
+        return ret;
+    }
+
+    pub fn worldToLocal(self: Self, pos: Vector2) Vector2 {
+        const r = nmath.sub2(pos, self.props.pos);
+        const ret = nmath.rotate2(r, -self.props.angle);
+        return ret;
+    }
 };
+
+test "local to world and inverses" {
+    const WORLD = Vector2.init(3, 8.2);
+
+    const rig_pos = Vector2.init(2, 3);
+    const angle = 0.4;
+
+    var r = nmath.sub2(WORLD, rig_pos);
+    const local = nmath.rotate2(r, -angle);
+
+    r = nmath.rotate2(local, angle);
+    const RET = nmath.add2(r, rig_pos);
+
+    try std.testing.expect(nmath.equals2(WORLD, RET));
+}
 
 pub const DiscBody = struct {
     radius: f32,
@@ -150,6 +178,8 @@ pub const DiscBody = struct {
 pub const RectangleBody = struct {
     width: f32,
     height: f32,
+    // technically unneccesary but simplifies life.
+    local_vertices: [4]Vector2,
 
     const rigidbody_vtable = RigidBody.VTable{
         .deinit = RectangleBody.deinit,
@@ -166,6 +196,10 @@ pub const RectangleBody = struct {
         self.width = width;
         self.height = height;
 
+        const w = width / 2;
+        const h = height / 2;
+        self.local_vertices = [4]Vector2{ Vector2.init(-w, -h), Vector2.init(-w, h), Vector2.init(w, h), Vector2.init(w, -h) };
+
         return RigidBody{
             .props = .{
                 .pos = pos,
@@ -175,9 +209,9 @@ pub const RectangleBody = struct {
                 .ang_momentum = 0,
                 .torque = 0,
                 .mass = mass,
-                .inertia = (1 / 12) * mass * (width * width + height * height),
+                .inertia = mass * (width * width + height * height) / 12,
             },
-            .normal_iter = EdgeNormalIterator{ .num_iters = 1 },
+            .normal_iter = EdgeNormalIterator{ .num_iters = 4 },
             .type = RigidBodies.rectangle,
             .ptr = self,
             .vtable = RectangleBody.rigidbody_vtable,
@@ -189,36 +223,84 @@ pub const RectangleBody = struct {
         alloc.destroy(self);
     }
 
+    pub fn getWorldVertices(self: *Self, props: RigidBody.Props) [4]Vector2 {
+        var ret: [4]Vector2 = undefined;
+
+        for (self.local_vertices, 0..) |vert, idx| {
+            const r = nmath.rotate2(vert, props.angle);
+            const world = nmath.add2(r, props.pos);
+            ret[idx] = world;
+        }
+
+        return ret;
+    }
+
     pub fn isInside(ptr: *anyopaque, props: RigidBody.Props, pos: Vector2) bool {
         const self: *Self = @ptrCast(@alignCast(ptr));
 
-        const dist2 = nmath.length2sq(nmath.sub2(props.pos, pos));
+        const pos_local = nmath.sub2(pos, props.pos);
+        const a = nmath.rotate2(pos_local, -props.angle);
 
-        if (dist2 < self.radius * self.radius) {
-            return true;
-        }
+        if (a.x > -self.width / 2 and a.x < self.width / 2 and a.y > self.height / 2 and a.y < self.height / 2) return true;
 
         return false;
     }
 
     pub fn closestPoint(ptr: *anyopaque, props: RigidBody.Props, pos: Vector2) Vector2 {
         const self: *Self = @ptrCast(@alignCast(ptr));
-        const normal = nmath.normalize2(nmath.sub2(pos, props.pos));
-        return nmath.addmult2(props.pos, normal, self.radius);
+
+        var best_dist2: f32 = undefined;
+        var best_pos: Vector2 = undefined;
+
+        for (self.local_vertices) |vert| {
+            const r = nmath.rotate2(vert, props.angle);
+            const world = nmath.add2(r, props.pos);
+            const dist2 = nmath.length2sq(nmath.sub2(world, pos));
+            if (dist2 < best_dist2 or best_dist2 == undefined) {
+                best_dist2 = dist2;
+                best_pos = world;
+            }
+        }
+
+        return best_pos;
     }
 
     pub fn getNormal(ptr: *anyopaque, props: RigidBody.Props, body: RigidBody, iter: usize) ?Vector2 {
-        _ = ptr;
-        _ = iter;
-        const closest = body.closestPoint(props.pos);
-        const normal = nmath.normalize2(nmath.sub2(closest, props.pos));
-        return normal;
+        _ = body;
+        const self: *Self = @ptrCast(@alignCast(ptr));
+
+        const next_iter = if (iter == 3) 0 else iter + 1;
+
+        const vert = self.local_vertices[iter];
+        const next_vert = self.local_vertices[next_iter];
+
+        const r1 = nmath.rotate2(vert, props.angle);
+        const a1 = nmath.add2(r1, props.pos);
+
+        const r2 = nmath.rotate2(next_vert, props.angle);
+        const a2 = nmath.add2(r2, props.pos);
+
+        // FIXME: use 1/width or 1/height or something based on iter
+        const dir = nmath.normalize2(nmath.sub2(a2, a1));
+
+        return nmath.rotate90clockwise(dir);
     }
 
     pub fn projectAlongNormal(ptr: *anyopaque, props: RigidBody.Props, normal: Vector2) [2]f32 {
         const self: *Self = @ptrCast(@alignCast(ptr));
-        const middle = nmath.dot2(props.pos, normal);
-        const rad = self.radius;
-        return [2]f32{ middle - rad, middle + rad };
+
+        var best_low: f32 = undefined;
+        var best_high: f32 = undefined;
+
+        for (self.local_vertices) |vert| {
+            const r = nmath.rotate2(vert, props.angle);
+            const world = nmath.add2(r, props.pos);
+
+            const dot = nmath.dot2(world, normal);
+            if (dot < best_low or best_low == undefined) best_low = dot;
+            if (dot > best_high or best_high == undefined) best_high = dot;
+        }
+
+        return [2]f32{ best_low, best_high };
     }
 };

@@ -69,10 +69,14 @@ pub const Physics = struct {
         return E;
     }
 
-    pub fn makeDiscBody(self: *Self, pos: Vector2, mass: f32, radius: f32) !*rb_mod.RigidBody {
-        var body: rb_mod.RigidBody = try rb_mod.DiscBody.init(self.alloc, pos, 0, mass, radius);
+    pub fn makeDiscBody(self: *Self, pos: Vector2, mass: f32, radius: f32) !void {
+        const body: rb_mod.RigidBody = try rb_mod.DiscBody.init(self.alloc, pos, 0, mass, radius);
         try self.bodies.append(body);
-        return &body;
+    }
+
+    pub fn makeRectangleBody(self: *Self, pos: Vector2, mass: f32, width: f32, height: f32) !void {
+        const body: rb_mod.RigidBody = try rb_mod.RectangleBody.init(self.alloc, pos, 0, mass, width, height);
+        try self.bodies.append(body);
     }
 };
 

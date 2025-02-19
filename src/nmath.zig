@@ -76,6 +76,10 @@ pub fn addmult2(a: Vector2, b: Vector2, s: f32) Vector2 {
     return add2(a, scale2(b, s));
 }
 
+pub fn submult2(a: Vector2, b: Vector2, s: f32) Vector2 {
+    return sub2(a, scale2(b, s));
+}
+
 pub fn equals2(a: Vector2, b: Vector2) bool {
     return a.x == b.x and a.y == b.y;
 }
@@ -91,6 +95,10 @@ pub fn rotate2(a: Vector2, angle: f32) Vector2 {
         .x = a.x * cos - a.y * sin,
         .y = a.x * sin + a.y * cos,
     };
+}
+
+pub fn rotate90clockwise(a: Vector2) Vector2 {
+    return Vector2.init(a.y, -a.x);
 }
 
 test "vector2" {

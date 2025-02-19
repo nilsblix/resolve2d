@@ -6,6 +6,7 @@ const Physics = zigics.Physics;
 const fg_mod = @import("force_generator.zig");
 const rb_mod = @import("rigidbody.zig");
 const rl = @import("raylib");
+const RigidBody = rb_mod.RigidBody;
 
 pub const Units = struct {
     pub const Size = struct {
@@ -226,6 +227,9 @@ pub const Renderer = struct {
                 .disc => {
                     self.discbody(screen_pos, body);
                 },
+                .rectangle => {
+                    self.rectanglebody(body);
+                },
             }
         }
     }
@@ -255,4 +259,40 @@ pub const Renderer = struct {
         rl.drawRing(vec, inner, outer, 0, 360, Self.RING_RES, self.body_options.color);
         rl.drawLineEx(vec, rl_rot_screen, self.body_options.edge_thickness.scr, self.body_options.color);
     }
+
+    pub fn rectanglebody(self: *Self, body: *rb_mod.RigidBody) void {
+        const rect: *rb_mod.RectangleBody = @ptrCast(@alignCast(body.ptr));
+
+        const verts = rect.getWorldVertices(body.props);
+
+        var rlv: [4]rl.Vector2 = undefined;
+        for (verts, 0..) |vert, i| {
+            const screen = self.units.w2s(vert);
+            const rls = rlv2(screen);
+            rlv[i] = rls;
+        }
+
+        for (rlv, 0..) |v, i| {
+            const next = rlv[if (i == 3) 0 else i + 1];
+            rl.drawLineEx(v, next, self.body_options.edge_thickness.scr, self.body_options.color);
+        }
+
+        const edge = self.body_options.edge_thickness.world;
+        for (rect.local_vertices, 0..) |vert, i| {
+            var v = vert;
+            v.x += if (v.x > 0) -edge else edge;
+            v.y += if (v.y > 0) -edge else edge;
+            const r = nmath.rotate2(v, body.props.angle);
+            const world = nmath.add2(r, body.props.pos);
+            const screen = self.units.w2s(world);
+            rlv[i] = rlv2(screen);
+        }
+
+        rl.drawTriangle(rlv[0], rlv[2], rlv[1], self.body_options.inner_color);
+        rl.drawTriangle(rlv[0], rlv[3], rlv[2], self.body_options.inner_color);
+    }
 };
+
+pub fn rlv2(a: Vector2) rl.Vector2 {
+    return rl.Vector2.init(a.x, a.y);
+}
