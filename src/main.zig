@@ -138,9 +138,6 @@ pub fn main() !void {
         rl.clearBackground(.{ .r = 18, .g = 18, .b = 18, .a = 1 });
         world.render();
 
-        const temp = world.renderer.?.units.w2s(mouse_pos);
-        rl.drawCircleV(rl.Vector2.init(temp.x, temp.y), 10.0, rl.Color.green);
-
         if (!simulating) {
             rl.drawText("paused", 5, 0, 64, rl.Color.white);
         }

@@ -7,7 +7,6 @@ const fg_mod = @import("force_generator.zig");
 const rb_mod = @import("rigidbody.zig");
 const rl = @import("raylib");
 
-// FIXME: transform camera / and always update properties like mult and size and viewport and fuck all else
 pub const Units = struct {
     pub const Size = struct {
         width: f32,
