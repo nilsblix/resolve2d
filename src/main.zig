@@ -6,6 +6,7 @@ const forcegenerator = @import("force_generator.zig");
 const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
 const Allocator = std.mem.Allocator;
+const collision = @import("collision.zig");
 
 const MouseSpring = struct {
     active: bool = false,
@@ -62,21 +63,20 @@ pub fn main() !void {
     try world.physics.makeDiscBody(Vector2.init(5, 5), 2.0, 0.6);
     // _ = try world.physics.makeDiscBody(Vector2.init(3, 3), 2.0, 0.4);
     try world.physics.makeRectangleBody(Vector2.init(3, 3), 2.0, 1.0, 0.5);
-    world.physics.bodies.items[1].props.ang_momentum = 1;
 
     var mouse_spring = MouseSpring{};
 
     const static_spring = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[0], Vector2.init(3, 5), Vector2.init(-0.6, 0), 20.0);
     try world.physics.force_generators.append(static_spring);
 
-    const static_spring3 = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[1], Vector2.init(3, 5), Vector2.init(-0.5, 0.25), 20.0);
-    try world.physics.force_generators.append(static_spring3);
+    // const static_spring3 = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[1], Vector2.init(3, 5), Vector2.init(-0.5, 0.25), 20.0);
+    // try world.physics.force_generators.append(static_spring3);
 
     const static_spring2 = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[0], Vector2.init(8, 5), Vector2.init(0.6, 0), 20.0);
     try world.physics.force_generators.append(static_spring2);
 
-    const gravity = try forcegenerator.DownwardsGravity.init(alloc, 20);
-    try world.physics.force_generators.append(gravity);
+    // const gravity = try forcegenerator.DownwardsGravity.init(alloc, 20);
+    // try world.physics.force_generators.append(gravity);
 
     // const point_gravity = try forcegenerator.PointGravity.init(alloc, 1.0, .{ .x = 5, .y = 3 });
     // try world.physics.force_generators.append(point_gravity);
@@ -88,11 +88,14 @@ pub fn main() !void {
     defer rl.closeWindow();
 
     const HZ: i32 = 60;
-    const DT: f32 = 1 / @as(f32, HZ);
+    const STANDARD_DT: f32 = 1 / @as(f32, HZ);
+    const SLOW_MOTION_DT: f32 = STANDARD_DT / 6;
     rl.setTargetFPS(HZ);
 
     var simulating: bool = false;
+    var used_dt: f32 = STANDARD_DT;
     var steps: u32 = 0;
+    var total_time: f32 = 0;
 
     var screen_prev_mouse_pos: Vector2 = .{};
     var screen_mouse_pos: Vector2 = .{};
@@ -132,9 +135,14 @@ pub fn main() !void {
             simulating = !simulating;
         }
 
+        if (rl.isKeyPressed(.k)) {
+            used_dt = if (used_dt == STANDARD_DT) SLOW_MOTION_DT else STANDARD_DT;
+        }
+
         if (simulating) {
             steps += 1;
-            world.process(DT);
+            total_time += used_dt;
+            world.process(used_dt);
         }
 
         rl.clearBackground(.{ .r = 18, .g = 18, .b = 18, .a = 1 });
@@ -170,6 +178,10 @@ pub fn main() !void {
 
         const font_size = 16;
 
-        rl.drawText(rl.textFormat("%.3f ms : steps = %d", .{ DT * 1e3, steps }), 5, screen_height - font_size, font_size, rl.Color.white);
+        if (collision.performNarrowSAT(b1, b2)) {
+            rl.drawText("COLLIDING", 100, 100, 2 * font_size, rl.Color.white);
+        }
+
+        rl.drawText(rl.textFormat("%.3f ms : time = %0.1f s : steps = %d", .{ used_dt * 1e3, total_time, steps }), 5, screen_height - font_size, font_size, rl.Color.white);
     }
 }

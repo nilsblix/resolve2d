@@ -44,9 +44,10 @@ pub const RigidBody = struct {
         isInside: *const fn (ptr: *anyopaque, props: Props, pos: Vector2) bool,
         closestPoint: *const fn (ptr: *anyopaque, props: Props, pos: Vector2) Vector2,
         getNormal: *const fn (ptr: *anyopaque, props: RigidBody.Props, body: RigidBody, iter: usize) ?Edge,
-        projectAlongNormal: *const fn (ptr: *anyopaque, props: Props, normal: Vector2) [2]f32,
+        projectAlongAxis: *const fn (ptr: *anyopaque, props: Props, normal: Vector2) [2]f32,
     };
 
+    /// Props are kinematic properties
     pub const Props = struct {
         // linear
         pos: Vector2,
@@ -62,6 +63,7 @@ pub const RigidBody = struct {
 
     normal_iter: EdgeNormalIterator,
     type: RigidBodies,
+    /// Props are kinematic properties
     props: Props,
     ptr: *anyopaque,
     vtable: VTable,
@@ -80,8 +82,8 @@ pub const RigidBody = struct {
         return self.vtable.closestPoint(self.ptr, self.props, pos);
     }
 
-    pub fn projectAlongNormal(self: Self, normal: Vector2) [2]f32 {
-        return self.vtable.projectAlongNormal(self.ptr, self.props, normal);
+    pub fn projectAlongAxis(self: Self, normal: Vector2) [2]f32 {
+        return self.vtable.projectAlongAxis(self.ptr, self.props, normal);
     }
 
     pub fn localToWorld(self: Self, pos: Vector2) Vector2 {
@@ -120,7 +122,7 @@ pub const DiscBody = struct {
         .isInside = DiscBody.isInside,
         .closestPoint = DiscBody.closestPoint,
         .getNormal = DiscBody.getNormal,
-        .projectAlongNormal = DiscBody.projectAlongNormal,
+        .projectAlongAxis = DiscBody.projectAlongAxis,
     };
 
     const Self = @This();
@@ -179,7 +181,7 @@ pub const DiscBody = struct {
         return Edge{ .dir = normal, .middle = nmath.addmult2(props.pos, normal, self.radius) };
     }
 
-    pub fn projectAlongNormal(ptr: *anyopaque, props: RigidBody.Props, normal: Vector2) [2]f32 {
+    pub fn projectAlongAxis(ptr: *anyopaque, props: RigidBody.Props, normal: Vector2) [2]f32 {
         const self: *Self = @ptrCast(@alignCast(ptr));
         const middle = nmath.dot2(props.pos, normal);
         const rad = self.radius;
@@ -198,7 +200,7 @@ pub const RectangleBody = struct {
         .isInside = RectangleBody.isInside,
         .closestPoint = RectangleBody.closestPoint,
         .getNormal = RectangleBody.getNormal,
-        .projectAlongNormal = RectangleBody.projectAlongNormal,
+        .projectAlongAxis = RectangleBody.projectAlongAxis,
     };
 
     const Self = @This();
@@ -302,7 +304,7 @@ pub const RectangleBody = struct {
         return Edge{ .dir = nmath.rotate90counterclockwise(dir), .middle = avg, .edge = .{ .a = a1, .b = a2 } };
     }
 
-    pub fn projectAlongNormal(ptr: *anyopaque, props: RigidBody.Props, normal: Vector2) [2]f32 {
+    pub fn projectAlongAxis(ptr: *anyopaque, props: RigidBody.Props, normal: Vector2) [2]f32 {
         const self: *Self = @ptrCast(@alignCast(ptr));
 
         var best_low: f32 = undefined;

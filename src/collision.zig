@@ -24,3 +24,34 @@ pub const CollisionManifold = struct {
 
     points: [CollisionManifold.MAX_POINTS]?CollisionPoint,
 };
+
+// FIXME: normals, points etc an dnot just bool
+pub fn performNarrowSAT(b1: RigidBody, b2: RigidBody) bool {
+    var iter = b1.normal_iter;
+    while (iter.next(b1, b2)) |edge| {
+        const normal = edge.dir;
+        const p1 = b1.projectAlongAxis(normal);
+        const p2 = b2.projectAlongAxis(normal);
+
+        // if there are any gaps ==> not colliding
+        // a.high <= b.low or b.high <= a.low
+        if (p1[1] <= p2[0] or p2[1] <= p1[0]) {
+            return false;
+        }
+    }
+
+    iter = b2.normal_iter;
+    while (iter.next(b2, b1)) |edge| {
+        const normal = edge.dir;
+        const p1 = b1.projectAlongAxis(normal);
+        const p2 = b2.projectAlongAxis(normal);
+
+        // if there are any gaps ==> not colliding
+        // a.high <= b.low or b.high <= a.low
+        if (p1[1] <= p2[0] or p2[1] <= p1[0]) {
+            return false;
+        }
+    }
+
+    return true;
+}
