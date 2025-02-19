@@ -138,6 +138,18 @@ pub fn main() !void {
         rl.clearBackground(.{ .r = 18, .g = 18, .b = 18, .a = 1 });
         world.render();
 
+        const b1 = world.physics.bodies.items[0];
+        const b2 = world.physics.bodies.items[1];
+        var iter = b1.normal_iter;
+        while (iter.next(b1, b2)) |normal| {
+            const start = world.renderer.?.units.w2s(b1.props.pos);
+            const end = world.renderer.?.units.w2s(nmath.add2(b1.props.pos, normal));
+            const rl_s = rl.Vector2.init(start.x, start.y);
+            const rl_e = rl.Vector2.init(end.x, end.y);
+            const m = world.renderer.?.units.mult.w2s;
+            rl.drawLineEx(rl_s, rl_e, 0.04 * m, rl.Color.green);
+        }
+
         if (!simulating) {
             rl.drawText("paused", 5, 0, 64, rl.Color.white);
         }

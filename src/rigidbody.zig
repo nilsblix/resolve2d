@@ -5,17 +5,17 @@ const Vector2 = nmath.Vector2;
 
 pub const RigidBodies = enum {
     disc,
+    rectangle,
 };
 
 const EdgeNormalIterator = struct {
-    body: *RigidBody,
     num_iters: usize,
     iter_performed: usize = 0,
 
     const Self = @This();
-    pub fn next(self: *Self, oth: RigidBody) ?Vector2 {
+    pub fn next(self: *Self, body: RigidBody, other: RigidBody) ?Vector2 {
         if (self.iter_performed < self.num_iters) {
-            const ret = self.body.vtable.getNormal(self.body.ptr, self.body.props, oth, self.iter_performed);
+            const ret = body.vtable.getNormal(body.ptr, body.props, other, self.iter_performed);
             self.iter_performed += 1;
             return ret;
         }
@@ -32,7 +32,6 @@ pub const RigidBody = struct {
         closestPoint: *const fn (ptr: *anyopaque, props: Props, pos: Vector2) Vector2,
 
         getNormal: *const fn (ptr: *anyopaque, props: RigidBody.Props, body: RigidBody, iter: usize) ?Vector2,
-        // collisionNormals: *const fn (ptr: *anyopaque, props: Props, other: *RigidBody) []Vector2,
         projectAlongNormal: *const fn (ptr: *anyopaque, props: Props, normal: Vector2) [2]f32,
     };
 
@@ -49,7 +48,7 @@ pub const RigidBody = struct {
         inertia: f32,
     };
 
-    edges: EdgeNormalIterator,
+    normal_iter: EdgeNormalIterator,
     type: RigidBodies,
     props: Props,
     ptr: *anyopaque,
@@ -69,10 +68,6 @@ pub const RigidBody = struct {
         return self.vtable.closestPoint(self.ptr, self.props, pos);
     }
 
-    // pub fn collisionNormals(self: Self, other: *RigidBody) []Vector2 {
-    //     return self.vtable.collisionNormals(self.ptr, self.props, other);
-    // }
-
     pub fn projectAlongNormal(self: Self, normal: Vector2) [2]f32 {
         return self.vtable.projectAlongNormal(self.ptr, self.props, normal);
     }
@@ -86,11 +81,9 @@ pub const DiscBody = struct {
         .isInside = DiscBody.isInside,
         .closestPoint = DiscBody.closestPoint,
         .getNormal = DiscBody.getNormal,
-        // .collisionNormals = DiscBody.collisionNormals,
         .projectAlongNormal = DiscBody.projectAlongNormal,
     };
 
-    pub const name: []const u8 = "DiscBody";
     const Self = @This();
 
     pub fn init(alloc: Allocator, pos: Vector2, angle: f32, mass: f32, radius: f32) !RigidBody {
@@ -108,7 +101,7 @@ pub const DiscBody = struct {
                 .mass = mass,
                 .inertia = 0.5 * mass * radius * radius,
             },
-            .edges = EdgeNormalIterator{ .num_iters = 1 },
+            .normal_iter = EdgeNormalIterator{ .num_iters = 1 },
             .type = RigidBodies.disc,
             .ptr = self,
             .vtable = DiscBody.rigidbody_vtable,
@@ -146,12 +139,81 @@ pub const DiscBody = struct {
         return normal;
     }
 
-    // pub fn collisionNormals(ptr: *anyopaque, props: RigidBody.Props, other: *RigidBody) []Vector2 {
-    //     _ = ptr;
-    //     const closest = other.closestPoint(props.pos);
-    //     const normal = nmath.normalize2(nmath.sub2(closest, props.pos));
-    //     return []Vector2{normal};
-    // }
+    pub fn projectAlongNormal(ptr: *anyopaque, props: RigidBody.Props, normal: Vector2) [2]f32 {
+        const self: *Self = @ptrCast(@alignCast(ptr));
+        const middle = nmath.dot2(props.pos, normal);
+        const rad = self.radius;
+        return [2]f32{ middle - rad, middle + rad };
+    }
+};
+
+pub const RectangleBody = struct {
+    width: f32,
+    height: f32,
+
+    const rigidbody_vtable = RigidBody.VTable{
+        .deinit = RectangleBody.deinit,
+        .isInside = RectangleBody.isInside,
+        .closestPoint = RectangleBody.closestPoint,
+        .getNormal = RectangleBody.getNormal,
+        .projectAlongNormal = RectangleBody.projectAlongNormal,
+    };
+
+    const Self = @This();
+
+    pub fn init(alloc: Allocator, pos: Vector2, angle: f32, mass: f32, width: f32, height: f32) !RigidBody {
+        var self: *Self = try alloc.create(Self);
+        self.width = width;
+        self.height = height;
+
+        return RigidBody{
+            .props = .{
+                .pos = pos,
+                .momentum = .{},
+                .force = .{},
+                .angle = angle,
+                .ang_momentum = 0,
+                .torque = 0,
+                .mass = mass,
+                .inertia = (1 / 12) * mass * (width * width + height * height),
+            },
+            .normal_iter = EdgeNormalIterator{ .num_iters = 1 },
+            .type = RigidBodies.rectangle,
+            .ptr = self,
+            .vtable = RectangleBody.rigidbody_vtable,
+        };
+    }
+
+    pub fn deinit(ptr: *anyopaque, alloc: Allocator) void {
+        const self: *Self = @ptrCast(@alignCast(ptr));
+        alloc.destroy(self);
+    }
+
+    pub fn isInside(ptr: *anyopaque, props: RigidBody.Props, pos: Vector2) bool {
+        const self: *Self = @ptrCast(@alignCast(ptr));
+
+        const dist2 = nmath.length2sq(nmath.sub2(props.pos, pos));
+
+        if (dist2 < self.radius * self.radius) {
+            return true;
+        }
+
+        return false;
+    }
+
+    pub fn closestPoint(ptr: *anyopaque, props: RigidBody.Props, pos: Vector2) Vector2 {
+        const self: *Self = @ptrCast(@alignCast(ptr));
+        const normal = nmath.normalize2(nmath.sub2(pos, props.pos));
+        return nmath.addmult2(props.pos, normal, self.radius);
+    }
+
+    pub fn getNormal(ptr: *anyopaque, props: RigidBody.Props, body: RigidBody, iter: usize) ?Vector2 {
+        _ = ptr;
+        _ = iter;
+        const closest = body.closestPoint(props.pos);
+        const normal = nmath.normalize2(nmath.sub2(closest, props.pos));
+        return normal;
+    }
 
     pub fn projectAlongNormal(ptr: *anyopaque, props: RigidBody.Props, normal: Vector2) [2]f32 {
         const self: *Self = @ptrCast(@alignCast(ptr));
