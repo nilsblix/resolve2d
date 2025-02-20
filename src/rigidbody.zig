@@ -62,6 +62,7 @@ pub const RigidBody = struct {
     };
 
     normal_iter: EdgeNormalIterator,
+    static: bool = false,
     type: RigidBodies,
     /// Props are kinematic properties
     props: Props,
@@ -266,13 +267,13 @@ pub const RectangleBody = struct {
     pub fn closestPoint(ptr: *anyopaque, props: RigidBody.Props, pos: Vector2) Vector2 {
         const self: *Self = @ptrCast(@alignCast(ptr));
 
-        var best_dist2: f32 = undefined;
-        var best_pos: Vector2 = undefined;
+        var best_dist2: f32 = std.math.inf(f32);
+        var best_pos: Vector2 = pos;
 
         const world_vertices = self.getWorldVertices(props);
         for (world_vertices) |vert| {
             const dist2 = nmath.length2sq(nmath.sub2(vert, pos));
-            if (dist2 < best_dist2 or best_dist2 == undefined) {
+            if (dist2 < best_dist2) {
                 best_dist2 = dist2;
                 best_pos = vert;
             }
@@ -307,16 +308,16 @@ pub const RectangleBody = struct {
     pub fn projectAlongAxis(ptr: *anyopaque, props: RigidBody.Props, normal: Vector2) [2]f32 {
         const self: *Self = @ptrCast(@alignCast(ptr));
 
-        var best_low: f32 = undefined;
-        var best_high: f32 = undefined;
+        var best_low: f32 = std.math.inf(f32);
+        var best_high: f32 = -std.math.inf(f32);
 
         for (self.local_vertices) |vert| {
             const r = nmath.rotate2(vert, props.angle);
             const world = nmath.add2(r, props.pos);
 
             const dot = nmath.dot2(world, normal);
-            if (dot < best_low or best_low == undefined) best_low = dot;
-            if (dot > best_high or best_high == undefined) best_high = dot;
+            if (dot < best_low) best_low = dot;
+            if (dot > best_high) best_high = dot;
         }
 
         return [2]f32{ best_low, best_high };

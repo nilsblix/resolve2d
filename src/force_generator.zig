@@ -67,6 +67,7 @@ pub const DownwardsGravity = struct {
     pub fn apply(ptr: *anyopaque, bodies: std.ArrayList(RigidBody)) void {
         const self: *Self = @ptrCast(@alignCast(ptr));
         for (bodies.items) |*body| {
+            if (body.static) continue;
             body.props.force.addmult(self.g_vec, body.props.mass);
         }
     }
@@ -111,6 +112,7 @@ pub const PointGravity = struct {
     pub fn apply(ptr: *anyopaque, bodies: std.ArrayList(RigidBody)) void {
         const self: *Self = @ptrCast(@alignCast(ptr));
         for (bodies.items) |*body| {
+            if (body.static) continue;
             // F = G * m1 * m2 / r^2 * r_hat
             const vec = nmath.sub2(self.pos, body.props.pos);
             const dist = nmath.length2(vec);
@@ -174,8 +176,9 @@ pub const StaticSpring = struct {
 
     pub fn apply(ptr: *anyopaque, bodies: std.ArrayList(RigidBody)) void {
         _ = bodies;
-
         const self: *Self = @ptrCast(@alignCast(ptr));
+
+        if (self.body.static) return;
 
         const rotated_r = nmath.rotate2(self.r, self.body.props.angle);
         const applied_pos = nmath.add2(rotated_r, self.body.props.pos);

@@ -63,6 +63,10 @@ pub fn main() !void {
     try world.physics.makeDiscBody(Vector2.init(5, 5), 2.0, 0.6);
     // _ = try world.physics.makeDiscBody(Vector2.init(3, 3), 2.0, 0.4);
     try world.physics.makeRectangleBody(Vector2.init(3, 3), 2.0, 1.0, 0.5);
+    try world.physics.makeRectangleBody(Vector2.init(8, 3), 2.0, 1.5, 1.0);
+    try world.physics.makeDiscBody(Vector2.init(5, 2), 2.0, 0.8);
+    world.physics.bodies.items[2].static = true;
+    world.physics.bodies.items[3].static = true;
 
     var mouse_spring = MouseSpring{};
 
@@ -148,29 +152,30 @@ pub fn main() !void {
         rl.clearBackground(.{ .r = 18, .g = 18, .b = 18, .a = 1 });
         world.render();
 
-        const b1 = world.physics.bodies.items[0];
-        const b2 = world.physics.bodies.items[1];
-        var iter = b1.normal_iter;
-        while (iter.next(b1, b2)) |edge| {
-            const normal = edge.dir;
-            const start = world.renderer.?.units.w2s(edge.middle);
-            const end = world.renderer.?.units.w2s(nmath.add2(edge.middle, normal));
-            const rl_s = rl.Vector2.init(start.x, start.y);
-            const rl_e = rl.Vector2.init(end.x, end.y);
-            const m = world.renderer.?.units.mult.w2s;
-            rl.drawLineEx(rl_s, rl_e, 0.04 * m, rl.Color.green);
-        }
-
-        iter = b2.normal_iter;
-        while (iter.next(b2, b1)) |edge| {
-            const normal = edge.dir;
-            const start = world.renderer.?.units.w2s(edge.middle);
-            const end = world.renderer.?.units.w2s(nmath.add2(edge.middle, normal));
-            const rl_s = rl.Vector2.init(start.x, start.y);
-            const rl_e = rl.Vector2.init(end.x, end.y);
-            const m = world.renderer.?.units.mult.w2s;
-            rl.drawLineEx(rl_s, rl_e, 0.04 * m, rl.Color.green);
-        }
+        // const b1 = world.physics.bodies.items[0];
+        // const b2 = world.physics.bodies.items[1];
+        // const b3 = world.physics.bodies.items[2];
+        // var iter = b1.normal_iter;
+        // while (iter.next(b1, b2)) |edge| {
+        //     const normal = edge.dir;
+        //     const start = world.renderer.?.units.w2s(edge.middle);
+        //     const end = world.renderer.?.units.w2s(nmath.add2(edge.middle, normal));
+        //     const rl_s = rl.Vector2.init(start.x, start.y);
+        //     const rl_e = rl.Vector2.init(end.x, end.y);
+        //     const m = world.renderer.?.units.mult.w2s;
+        //     rl.drawLineEx(rl_s, rl_e, 0.04 * m, rl.Color.green);
+        // }
+        //
+        // iter = b2.normal_iter;
+        // while (iter.next(b2, b1)) |edge| {
+        //     const normal = edge.dir;
+        //     const start = world.renderer.?.units.w2s(edge.middle);
+        //     const end = world.renderer.?.units.w2s(nmath.add2(edge.middle, normal));
+        //     const rl_s = rl.Vector2.init(start.x, start.y);
+        //     const rl_e = rl.Vector2.init(end.x, end.y);
+        //     const m = world.renderer.?.units.mult.w2s;
+        //     rl.drawLineEx(rl_s, rl_e, 0.04 * m, rl.Color.green);
+        // }
 
         if (!simulating) {
             rl.drawText("paused", 5, 0, 64, rl.Color.white);
@@ -178,8 +183,17 @@ pub fn main() !void {
 
         const font_size = 16;
 
-        if (collision.performNarrowSAT(b1, b2)) {
-            rl.drawText("COLLIDING", 100, 100, 2 * font_size, rl.Color.white);
+        for (world.physics.bodies.items, 0..) |b1, id1| {
+            for (id1 + 1..world.physics.bodies.items.len) |id2| {
+                const b2 = world.physics.bodies.items[id2];
+
+                if (collision.performNarrowSAT(b1, b2)) {
+                    const text = rl.textFormat("colliding id= %d, %d", .{ id1, id2 });
+                    const in: i32 = @intCast(id1 + id2);
+                    const y: i32 = @truncate(in * 100 + 100);
+                    rl.drawText(text, 100, y, 2 * font_size, rl.Color.white);
+                }
+            }
         }
 
         rl.drawText(rl.textFormat("%.3f ms : time = %0.1f s : steps = %d", .{ used_dt * 1e3, total_time, steps }), 5, screen_height - font_size, font_size, rl.Color.white);

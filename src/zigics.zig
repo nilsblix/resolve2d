@@ -42,6 +42,7 @@ pub const Physics = struct {
         }
 
         for (self.bodies.items) |*body| {
+            if (body.static) continue;
             var props: *RigidBody.Props = &body.props;
 
             props.momentum.addmult(props.force, dt);
