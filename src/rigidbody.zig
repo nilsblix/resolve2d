@@ -2,14 +2,21 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
+const collision = @import("collision.zig");
+const manifold_max_points = collision.CollisionManifold.MAX_POINTS;
 
 pub const RigidBodies = enum {
     disc,
     rectangle,
 };
 
-const Edge = struct {
-    const Points = struct {
+pub const Incident = union(enum) {
+    edge: Edge.Points,
+    point: Vector2,
+};
+
+pub const Edge = struct {
+    pub const Points = struct {
         a: Vector2,
         b: Vector2,
     };
@@ -45,6 +52,8 @@ pub const RigidBody = struct {
         closestPoint: *const fn (ptr: *anyopaque, props: Props, pos: Vector2) Vector2,
         getNormal: *const fn (ptr: *anyopaque, props: RigidBody.Props, body: RigidBody, iter: usize) ?Edge,
         projectAlongAxis: *const fn (ptr: *anyopaque, props: Props, normal: Vector2) [2]f32,
+        identifyCollisionPoints: *const fn (rigidself: *RigidBody, incident: *RigidBody, active_normal_iter: usize) [manifold_max_points]?Vector2,
+        clipAgainstEdge: *const fn (rigidself: *RigidBody, edge: Edge.Points, normal: Vector2) Incident,
     };
 
     /// Props are kinematic properties
@@ -93,6 +102,14 @@ pub const RigidBody = struct {
         return ret;
     }
 
+    pub fn identifyCollisionPoints(self: *Self, incident: *RigidBody, active_normal_iter: usize) [manifold_max_points]?Vector2 {
+        return self.vtable.identifyCollisionPoints(self, incident, active_normal_iter);
+    }
+
+    pub fn clipAgainstEdge(self: *Self, edge: Edge.Points, normal: Vector2) Incident {
+        return self.vtable.clipAgainstEdge(self, edge, normal);
+    }
+
     pub fn worldToLocal(self: Self, pos: Vector2) Vector2 {
         const r = nmath.sub2(pos, self.props.pos);
         const ret = nmath.rotate2(r, -self.props.angle);
@@ -124,6 +141,8 @@ pub const DiscBody = struct {
         .closestPoint = DiscBody.closestPoint,
         .getNormal = DiscBody.getNormal,
         .projectAlongAxis = DiscBody.projectAlongAxis,
+        .identifyCollisionPoints = DiscBody.identifyCollisionPoints,
+        .clipAgainstEdge = DiscBody.clipAgainstEdge,
     };
 
     const Self = @This();
@@ -188,6 +207,46 @@ pub const DiscBody = struct {
         const rad = self.radius;
         return [2]f32{ middle - rad, middle + rad };
     }
+
+    pub fn identifyCollisionPoints(rigidself: *RigidBody, incident: *RigidBody, active_normal_iter: usize) [manifold_max_points]?Vector2 {
+        _ = active_normal_iter;
+        // + circle SAT: normal = other.closestToSelf - self.pos.
+        // + SAT --> clip incident body to infinitesmall small edge (on the circle's radius)
+        // ==> what point on incident body intersects the line from pos + normal to pos?
+        // by definition it is other.closestToSelf.
+        const point = incident.closestPoint(rigidself.props.pos);
+
+        var ret: [manifold_max_points]?Vector2 = undefined;
+        for (0..manifold_max_points) |i| {
+            ret[i] = null;
+        }
+        ret[0] = point;
+        return ret;
+    }
+
+    pub fn clipAgainstEdge(rigidself: *RigidBody, edge: Edge.Points, normal: Vector2) Incident {
+        const self: *Self = @ptrCast(@alignCast(rigidself.ptr));
+
+        const dist = nmath.length2(nmath.sub2(edge.b, edge.a));
+        // a -- (along tangent) --> b
+        const tangent = nmath.rotate90clockwise(normal);
+
+        // how far from a is self.pos? < 0 ==> left of A, > 0 ==> right of A
+        const t = nmath.dot2(nmath.sub2(rigidself.props.pos, edge.a), tangent);
+
+        if (t > 0.0 and t < dist) {
+            return Incident{ .point = nmath.addmult2(rigidself.props.pos, normal, -self.radius) };
+        }
+
+        const dx = if (t < 0.0) -t else dist - t;
+        const dy = @sqrt(self.radius * self.radius - dx * dx);
+
+        const t_y = nmath.dot2(nmath.sub2(rigidself.props.pos, edge.a), normal);
+        const dy_mult: f32 = if (t_y < 0.0) 1 else -1;
+
+        const pos = rigidself.props.pos;
+        return Incident{ .point = Vector2.init(pos.x + dx, pos.y + dy_mult * dy) };
+    }
 };
 
 pub const RectangleBody = struct {
@@ -202,6 +261,8 @@ pub const RectangleBody = struct {
         .closestPoint = RectangleBody.closestPoint,
         .getNormal = RectangleBody.getNormal,
         .projectAlongAxis = RectangleBody.projectAlongAxis,
+        .identifyCollisionPoints = RectangleBody.identifyCollisionPoints,
+        .clipAgainstEdge = RectangleBody.clipAgainstEdge,
     };
 
     const Self = @This();
@@ -321,5 +382,82 @@ pub const RectangleBody = struct {
         }
 
         return [2]f32{ best_low, best_high };
+    }
+
+    pub fn identifyCollisionPoints(rigidself: *RigidBody, incident: *RigidBody, active_normal_iter: usize) [manifold_max_points]?Vector2 {
+        const normal = RectangleBody.getNormal(rigidself.ptr, rigidself.props, incident.*, active_normal_iter);
+
+        var ret: [manifold_max_points]?Vector2 = undefined;
+        for (0..manifold_max_points) |i| {
+            ret[i] = null;
+        }
+
+        if (normal) |n| {
+            const incident_edge = incident.clipAgainstEdge(n.edge.?, n.dir);
+            switch (incident_edge) {
+                .edge => {
+                    const a = incident_edge.edge.a;
+                    const b = incident_edge.edge.b;
+
+                    var i: usize = 0;
+
+                    // check for positive penetration (non valid collision-point)
+                    if (nmath.dot2(nmath.sub2(a, n.edge.?.a), n.dir) < 0.0) {
+                        ret[i] = incident_edge.edge.a;
+                        i += 1;
+                    }
+                    if (nmath.dot2(nmath.sub2(b, n.edge.?.b), n.dir) < 0.0) {
+                        ret[i] = incident_edge.edge.b;
+                    }
+                },
+                .point => {
+                    ret[0] = incident_edge.point;
+                },
+            }
+        } else {
+            std.debug.print("In rect identifyCollisionPoints a non-valid active_normal_id has been used. i.e. a null normal has been detected.", .{});
+        }
+
+        return ret;
+    }
+
+    pub fn clipAgainstEdge(rigidself: *RigidBody, edge: Edge.Points, normal: Vector2) Incident {
+        const self: *Self = @ptrCast(@alignCast(rigidself.ptr));
+
+        var best_edge = Edge.Points{ .a = undefined, .b = undefined };
+        var best_dot = std.math.inf(f32);
+
+        var curr_world = rigidself.localToWorld(self.local_vertices[0]);
+        for (0..4) |i| {
+            const next_idx = if (i == 3) 0 else i + 1;
+            const next_world = rigidself.localToWorld(self.local_vertices[next_idx]);
+
+            const tangent = nmath.normalize2(nmath.sub2(next_world, curr_world));
+            const tentative_normal = nmath.rotate90counterclockwise(tangent);
+
+            const dot = nmath.dot2(normal, tentative_normal);
+            if (dot < best_dot) {
+                best_edge = Edge.Points{ .a = curr_world, .b = next_world };
+                best_dot = dot;
+            }
+
+            curr_world = next_world;
+        }
+
+        const delta = nmath.sub2(best_edge.b, best_edge.a);
+        const deltaO = nmath.sub2(edge.b, edge.a);
+
+        var num = deltaO.x * (edge.b.x - best_edge.a.x) + deltaO.y * (edge.b.y - best_edge.a.y);
+        const den = delta.x * deltaO.x + delta.y * deltaO.y;
+        var t = num / den;
+
+        const b_prime = nmath.addmult2(best_edge.a, delta, t);
+
+        num = deltaO.x * (edge.b.x - best_edge.b.x) + deltaO.y * (edge.b.y - best_edge.b.y);
+        t = num / den;
+
+        const a_prime = nmath.addmult2(best_edge.a, delta, t);
+
+        return Incident{ .edge = Edge.Points{ .a = a_prime, .b = b_prime } };
     }
 };

@@ -70,14 +70,14 @@ pub fn main() !void {
 
     var mouse_spring = MouseSpring{};
 
-    const static_spring = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[0], Vector2.init(3, 5), Vector2.init(-0.6, 0), 20.0);
-    try world.physics.force_generators.append(static_spring);
+    // const static_spring = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[0], Vector2.init(3, 5), Vector2.init(-0.6, 0), 20.0);
+    // try world.physics.force_generators.append(static_spring);
 
     // const static_spring3 = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[1], Vector2.init(3, 5), Vector2.init(-0.5, 0.25), 20.0);
     // try world.physics.force_generators.append(static_spring3);
 
-    const static_spring2 = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[0], Vector2.init(8, 5), Vector2.init(0.6, 0), 20.0);
-    try world.physics.force_generators.append(static_spring2);
+    // const static_spring2 = try forcegenerator.StaticSpring.init(alloc, &world.physics.bodies.items[0], Vector2.init(8, 5), Vector2.init(0.6, 0), 20.0);
+    // try world.physics.force_generators.append(static_spring2);
 
     // const gravity = try forcegenerator.DownwardsGravity.init(alloc, 20);
     // try world.physics.force_generators.append(gravity);
@@ -152,30 +152,30 @@ pub fn main() !void {
         rl.clearBackground(.{ .r = 18, .g = 18, .b = 18, .a = 1 });
         world.render();
 
-        // const b1 = world.physics.bodies.items[0];
-        // const b2 = world.physics.bodies.items[1];
+        const b1 = world.physics.bodies.items[0];
+        const b2 = world.physics.bodies.items[1];
         // const b3 = world.physics.bodies.items[2];
-        // var iter = b1.normal_iter;
-        // while (iter.next(b1, b2)) |edge| {
-        //     const normal = edge.dir;
-        //     const start = world.renderer.?.units.w2s(edge.middle);
-        //     const end = world.renderer.?.units.w2s(nmath.add2(edge.middle, normal));
-        //     const rl_s = rl.Vector2.init(start.x, start.y);
-        //     const rl_e = rl.Vector2.init(end.x, end.y);
-        //     const m = world.renderer.?.units.mult.w2s;
-        //     rl.drawLineEx(rl_s, rl_e, 0.04 * m, rl.Color.green);
-        // }
-        //
-        // iter = b2.normal_iter;
-        // while (iter.next(b2, b1)) |edge| {
-        //     const normal = edge.dir;
-        //     const start = world.renderer.?.units.w2s(edge.middle);
-        //     const end = world.renderer.?.units.w2s(nmath.add2(edge.middle, normal));
-        //     const rl_s = rl.Vector2.init(start.x, start.y);
-        //     const rl_e = rl.Vector2.init(end.x, end.y);
-        //     const m = world.renderer.?.units.mult.w2s;
-        //     rl.drawLineEx(rl_s, rl_e, 0.04 * m, rl.Color.green);
-        // }
+        var iter = b1.normal_iter;
+        while (iter.next(b1, b2)) |edge| {
+            const normal = edge.dir;
+            const start = world.renderer.?.units.w2s(edge.middle);
+            const end = world.renderer.?.units.w2s(nmath.add2(edge.middle, normal));
+            const rl_s = rl.Vector2.init(start.x, start.y);
+            const rl_e = rl.Vector2.init(end.x, end.y);
+            const m = world.renderer.?.units.mult.w2s;
+            rl.drawLineEx(rl_s, rl_e, 0.04 * m, rl.Color.green);
+        }
+
+        iter = b2.normal_iter;
+        while (iter.next(b2, b1)) |edge| {
+            const normal = edge.dir;
+            const start = world.renderer.?.units.w2s(edge.middle);
+            const end = world.renderer.?.units.w2s(nmath.add2(edge.middle, normal));
+            const rl_s = rl.Vector2.init(start.x, start.y);
+            const rl_e = rl.Vector2.init(end.x, end.y);
+            const m = world.renderer.?.units.mult.w2s;
+            rl.drawLineEx(rl_s, rl_e, 0.04 * m, rl.Color.green);
+        }
 
         if (!simulating) {
             rl.drawText("paused", 5, 0, 64, rl.Color.white);
@@ -183,11 +183,22 @@ pub fn main() !void {
 
         const font_size = 16;
 
-        for (world.physics.bodies.items, 0..) |b1, id1| {
+        for (0..world.physics.bodies.items.len) |id1| {
+            const body1 = &world.physics.bodies.items[id1];
             for (id1 + 1..world.physics.bodies.items.len) |id2| {
-                const b2 = world.physics.bodies.items[id2];
+                const body2 = &world.physics.bodies.items[id2];
 
-                if (collision.performNarrowSAT(b1, b2)) {
+                const sat = collision.performNarrowSAT(body1, body2);
+                if (sat.collides) {
+                    const pts = sat.key.b1.identifyCollisionPoints(sat.key.b2, sat.reference_normal_id);
+                    for (pts) |point| {
+                        if (point) |pt| {
+                            const screen = world.renderer.?.units.w2s(pt);
+                            const rls = rl.Vector2.init(screen.x, screen.y);
+                            rl.drawCircleV(rls, 0.05 * world.renderer.?.units.mult.w2s, rl.Color.lime);
+                        }
+                    }
+
                     const text = rl.textFormat("colliding id= %d, %d", .{ id1, id2 });
                     const in: i32 = @intCast(id1 + id2);
                     const y: i32 = @truncate(in * 100 + 100);

@@ -72,6 +72,10 @@ pub fn normalize2(a: Vector2) Vector2 {
     return scale2(a, 1 / len);
 }
 
+pub fn negate2(a: Vector2) Vector2 {
+    return Vector2.init(-a.x, -a.y);
+}
+
 pub fn addmult2(a: Vector2, b: Vector2, s: f32) Vector2 {
     return add2(a, scale2(b, s));
 }
