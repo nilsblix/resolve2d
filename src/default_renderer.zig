@@ -155,22 +155,33 @@ const OptPair = struct {
     }
 };
 
+const ColorPair = struct {
+    inner: rl.Color,
+    edge: rl.Color,
+};
+
 const SpringRenderOptions = struct {
     segment_width: OptPair,
     segment_color: rl.Color = rl.Color.white,
 };
 
 const BodyOptions = struct {
-    color: rl.Color = rl.Color.green,
-    inner_color: rl.Color,
+    color: ColorPair,
+    static_color: ColorPair,
     edge_thickness: OptPair,
 
-    pub fn init(units: Units, color: rl.Color, edge_thickness: f32) BodyOptions {
+    pub fn init(units: Units, color: rl.Color, static_color: rl.Color, edge_thickness: f32) BodyOptions {
         const n: u8 = 1;
         const n2: u8 = 3;
         return .{
-            .color = rl.Color.init(color.r / n, color.g / n, color.b / n, color.a),
-            .inner_color = rl.Color.init(color.r, color.g, color.b, color.a / n2),
+            .color = ColorPair{
+                .inner = rl.Color.init(color.r, color.g, color.b, color.a / n2),
+                .edge = rl.Color.init(color.r / n, color.g / n, color.b / n, color.a),
+            },
+            .static_color = ColorPair{
+                .inner = rl.Color.init(static_color.r, static_color.g, static_color.b, static_color.a / n2),
+                .edge = rl.Color.init(static_color.r / n, static_color.g / n, static_color.b / n, static_color.a),
+            },
             .edge_thickness = OptPair.init(units, edge_thickness),
         };
     }
@@ -192,7 +203,7 @@ pub const Renderer = struct {
                 .segment_width = OptPair.init(units, 0.03),
                 .segment_color = rl.Color.white,
             },
-            .body_options = BodyOptions.init(units, rl.Color.red, 0.02),
+            .body_options = BodyOptions.init(units, rl.Color.red, rl.Color.pink, 0.02),
         };
     }
 
@@ -245,6 +256,7 @@ pub const Renderer = struct {
 
     fn discbody(self: Self, screen_pos: rl.Vector2, body: *rb_mod.RigidBody) void {
         const disc: *rb_mod.DiscBody = @ptrCast(@alignCast(body.ptr));
+        const color = if (body.static) self.body_options.static_color else self.body_options.color;
 
         const rad = disc.radius;
         const vec = rl.Vector2.init(screen_pos.x, screen_pos.y);
@@ -255,13 +267,14 @@ pub const Renderer = struct {
 
         const inner = self.units.mult.w2s * (rad - self.body_options.edge_thickness.world);
         const outer = self.units.mult.w2s * rad;
-        rl.drawRing(vec, 0, inner, 0, 360, Self.RING_RES, self.body_options.inner_color);
-        rl.drawRing(vec, inner, outer, 0, 360, Self.RING_RES, self.body_options.color);
-        rl.drawLineEx(vec, rl_rot_screen, self.body_options.edge_thickness.scr, self.body_options.color);
+        rl.drawRing(vec, 0, inner, 0, 360, Self.RING_RES, color.inner);
+        rl.drawRing(vec, inner, outer, 0, 360, Self.RING_RES, color.edge);
+        rl.drawLineEx(vec, rl_rot_screen, self.body_options.edge_thickness.scr, color.edge);
     }
 
     pub fn rectanglebody(self: *Self, body: *rb_mod.RigidBody) void {
         const rect: *rb_mod.RectangleBody = @ptrCast(@alignCast(body.ptr));
+        const color = if (body.static) self.body_options.static_color else self.body_options.color;
 
         const edge = self.body_options.edge_thickness.world;
         var outer_verts: [4]Vector2 = undefined;
@@ -318,11 +331,11 @@ pub const Renderer = struct {
             a = nmath.add2(r, body.props.pos);
             const rlscreen2 = rlv2(self.units.w2s(a));
 
-            rl.drawLineEx(rlscreen1, rlscreen2, self.body_options.edge_thickness.scr, self.body_options.color);
+            rl.drawLineEx(rlscreen1, rlscreen2, self.body_options.edge_thickness.scr, color.edge);
         }
 
-        rl.drawTriangle(inner_verts[0], inner_verts[2], inner_verts[1], self.body_options.inner_color);
-        rl.drawTriangle(inner_verts[0], inner_verts[3], inner_verts[2], self.body_options.inner_color);
+        rl.drawTriangle(inner_verts[0], inner_verts[2], inner_verts[1], color.inner);
+        rl.drawTriangle(inner_verts[0], inner_verts[3], inner_verts[2], color.inner);
     }
 };
 

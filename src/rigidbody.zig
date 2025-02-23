@@ -187,6 +187,10 @@ pub const DiscBody = struct {
     }
 
     pub fn closestPoint(ptr: *anyopaque, props: RigidBody.Props, pos: Vector2) Vector2 {
+        // _ = ptr;
+        // _ = pos;
+        // return props.pos;
+
         const self: *Self = @ptrCast(@alignCast(ptr));
         const normal = nmath.normalize2(nmath.sub2(pos, props.pos));
         return nmath.addmult2(props.pos, normal, self.radius);
@@ -237,6 +241,8 @@ pub const DiscBody = struct {
         if (t > 0.0 and t < dist) {
             return Incident{ .point = nmath.addmult2(rigidself.props.pos, normal, -self.radius) };
         }
+
+        std.debug.print("circle clipAgainstSelf is outside of the middle!!", .{});
 
         const dx = if (t < 0.0) -t else dist - t;
         const dy = @sqrt(self.radius * self.radius - dx * dx);
@@ -360,10 +366,11 @@ pub const RectangleBody = struct {
 
         // FIXME: use 1/width or 1/height or something based on iter
         const dir = nmath.normalize2(nmath.sub2(a2, a1));
+        const normal = nmath.rotate90counterclockwise(dir);
 
         const avg = nmath.scale2(nmath.add2(a1, a2), 0.5);
 
-        return Edge{ .dir = nmath.rotate90counterclockwise(dir), .middle = avg, .edge = .{ .a = a1, .b = a2 } };
+        return Edge{ .dir = normal, .middle = avg, .edge = .{ .a = a1, .b = a2 } };
     }
 
     pub fn projectAlongAxis(ptr: *anyopaque, props: RigidBody.Props, normal: Vector2) [2]f32 {
@@ -386,7 +393,6 @@ pub const RectangleBody = struct {
 
     pub fn identifyCollisionPoints(rigidself: *RigidBody, incident: *RigidBody, active_normal_iter: usize) [manifold_max_points]?Vector2 {
         const normal = RectangleBody.getNormal(rigidself.ptr, rigidself.props, incident.*, active_normal_iter);
-
         var ret: [manifold_max_points]?Vector2 = undefined;
         for (0..manifold_max_points) |i| {
             ret[i] = null;
@@ -396,6 +402,9 @@ pub const RectangleBody = struct {
             const incident_edge = incident.clipAgainstEdge(n.edge.?, n.dir);
             switch (incident_edge) {
                 .edge => {
+                    // ret[0] = incident_edge.edge.a;
+                    // ret[1] = incident_edge.edge.b;
+
                     const a = incident_edge.edge.a;
                     const b = incident_edge.edge.b;
 
@@ -444,20 +453,40 @@ pub const RectangleBody = struct {
             curr_world = next_world;
         }
 
-        const delta = nmath.sub2(best_edge.b, best_edge.a);
-        const deltaO = nmath.sub2(edge.b, edge.a);
+        const T = nmath.rotate90clockwise(normal);
 
-        var num = deltaO.x * (edge.b.x - best_edge.a.x) + deltaO.y * (edge.b.y - best_edge.a.y);
-        const den = delta.x * deltaO.x + delta.y * deltaO.y;
-        var t = num / den;
+        const A = edge.a;
+        const B = edge.b;
+        const C = best_edge.a;
+        const D = best_edge.b;
 
-        const b_prime = nmath.addmult2(best_edge.a, delta, t);
+        var Cp = C;
+        var Dp = D;
 
-        num = deltaO.x * (edge.b.x - best_edge.b.x) + deltaO.y * (edge.b.y - best_edge.b.y);
-        t = num / den;
+        const line_dist = nmath.length2(nmath.sub2(A, B));
 
-        const a_prime = nmath.addmult2(best_edge.a, delta, t);
+        const scalar_C = nmath.dot2(nmath.sub2(C, A), T);
+        const scalar_D = nmath.dot2(nmath.sub2(D, A), T);
 
-        return Incident{ .edge = Edge.Points{ .a = a_prime, .b = b_prime } };
+        const c_between = scalar_C > 0 and scalar_C < line_dist;
+        const d_between = scalar_D > 0 and scalar_D < line_dist;
+
+        if (!c_between) {
+            const clos = if (scalar_C < line_dist / 2) A else B;
+
+            const delta_L = nmath.sub2(C, D);
+            const t = -nmath.dot2(T, nmath.sub2(D, clos)) / nmath.dot2(delta_L, T);
+            Cp = nmath.addmult2(D, delta_L, t);
+        }
+
+        if (!d_between) {
+            const clos = if (scalar_D < line_dist / 2) A else B;
+
+            const delta_L = nmath.sub2(D, C);
+            const t = -nmath.dot2(T, nmath.sub2(C, clos)) / nmath.dot2(delta_L, T);
+            Dp = nmath.addmult2(C, delta_L, t);
+        }
+
+        return Incident{ .edge = .{ .a = Cp, .b = Dp } };
     }
 };

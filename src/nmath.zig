@@ -1,6 +1,10 @@
 const std = @import("std");
 const expect = std.testing.expect;
 
+pub fn approxEql(a: f32, b: f32, eps: f32) bool {
+    return a > b - eps and a < b + eps;
+}
+
 pub const Vector2 = struct {
     x: f32 = 0.0,
     y: f32 = 0.0,
@@ -26,6 +30,11 @@ pub const Vector2 = struct {
     pub fn addmult(self: *Self, v: Vector2, s: f32) void {
         self.x += v.x * s;
         self.y += v.y * s;
+    }
+
+    pub fn negate(self: *Self) void {
+        self.x *= -1;
+        self.y *= -1;
     }
 };
 
@@ -86,6 +95,10 @@ pub fn submult2(a: Vector2, b: Vector2, s: f32) Vector2 {
 
 pub fn equals2(a: Vector2, b: Vector2) bool {
     return a.x == b.x and a.y == b.y;
+}
+
+pub fn approxEql2(a: Vector2, b: Vector2, eps: f32) bool {
+    return approxEql(a.x, b.x, eps) and approxEql(a.y, b.y, eps);
 }
 
 pub fn toInt2(a: Vector2) struct { x: i32, y: i32 } {
