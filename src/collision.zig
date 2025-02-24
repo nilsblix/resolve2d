@@ -13,18 +13,19 @@ pub const Collision = struct {
 };
 
 pub const CollisionKey = struct {
-    b1: *RigidBody,
-    b2: *RigidBody,
+    ref_body: *RigidBody,
+    inc_body: *RigidBody,
 };
 
 pub const CollisionPoint = struct {
-    pn: f32,
-    pt: f32,
+    pn: f32 = 0.0,
+    pt: f32 = 0.0,
 
-    r1: Vector2,
-    r2: Vector2,
+    ref_r: Vector2,
+    inc_r: Vector2,
 
-    key: CollisionKey,
+    pos: Vector2,
+    depth: f32,
 };
 
 pub const CollisionManifold = struct {
@@ -65,14 +66,14 @@ pub fn overlapSAT(ret: *Collision, reference: *RigidBody, incident: *RigidBody) 
             // ret.normal = nmath.negate2(normal);
             ret.normal = normal;
             ret.reference_normal_id = iter.iter_performed - 1;
-            ret.key = .{ .b1 = reference, .b2 = incident };
+            ret.key = .{ .ref_body = reference, .inc_body = incident };
         }
         if (d2 < ret.penetration - EPS) {
             ret.penetration = d2;
             // ret.normal = nmath.negate2(normal);
             ret.normal = normal;
             ret.reference_normal_id = iter.iter_performed - 1;
-            ret.key = .{ .b1 = reference, .b2 = incident };
+            ret.key = .{ .ref_body = reference, .inc_body = incident };
         }
     }
     return true;

@@ -4,6 +4,7 @@ const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
 const collision = @import("collision.zig");
 const manifold_max_points = collision.CollisionManifold.MAX_POINTS;
+const CollisionPoint = collision.CollisionPoint;
 
 pub const RigidBodies = enum {
     disc,
@@ -52,7 +53,7 @@ pub const RigidBody = struct {
         closestPoint: *const fn (ptr: *anyopaque, props: Props, pos: Vector2) Vector2,
         getNormal: *const fn (ptr: *anyopaque, props: RigidBody.Props, body: RigidBody, iter: usize) ?Edge,
         projectAlongAxis: *const fn (ptr: *anyopaque, props: Props, normal: Vector2) [2]f32,
-        identifyCollisionPoints: *const fn (rigidself: *RigidBody, incident: *RigidBody, active_normal_iter: usize) [manifold_max_points]?Vector2,
+        identifyCollisionPoints: *const fn (rigidself: *RigidBody, incident: *RigidBody, active_normal_iter: usize) [manifold_max_points]?CollisionPoint,
         clipAgainstEdge: *const fn (rigidself: *RigidBody, edge: Edge.Points, normal: Vector2) Incident,
     };
 
@@ -102,7 +103,7 @@ pub const RigidBody = struct {
         return ret;
     }
 
-    pub fn identifyCollisionPoints(self: *Self, incident: *RigidBody, active_normal_iter: usize) [manifold_max_points]?Vector2 {
+    pub fn identifyCollisionPoints(self: *Self, incident: *RigidBody, active_normal_iter: usize) [manifold_max_points]?CollisionPoint {
         return self.vtable.identifyCollisionPoints(self, incident, active_normal_iter);
     }
 
@@ -212,19 +213,25 @@ pub const DiscBody = struct {
         return [2]f32{ middle - rad, middle + rad };
     }
 
-    pub fn identifyCollisionPoints(rigidself: *RigidBody, incident: *RigidBody, active_normal_iter: usize) [manifold_max_points]?Vector2 {
+    pub fn identifyCollisionPoints(rigidself: *RigidBody, incident: *RigidBody, active_normal_iter: usize) [manifold_max_points]?CollisionPoint {
         _ = active_normal_iter;
+        const self: *Self = @ptrCast(@alignCast(rigidself.ptr));
         // + circle SAT: normal = other.closestToSelf - self.pos.
         // + SAT --> clip incident body to infinitesmall small edge (on the circle's radius)
         // ==> what point on incident body intersects the line from pos + normal to pos?
         // by definition it is other.closestToSelf.
-        const point = incident.closestPoint(rigidself.props.pos);
+        const pos = incident.closestPoint(rigidself.props.pos);
 
-        var ret: [manifold_max_points]?Vector2 = undefined;
+        var ret: [manifold_max_points]?CollisionPoint = undefined;
         for (0..manifold_max_points) |i| {
             ret[i] = null;
         }
-        ret[0] = point;
+        ret[0] = CollisionPoint{
+            .ref_r = nmath.sub2(pos, rigidself.props.pos),
+            .inc_r = nmath.sub2(pos, incident.props.pos),
+            .pos = pos,
+            .depth = self.radius - nmath.length2(nmath.sub2(rigidself.props.pos, pos)),
+        };
         return ret;
     }
 
@@ -364,7 +371,7 @@ pub const RectangleBody = struct {
         const r2 = nmath.rotate2(next_vert, props.angle);
         const a2 = nmath.add2(r2, props.pos);
 
-        // FIXME: use 1/width or 1/height or something based on iter
+        // POTENTIAL: use 1/w or 1/h instead of @sqrt.
         const dir = nmath.normalize2(nmath.sub2(a2, a1));
         const normal = nmath.rotate90counterclockwise(dir);
 
@@ -391,9 +398,10 @@ pub const RectangleBody = struct {
         return [2]f32{ best_low, best_high };
     }
 
-    pub fn identifyCollisionPoints(rigidself: *RigidBody, incident: *RigidBody, active_normal_iter: usize) [manifold_max_points]?Vector2 {
+    pub fn identifyCollisionPoints(rigidself: *RigidBody, incident: *RigidBody, active_normal_iter: usize) [manifold_max_points]?CollisionPoint {
         const normal = RectangleBody.getNormal(rigidself.ptr, rigidself.props, incident.*, active_normal_iter);
-        var ret: [manifold_max_points]?Vector2 = undefined;
+
+        var ret: [manifold_max_points]?CollisionPoint = undefined;
         for (0..manifold_max_points) |i| {
             ret[i] = null;
         }
@@ -402,25 +410,43 @@ pub const RectangleBody = struct {
             const incident_edge = incident.clipAgainstEdge(n.edge.?, n.dir);
             switch (incident_edge) {
                 .edge => {
-                    // ret[0] = incident_edge.edge.a;
-                    // ret[1] = incident_edge.edge.b;
-
                     const a = incident_edge.edge.a;
                     const b = incident_edge.edge.b;
 
                     var i: usize = 0;
 
                     // check for positive penetration (non valid collision-point)
-                    if (nmath.dot2(nmath.sub2(a, n.edge.?.a), n.dir) < 0.0) {
-                        ret[i] = incident_edge.edge.a;
+                    var dot = nmath.dot2(nmath.sub2(a, n.edge.?.a), n.dir);
+                    if (dot < 0.0) {
+                        const pos = incident_edge.edge.a;
+                        ret[i] = CollisionPoint{
+                            .ref_r = nmath.sub2(pos, rigidself.props.pos),
+                            .inc_r = nmath.sub2(pos, incident.props.pos),
+                            .pos = pos,
+                            .depth = dot,
+                        };
                         i += 1;
                     }
-                    if (nmath.dot2(nmath.sub2(b, n.edge.?.b), n.dir) < 0.0) {
-                        ret[i] = incident_edge.edge.b;
+
+                    dot = nmath.dot2(nmath.sub2(b, n.edge.?.b), n.dir);
+                    if (dot < 0.0) {
+                        const pos = incident_edge.edge.a;
+                        ret[i] = CollisionPoint{
+                            .ref_r = nmath.sub2(pos, rigidself.props.pos),
+                            .inc_r = nmath.sub2(pos, incident.props.pos),
+                            .pos = pos,
+                            .depth = dot,
+                        };
                     }
                 },
                 .point => {
-                    ret[0] = incident_edge.point;
+                    const pos = incident_edge.point;
+                    ret[0] = CollisionPoint{
+                        .ref_r = nmath.sub2(pos, rigidself.props.pos),
+                        .inc_r = nmath.sub2(pos, incident.props.pos),
+                        .pos = pos,
+                        .depth = nmath.dot2(nmath.sub2(pos, n.edge.?.a), n.dir),
+                    };
                 },
             }
         } else {

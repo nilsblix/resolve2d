@@ -2,7 +2,7 @@ const std = @import("std");
 const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
 const zigics = @import("zigics.zig");
-const Physics = zigics.Physics;
+const Solver = zigics.Solver;
 const fg_mod = @import("force_generator.zig");
 const rb_mod = @import("rigidbody.zig");
 const rl = @import("raylib");
@@ -218,8 +218,8 @@ pub const Renderer = struct {
         self.units.adjustCameraPos(delta);
     }
 
-    pub fn render(self: *Self, physics: Physics) void {
-        for (physics.force_generators.items) |*gen| {
+    pub fn render(self: *Self, solver: Solver, show_collisions: bool) void {
+        for (solver.force_generators.items) |*gen| {
             switch (gen.type) {
                 .downwards_gravity => continue,
                 .point_gravity => continue,
@@ -230,7 +230,7 @@ pub const Renderer = struct {
                 },
             }
         }
-        for (physics.bodies.items) |*body| {
+        for (solver.bodies.items) |*body| {
             const nmath_screen_pos = self.units.w2s(body.props.pos);
             const screen_pos = rl.Vector2.init(nmath_screen_pos.x, nmath_screen_pos.y);
 
@@ -241,6 +241,35 @@ pub const Renderer = struct {
                 .rectangle => {
                     self.rectanglebody(body);
                 },
+            }
+        }
+
+        if (show_collisions) {
+            var iter = solver.manifolds.iterator();
+            while (iter.next()) |entry| {
+                // const key = entry.key_ptr;
+                const manifold = entry.value_ptr;
+
+                const normal = manifold.normal;
+                for (manifold.points) |point| {
+                    if (point) |pt| {
+                        const screen = self.units.w2s(pt.pos);
+                        const rls = rl.Vector2.init(screen.x, screen.y);
+                        rl.drawCircleV(rls, 0.05 * self.units.mult.w2s, rl.Color.lime);
+
+                        const screen2 = self.units.w2s(nmath.add2(pt.pos, normal));
+                        const rls2 = rl.Vector2.init(screen2.x, screen2.y);
+                        rl.drawLineEx(rls, rls2, self.units.mult.w2s * 0.02, rl.Color.orange);
+
+                        var scr = self.units.w2s(nmath.add2(pt.pos, nmath.negate2(pt.ref_r)));
+                        var rla = rl.Vector2.init(scr.x, scr.y);
+                        rl.drawLineEx(rla, rls, self.units.mult.w2s * 0.015, rl.Color.blue);
+
+                        scr = self.units.w2s(nmath.add2(pt.pos, nmath.negate2(pt.inc_r)));
+                        rla = rl.Vector2.init(scr.x, scr.y);
+                        rl.drawLineEx(rla, rls, self.units.mult.w2s * 0.015, rl.Color.blue);
+                    }
+                }
             }
         }
     }
