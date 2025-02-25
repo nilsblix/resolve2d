@@ -107,42 +107,6 @@ pub fn main() !void {
 
         const font_size = 16;
 
-        // for (0..world.solver.bodies.items.len) |id1| {
-        //     const body1 = &world.solver.bodies.items[id1];
-        //     for (id1 + 1..world.solver.bodies.items.len) |id2| {
-        //         const body2 = &world.solver.bodies.items[id2];
-        //
-        //         const sat = collision.performNarrowSAT(body1, body2);
-        //         if (sat.collides) {
-        //             const pts = sat.key.ref_body.identifyCollisionPoints(sat.key.inc_body, sat.reference_normal_id);
-        //             for (pts) |point| {
-        //                 if (point) |pt| {
-        //                     const screen = world.renderer.?.units.w2s(pt.pos);
-        //                     const rls = rl.Vector2.init(screen.x, screen.y);
-        //                     rl.drawCircleV(rls, 0.05 * world.renderer.?.units.mult.w2s, rl.Color.lime);
-        //
-        //                     const screen2 = world.renderer.?.units.w2s(nmath.add2(pt.pos, sat.normal));
-        //                     const rls2 = rl.Vector2.init(screen2.x, screen2.y);
-        //                     rl.drawLineEx(rls, rls2, world.renderer.?.units.mult.w2s * 0.02, rl.Color.orange);
-        //
-        //                     var scr = world.renderer.?.units.w2s(nmath.add2(pt.pos, nmath.negate2(pt.ref_r)));
-        //                     var rla = rl.Vector2.init(scr.x, scr.y);
-        //                     rl.drawLineEx(rla, rls, world.renderer.?.units.mult.w2s * 0.015, rl.Color.blue);
-        //
-        //                     scr = world.renderer.?.units.w2s(nmath.add2(pt.pos, nmath.negate2(pt.inc_r)));
-        //                     rla = rl.Vector2.init(scr.x, scr.y);
-        //                     rl.drawLineEx(rla, rls, world.renderer.?.units.mult.w2s * 0.015, rl.Color.blue);
-        //                 }
-        //             }
-        //
-        //             const text = rl.textFormat("colliding id= %d, %d", .{ id1, id2 });
-        //             const in: i32 = @intCast(id1 + id2);
-        //             const y: i32 = @truncate(in * 100 + 100);
-        //             rl.drawText(text, 100, y, 2 * font_size, rl.Color.white);
-        //         }
-        //     }
-        // }
-
         rl.drawText(rl.textFormat("%.3f ms : time = %0.1f s : steps = %d", .{ used_dt * 1e3, total_time, steps }), 5, screen_height - font_size, font_size, rl.Color.white);
     }
 }

@@ -263,11 +263,16 @@ pub const Renderer = struct {
 
                         var scr = self.units.w2s(nmath.add2(pt.pos, nmath.negate2(pt.ref_r)));
                         var rla = rl.Vector2.init(scr.x, scr.y);
-                        rl.drawLineEx(rla, rls, self.units.mult.w2s * 0.015, rl.Color.blue);
+                        // rl.drawLineEx(rla, rls, self.units.mult.w2s * 0.015, rl.Color.blue);
 
                         scr = self.units.w2s(nmath.add2(pt.pos, nmath.negate2(pt.inc_r)));
                         rla = rl.Vector2.init(scr.x, scr.y);
-                        rl.drawLineEx(rla, rls, self.units.mult.w2s * 0.015, rl.Color.blue);
+                        // rl.drawLineEx(rla, rls, self.units.mult.w2s * 0.015, rl.Color.blue);
+
+                        scr = self.units.w2s(nmath.addmult2(pt.pos, nmath.negate2(normal), pt.depth));
+                        rla = rlv2(scr);
+                        rl.drawLineEx(rla, rls, self.units.mult.w2s * 0.03, rl.Color.sky_blue);
+                        rl.drawCircleV(rla, self.units.mult.w2s * 0.02, rl.Color.blue);
                     }
                 }
             }

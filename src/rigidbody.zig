@@ -230,13 +230,14 @@ pub const DiscBody = struct {
             .ref_r = nmath.sub2(pos, rigidself.props.pos),
             .inc_r = nmath.sub2(pos, incident.props.pos),
             .pos = pos,
-            .depth = self.radius - nmath.length2(nmath.sub2(rigidself.props.pos, pos)),
+            .depth = nmath.length2(nmath.sub2(rigidself.props.pos, pos)) - self.radius,
         };
         return ret;
     }
 
     pub fn clipAgainstEdge(rigidself: *RigidBody, edge: Edge.Points, normal: Vector2) Incident {
         const self: *Self = @ptrCast(@alignCast(rigidself.ptr));
+        // _ = edge;
 
         const dist = nmath.length2(nmath.sub2(edge.b, edge.a));
         // a -- (along tangent) --> b
@@ -250,15 +251,16 @@ pub const DiscBody = struct {
         }
 
         std.debug.print("circle clipAgainstSelf is outside of the middle!!", .{});
-
-        const dx = if (t < 0.0) -t else dist - t;
-        const dy = @sqrt(self.radius * self.radius - dx * dx);
-
-        const t_y = nmath.dot2(nmath.sub2(rigidself.props.pos, edge.a), normal);
-        const dy_mult: f32 = if (t_y < 0.0) 1 else -1;
-
-        const pos = rigidself.props.pos;
-        return Incident{ .point = Vector2.init(pos.x + dx, pos.y + dy_mult * dy) };
+        return Incident{ .point = nmath.addmult2(rigidself.props.pos, normal, -self.radius) };
+        //
+        // const dx = if (t < 0.0) -t else dist - t;
+        // const dy = @sqrt(self.radius * self.radius - dx * dx);
+        //
+        // const t_y = nmath.dot2(nmath.sub2(rigidself.props.pos, edge.a), normal);
+        // const dy_mult: f32 = if (t_y < 0.0) 1 else -1;
+        //
+        // const pos = rigidself.props.pos;
+        // return Incident{ .point = Vector2.init(pos.x + dx, pos.y + dy_mult * dy) };
     }
 };
 
@@ -430,7 +432,7 @@ pub const RectangleBody = struct {
 
                     dot = nmath.dot2(nmath.sub2(b, n.edge.?.b), n.dir);
                     if (dot < 0.0) {
-                        const pos = incident_edge.edge.a;
+                        const pos = incident_edge.edge.b;
                         ret[i] = CollisionPoint{
                             .ref_r = nmath.sub2(pos, rigidself.props.pos),
                             .inc_r = nmath.sub2(pos, incident.props.pos),
