@@ -109,12 +109,10 @@ pub fn performNarrowSAT(b1: *RigidBody, b2: *RigidBody) Collision {
     ret.collides = false;
     ret.penetration = std.math.inf(f32);
 
-    // const sqr1 = nmath.length2sq(b1.props.pos);
-    // const sqr2 = nmath.length2sq(b2.props.pos);
-
-    // const o1 = if (sqr1 < sqr2) b1 else b2;
-    // const o2 = if (o1 == b1) b2 else b1;
-
+    // POTENTIAL: using here an arbitrary sorting thing so that when
+    // objects with the same normal (ex: disc vs disc) don't swap between
+    // being reference and incident don't swap between
+    // being reference and incident
     const o1 = if (b1.props.pos.x < b2.props.pos.x) b1 else b2;
     const o2 = if (o1 == b1) b2 else b1;
 
@@ -125,14 +123,6 @@ pub fn performNarrowSAT(b1: *RigidBody, b2: *RigidBody) Collision {
     if (!overlapSAT(&ret, o2, o1)) {
         return ret;
     }
-
-    // if (!overlapSAT(&ret, b1, b2)) {
-    //     return ret;
-    // }
-    //
-    // if (!overlapSAT(&ret, b2, b1)) {
-    //     return ret;
-    // }
 
     ret.collides = true;
 

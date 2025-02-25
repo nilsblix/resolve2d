@@ -29,7 +29,7 @@ pub fn main() !void {
     try world.solver.makeRectangleBody(Vector2.init(8, 0), 1.0, 3.0, 2.5);
     try world.solver.makeRectangleBody(Vector2.init(5, 3), 4.0, 3.0, 1.0);
     try world.solver.makeDiscBody(Vector2.init(1, 2), 2.0, 0.5);
-    world.solver.bodies.items[0].static = true;
+    world.solver.bodies.items[1].static = true;
     world.solver.bodies.items[2].static = true;
     world.solver.bodies.items[3].static = true;
     world.solver.bodies.items[4].static = true;
@@ -108,7 +108,15 @@ pub fn main() !void {
             total_time += used_dt;
 
             if (drag_first_body) {
-                world.solver.bodies.items[0].props.pos = mouse_pos;
+                world.solver.bodies.items[1].props.pos = mouse_pos;
+            }
+
+            if (rl.isKeyDown(.m)) {
+                world.solver.bodies.items[1].props.angle += 0.02;
+            }
+
+            if (rl.isKeyDown(.n)) {
+                world.solver.bodies.items[1].props.angle -= 0.02;
             }
 
             try world.process(alloc, used_dt);

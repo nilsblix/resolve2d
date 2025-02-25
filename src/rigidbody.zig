@@ -223,6 +223,7 @@ pub const DiscBody = struct {
             normal.negate();
         }
 
+        // normalize collisionpoint against the normal => depth
         const dot = nmath.dot2(normal, nmath.sub2(pos, rigidself.props.pos));
         const depth = dot - self.radius;
 
