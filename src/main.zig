@@ -122,6 +122,7 @@ const MouseSpring = struct {
 
         if (!self.active and rl.isKeyPressed(.v)) {
             for (physics.bodies.items) |*body| {
+                if (body.static) continue;
                 if (body.isInside(mouse_pos)) {
                     const r_rotated = nmath.sub2(mouse_pos, body.props.pos);
                     const r = nmath.rotate2(r_rotated, -body.props.angle);

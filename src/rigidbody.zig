@@ -237,30 +237,9 @@ pub const DiscBody = struct {
 
     pub fn clipAgainstEdge(rigidself: *RigidBody, edge: Edge.Points, normal: Vector2) Incident {
         const self: *Self = @ptrCast(@alignCast(rigidself.ptr));
-        // _ = edge;
+        _ = edge;
 
-        const dist = nmath.length2(nmath.sub2(edge.b, edge.a));
-        // a -- (along tangent) --> b
-        const tangent = nmath.rotate90clockwise(normal);
-
-        // how far from a is self.pos? < 0 ==> left of A, > 0 ==> right of A
-        const t = nmath.dot2(nmath.sub2(rigidself.props.pos, edge.a), tangent);
-
-        if (t > 0.0 and t < dist) {
-            return Incident{ .point = nmath.addmult2(rigidself.props.pos, normal, -self.radius) };
-        }
-
-        std.debug.print("circle clipAgainstSelf is outside of the middle!!", .{});
         return Incident{ .point = nmath.addmult2(rigidself.props.pos, normal, -self.radius) };
-        //
-        // const dx = if (t < 0.0) -t else dist - t;
-        // const dy = @sqrt(self.radius * self.radius - dx * dx);
-        //
-        // const t_y = nmath.dot2(nmath.sub2(rigidself.props.pos, edge.a), normal);
-        // const dy_mult: f32 = if (t_y < 0.0) 1 else -1;
-        //
-        // const pos = rigidself.props.pos;
-        // return Incident{ .point = Vector2.init(pos.x + dx, pos.y + dy_mult * dy) };
     }
 };
 
