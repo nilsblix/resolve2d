@@ -69,6 +69,7 @@ pub const RigidBody = struct {
         ang_momentum: f32,
         torque: f32,
         inertia: f32,
+        friction: f32,
     };
 
     normal_iter: EdgeNormalIterator,
@@ -148,7 +149,7 @@ pub const DiscBody = struct {
 
     const Self = @This();
 
-    pub fn init(alloc: Allocator, pos: Vector2, angle: f32, mass: f32, radius: f32) !RigidBody {
+    pub fn init(alloc: Allocator, pos: Vector2, angle: f32, mass: f32, friction: f32, radius: f32) !RigidBody {
         var self: *Self = try alloc.create(Self);
         self.radius = radius;
 
@@ -162,6 +163,7 @@ pub const DiscBody = struct {
                 .torque = 0,
                 .mass = mass,
                 .inertia = 0.5 * mass * radius * radius,
+                .friction = friction,
             },
             .normal_iter = EdgeNormalIterator{ .num_iters = 1 },
             .type = RigidBodies.disc,
@@ -266,7 +268,7 @@ pub const RectangleBody = struct {
 
     const Self = @This();
 
-    pub fn init(alloc: Allocator, pos: Vector2, angle: f32, mass: f32, width: f32, height: f32) !RigidBody {
+    pub fn init(alloc: Allocator, pos: Vector2, angle: f32, mass: f32, friction: f32, width: f32, height: f32) !RigidBody {
         var self: *Self = try alloc.create(Self);
         self.width = width;
         self.height = height;
@@ -285,6 +287,7 @@ pub const RectangleBody = struct {
                 .torque = 0,
                 .mass = mass,
                 .inertia = mass * (width * width + height * height) / 12,
+                .friction = friction,
             },
             .normal_iter = EdgeNormalIterator{ .num_iters = 4 },
             .type = RigidBodies.rectangle,

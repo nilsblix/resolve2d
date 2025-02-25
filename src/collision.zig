@@ -33,6 +33,87 @@ pub const CollisionManifold = struct {
 
     normal: Vector2,
     points: [CollisionManifold.MAX_POINTS]?CollisionPoint,
+
+    const Self = @This();
+    fn calculateImpulses(self: *Self, key: CollisionKey, dt: f32, beta_bias: f32, delta_slop: f32) void {
+        const b1 = key.ref_body;
+        const b2 = key.inc_body;
+
+        const inv_mass = 1 / b1.props.mass + 1 / b2.props.mass;
+
+        for (self.points, 0..) |point, idx| {
+            if (point) |col_pt| {
+                const r1 = col_pt.ref_r;
+                const r2 = col_pt.inc_r;
+
+                const r1xn = nmath.cross2(r1, self.normal);
+                const r2xn = nmath.cross2(r2, self.normal);
+                const kn = inv_mass + r1xn * r1xn / b1.props.inertia + r2xn * r2xn / b2.props.inertia;
+
+                const v1 = nmath.scale2(b1.props.momentum, 1 / b1.props.mass);
+                const omega1 = b1.props.ang_momentum / b1.props.inertia;
+                const w1_cross_r1 = Vector2.init(-r1.y * omega1, r1.x * omega1);
+                const rel_1 = nmath.add2(v1, w1_cross_r1);
+
+                const v2 = nmath.scale2(b2.props.momentum, 1 / b2.props.mass);
+                const omega2 = b2.props.ang_momentum / b2.props.inertia;
+                const w2_cross_r2 = Vector2.init(-r2.y * omega2, r2.x * omega2);
+                const rel_2 = nmath.add2(v2, w2_cross_r2);
+
+                const delta_v = nmath.sub2(rel_1, rel_2);
+
+                const v_bias = beta_bias / dt * @max(0, -col_pt.depth - delta_slop);
+                var num = nmath.dot2(delta_v, self.normal) + v_bias;
+                const pn = @max(num / kn, 0);
+
+                self.points[idx].?.pn = pn;
+
+                const tangent = nmath.rotate90clockwise(self.normal);
+                const r1xt = nmath.cross2(r1, tangent);
+                const r2xt = nmath.cross2(r2, tangent);
+                const kt = inv_mass + r1xt * r1xt / b1.props.inertia + r2xt * r2xt / b2.props.inertia;
+
+                num = nmath.dot2(delta_v, tangent);
+                const pt = num / kt;
+
+                const mu = (b1.props.friction + b2.props.friction) / 2;
+                self.points[idx].?.pt = @max(-mu * pn, @min(mu * pn, pt));
+            }
+        }
+    }
+
+    pub fn applyImpulses(self: *Self, key: CollisionKey, dt: f32, beta_bias: f32, delta_slop: f32) void {
+        if (key.ref_body.static and key.inc_body.static) return;
+
+        self.calculateImpulses(key, dt, beta_bias, delta_slop);
+
+        const b1 = key.ref_body;
+        const b2 = key.inc_body;
+
+        for (self.points) |point| {
+            if (point) |pt| {
+                const r1 = pt.ref_r;
+                const r2 = pt.inc_r;
+
+                const pn_vec = nmath.scale2(self.normal, pt.pn);
+
+                const tangent = nmath.rotate90clockwise(self.normal);
+                const pt_vec = nmath.scale2(tangent, pt.pt);
+
+                const p = nmath.add2(pn_vec, pt_vec);
+
+                if (!b1.static) {
+                    b1.props.momentum.sub(p);
+                    b1.props.ang_momentum -= nmath.cross2(r1, p);
+                }
+
+                if (!b2.static) {
+                    b2.props.momentum.add(p);
+                    b2.props.ang_momentum += nmath.cross2(r2, p);
+                }
+            }
+        }
+    }
 };
 
 pub fn normalShouldFlipSAT(normal: Vector2, reference: *RigidBody, incident: *RigidBody) bool {

@@ -8,6 +8,31 @@ const Vector2 = nmath.Vector2;
 const Allocator = std.mem.Allocator;
 const collision = @import("collision.zig");
 
+fn setupScene(alloc: Allocator, solver: *zigics.Solver) !void {
+    const mu = 0.2;
+    try solver.makeDiscBody(Vector2.init(5, 5), 2.0, 0.3, mu);
+    try solver.makeRectangleBody(Vector2.init(3, 2), 2.0, 1.0, 0.5, mu);
+    try solver.makeRectangleBody(Vector2.init(8, 3), 2.0, 1.5, 1.0, mu);
+    try solver.makeDiscBody(Vector2.init(5, 1), 2.0, 0.8, mu);
+    try solver.makeRectangleBody(Vector2.init(8, 0), 1.0, 3.0, 2.5, mu);
+    try solver.makeRectangleBody(Vector2.init(5, 3), 4.0, 3.0, 1.0, mu);
+    try solver.makeDiscBody(Vector2.init(7, 6), 2.0, 0.5, mu);
+
+    try solver.makeRectangleBody(Vector2.init(4, 6), 2.0, 0.5, 1.0, 1.0);
+    try solver.makeRectangleBody(Vector2.init(5, 8), 5.0, 2.5, 0.5, 1.0);
+
+    try solver.makeRectangleBody(Vector2.init(5, -2), 1.0, 20, 1.0, 0.4);
+    solver.bodies.items[9].static = true;
+
+    solver.bodies.items[1].static = true;
+    solver.bodies.items[2].static = true;
+    solver.bodies.items[3].static = true;
+    solver.bodies.items[4].static = true;
+    solver.bodies.items[5].props.angle = @as(f32, std.math.pi) / @as(f32, 4);
+
+    try solver.force_generators.append(try forcegenerator.DownwardsGravity.init(alloc, 9.82));
+}
+
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -22,18 +47,7 @@ pub fn main() !void {
     var world = zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true);
     defer world.deinit();
 
-    try world.solver.makeDiscBody(Vector2.init(5, 5), 2.0, 0.3);
-    try world.solver.makeRectangleBody(Vector2.init(3, 2), 2.0, 1.0, 0.5);
-    try world.solver.makeRectangleBody(Vector2.init(8, 3), 2.0, 1.5, 1.0);
-    try world.solver.makeDiscBody(Vector2.init(5, 1), 2.0, 0.8);
-    try world.solver.makeRectangleBody(Vector2.init(8, 0), 1.0, 3.0, 2.5);
-    try world.solver.makeRectangleBody(Vector2.init(5, 3), 4.0, 3.0, 1.0);
-    try world.solver.makeDiscBody(Vector2.init(1, 2), 2.0, 0.5);
-    world.solver.bodies.items[1].static = true;
-    world.solver.bodies.items[2].static = true;
-    world.solver.bodies.items[3].static = true;
-    world.solver.bodies.items[4].static = true;
-    world.solver.bodies.items[5].props.angle = @as(f32, std.math.pi) / @as(f32, 4);
+    try setupScene(alloc, &world.solver);
 
     var mouse_spring = MouseSpring{};
 
@@ -42,16 +56,13 @@ pub fn main() !void {
 
     const HZ: i32 = 60;
     const STANDARD_DT: f32 = 1 / @as(f32, HZ);
-    const SLOW_MOTION_DT: f32 = STANDARD_DT / 6;
+    const SUB_STEPS = 8;
     rl.setTargetFPS(HZ);
 
     var simulating: bool = false;
     var show_collisions: bool = true;
-    var used_dt: f32 = STANDARD_DT;
+    var slow_motion = false;
     var steps: u32 = 0;
-    var total_time: f32 = 0;
-
-    var drag_first_body = true;
 
     var screen_prev_mouse_pos: Vector2 = .{};
     var screen_mouse_pos: Vector2 = .{};
@@ -96,20 +107,16 @@ pub fn main() !void {
         }
 
         if (rl.isKeyPressed(.k)) {
-            used_dt = if (used_dt == STANDARD_DT) SLOW_MOTION_DT else STANDARD_DT;
+            slow_motion = !slow_motion;
         }
 
-        if (rl.isKeyPressed(.g)) {
-            drag_first_body = !drag_first_body;
+        if (rl.isKeyPressed(.r)) {
+            world.solver.clear(alloc);
+            try setupScene(alloc, &world.solver);
         }
 
         if (simulating) {
             steps += 1;
-            total_time += used_dt;
-
-            if (drag_first_body) {
-                world.solver.bodies.items[1].props.pos = mouse_pos;
-            }
 
             if (rl.isKeyDown(.m)) {
                 world.solver.bodies.items[1].props.angle += 0.02;
@@ -119,7 +126,16 @@ pub fn main() !void {
                 world.solver.bodies.items[1].props.angle -= 0.02;
             }
 
-            try world.process(alloc, used_dt);
+            if (slow_motion) {
+                const sub_dt = STANDARD_DT / SUB_STEPS;
+                try world.process(alloc, sub_dt);
+            } else {
+                for (0..SUB_STEPS) |s| {
+                    _ = s;
+                    const sub_dt = STANDARD_DT / SUB_STEPS;
+                    try world.process(alloc, sub_dt);
+                }
+            }
         } else {
             rl.drawText("paused", 5, 0, 64, rl.Color.white);
         }
@@ -129,7 +145,7 @@ pub fn main() !void {
 
         const font_size = 16;
 
-        rl.drawText(rl.textFormat("%.3f ms : time = %0.1f s : steps = %d", .{ used_dt * 1e3, total_time, steps }), 5, screen_height - font_size, font_size, rl.Color.white);
+        rl.drawText(rl.textFormat("%.3f ms : steps = %d", .{ STANDARD_DT * 1e3, steps }), 5, screen_height - font_size, font_size, rl.Color.white);
     }
 }
 
@@ -148,7 +164,7 @@ const MouseSpring = struct {
                 if (body.isInside(mouse_pos)) {
                     const r_rotated = nmath.sub2(mouse_pos, body.props.pos);
                     const r = nmath.rotate2(r_rotated, -body.props.angle);
-                    const spring = try forcegenerator.StaticSpring.init(alloc, body, mouse_pos, r, 20.0);
+                    const spring = try forcegenerator.StaticSpring.init(alloc, body, mouse_pos, r, 80.0);
                     try physics.force_generators.append(spring);
                     self.active = true;
                     return;

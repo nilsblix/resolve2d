@@ -27,6 +27,11 @@ pub const Vector2 = struct {
         self.y -= v.y;
     }
 
+    pub fn scale(self: *Self, s: f32) void {
+        self.x *= s;
+        self.y *= s;
+    }
+
     pub fn addmult(self: *Self, v: Vector2, s: f32) void {
         self.x += v.x * s;
         self.y += v.y * s;

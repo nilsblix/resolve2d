@@ -40,11 +40,6 @@ pub const Solver = struct {
         self.bodies.deinit();
     }
 
-    pub fn clear(self: *Self, alloc: Allocator) void {
-        self.deinit();
-        self.* = Self.init(alloc);
-    }
-
     pub fn process(self: *Self, alloc: Allocator, dt: f32) !void {
         for (self.force_generators.items) |*gen| {
             gen.apply(self.bodies);
@@ -55,7 +50,7 @@ pub const Solver = struct {
         var iter = self.manifolds.iterator();
         while (iter.next()) |entry| {
             const manifold = entry.value_ptr;
-            manifold.applyImpulses(entry.key_ptr.*, dt, 0.2, 0.0);
+            manifold.applyImpulses(entry.key_ptr.*);
         }
 
         for (self.bodies.items) |*body| {
@@ -139,13 +134,13 @@ pub const Solver = struct {
         return E;
     }
 
-    pub fn makeDiscBody(self: *Self, pos: Vector2, mass: f32, radius: f32, friction: f32) !void {
-        const body: rb_mod.RigidBody = try rb_mod.DiscBody.init(self.alloc, pos, 0, mass, friction, radius);
+    pub fn makeDiscBody(self: *Self, pos: Vector2, mass: f32, radius: f32) !void {
+        const body: rb_mod.RigidBody = try rb_mod.DiscBody.init(self.alloc, pos, 0, mass, radius);
         try self.bodies.append(body);
     }
 
-    pub fn makeRectangleBody(self: *Self, pos: Vector2, mass: f32, width: f32, height: f32, friction: f32) !void {
-        const body: rb_mod.RigidBody = try rb_mod.RectangleBody.init(self.alloc, pos, 0, mass, friction, width, height);
+    pub fn makeRectangleBody(self: *Self, pos: Vector2, mass: f32, width: f32, height: f32) !void {
+        const body: rb_mod.RigidBody = try rb_mod.RectangleBody.init(self.alloc, pos, 0, mass, width, height);
         try self.bodies.append(body);
     }
 };
@@ -172,6 +167,22 @@ pub const World = struct {
 
     pub fn render(self: *Self, show_collisions: bool) void {
         if (self.renderer) |*rend| {
+            const ext = 0.5;
+            const left = rend.units.w2s(Vector2.init(-ext, 0));
+            const top = rend.units.w2s(Vector2.init(0, ext));
+            const bottom = rend.units.w2s(Vector2.init(0, -ext));
+            const right = rend.units.w2s(Vector2.init(ext, 0));
+
+            const rl_left = rl.Vector2.init(left.x, left.y);
+            const rl_top = rl.Vector2.init(top.x, top.y);
+            const rl_bottom = rl.Vector2.init(bottom.x, bottom.y);
+            const rl_right = rl.Vector2.init(right.x, right.y);
+
+            const width = rend.units.mult.w2s * 0.02;
+
+            rl.drawLineEx(rl_left, rl_right, width, rl.Color.red);
+            rl.drawLineEx(rl_bottom, rl_top, width, rl.Color.red);
+
             rend.render(self.solver, show_collisions);
         }
     }

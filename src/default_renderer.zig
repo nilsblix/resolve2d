@@ -266,9 +266,17 @@ pub const Renderer = struct {
                         const rls = rl.Vector2.init(screen.x, screen.y);
                         rl.drawCircleV(rls, 0.05 * self.units.mult.w2s, rl.Color.lime);
 
-                        const screen2 = self.units.w2s(nmath.add2(pt.pos, normal));
+                        const pn_vec = nmath.scale2(normal, pt.pn);
+
+                        const tangent = nmath.rotate90clockwise(normal);
+                        const pt_vec = nmath.scale2(tangent, pt.pt);
+
+                        const p = nmath.add2(pn_vec, pt_vec);
+
+                        const screen2 = self.units.w2s(nmath.add2(pt.pos, p));
                         const rls2 = rl.Vector2.init(screen2.x, screen2.y);
-                        rl.drawLineEx(rls, rls2, self.units.mult.w2s * 0.02, rl.Color.orange);
+                        const teal = rl.Color.init(66, 182, 245, 255);
+                        rl.drawLineEx(rls, rls2, self.units.mult.w2s * 0.02, teal);
 
                         var scr = self.units.w2s(nmath.add2(pt.pos, nmath.negate2(pt.ref_r)));
                         var rla = rl.Vector2.init(scr.x, scr.y);
