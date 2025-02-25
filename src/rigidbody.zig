@@ -188,10 +188,6 @@ pub const DiscBody = struct {
     }
 
     pub fn closestPoint(ptr: *anyopaque, props: RigidBody.Props, pos: Vector2) Vector2 {
-        // _ = ptr;
-        // _ = pos;
-        // return props.pos;
-
         const self: *Self = @ptrCast(@alignCast(ptr));
         const normal = nmath.normalize2(nmath.sub2(pos, props.pos));
         return nmath.addmult2(props.pos, normal, self.radius);
@@ -214,13 +210,21 @@ pub const DiscBody = struct {
     }
 
     pub fn identifyCollisionPoints(rigidself: *RigidBody, incident: *RigidBody, active_normal_iter: usize) [manifold_max_points]?CollisionPoint {
-        _ = active_normal_iter;
         const self: *Self = @ptrCast(@alignCast(rigidself.ptr));
         // + circle SAT: normal = other.closestToSelf - self.pos.
         // + SAT --> clip incident body to infinitesmall small edge (on the circle's radius)
         // ==> what point on incident body intersects the line from pos + normal to pos?
         // by definition it is other.closestToSelf.
         const pos = incident.closestPoint(rigidself.props.pos);
+        const edge = DiscBody.getNormal(rigidself.ptr, rigidself.props, incident.*, active_normal_iter);
+        var normal = edge.?.dir;
+
+        if (collision.normalShouldFlipSAT(normal, rigidself, incident)) {
+            normal.negate();
+        }
+
+        const dot = nmath.dot2(normal, nmath.sub2(pos, rigidself.props.pos));
+        const depth = dot - self.radius;
 
         var ret: [manifold_max_points]?CollisionPoint = undefined;
         for (0..manifold_max_points) |i| {
@@ -230,7 +234,7 @@ pub const DiscBody = struct {
             .ref_r = nmath.sub2(pos, rigidself.props.pos),
             .inc_r = nmath.sub2(pos, incident.props.pos),
             .pos = pos,
-            .depth = nmath.length2(nmath.sub2(rigidself.props.pos, pos)) - self.radius,
+            .depth = depth,
         };
         return ret;
     }

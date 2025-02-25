@@ -22,15 +22,18 @@ pub fn main() !void {
     var world = zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true);
     defer world.deinit();
 
-    try world.solver.makeDiscBody(Vector2.init(5, 5), 2.0, 0.6);
+    try world.solver.makeDiscBody(Vector2.init(5, 5), 2.0, 0.3);
     try world.solver.makeRectangleBody(Vector2.init(3, 2), 2.0, 1.0, 0.5);
     try world.solver.makeRectangleBody(Vector2.init(8, 3), 2.0, 1.5, 1.0);
     try world.solver.makeDiscBody(Vector2.init(5, 1), 2.0, 0.8);
     try world.solver.makeRectangleBody(Vector2.init(8, 0), 1.0, 3.0, 2.5);
     try world.solver.makeRectangleBody(Vector2.init(5, 3), 4.0, 3.0, 1.0);
+    try world.solver.makeDiscBody(Vector2.init(1, 2), 2.0, 0.5);
+    world.solver.bodies.items[0].static = true;
     world.solver.bodies.items[2].static = true;
     world.solver.bodies.items[3].static = true;
     world.solver.bodies.items[4].static = true;
+    world.solver.bodies.items[5].props.angle = @as(f32, std.math.pi) / @as(f32, 4);
 
     var mouse_spring = MouseSpring{};
 
@@ -47,6 +50,8 @@ pub fn main() !void {
     var used_dt: f32 = STANDARD_DT;
     var steps: u32 = 0;
     var total_time: f32 = 0;
+
+    var drag_first_body = true;
 
     var screen_prev_mouse_pos: Vector2 = .{};
     var screen_mouse_pos: Vector2 = .{};
@@ -94,9 +99,18 @@ pub fn main() !void {
             used_dt = if (used_dt == STANDARD_DT) SLOW_MOTION_DT else STANDARD_DT;
         }
 
+        if (rl.isKeyPressed(.g)) {
+            drag_first_body = !drag_first_body;
+        }
+
         if (simulating) {
             steps += 1;
             total_time += used_dt;
+
+            if (drag_first_body) {
+                world.solver.bodies.items[0].props.pos = mouse_pos;
+            }
+
             try world.process(alloc, used_dt);
         } else {
             rl.drawText("paused", 5, 0, 64, rl.Color.white);

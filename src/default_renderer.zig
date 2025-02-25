@@ -249,6 +249,15 @@ pub const Renderer = struct {
             while (iter.next()) |entry| {
                 // const key = entry.key_ptr;
                 const manifold = entry.value_ptr;
+                const key = entry.key_ptr;
+
+                var ref_id: isize = -1;
+                for (solver.bodies.items, 0..) |*body, i| {
+                    if (body == key.ref_body) {
+                        ref_id = @intCast(i);
+                        break;
+                    }
+                }
 
                 const normal = manifold.normal;
                 for (manifold.points) |point| {
