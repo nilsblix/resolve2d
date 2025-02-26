@@ -12,6 +12,71 @@ pub const Units = def_rend.Units;
 const Renderer = def_rend.Renderer;
 const clsn = @import("collision.zig");
 
+pub const EntityFactory = struct {
+    pub const BodyOptions = struct {
+        pos: Vector2,
+        vel: Vector2 = .{},
+        angle: f32 = 0.0,
+        omega: f32 = 0.0,
+        mu_s: f32 = 0.5,
+        mu_d: f32 = 0.4,
+        mass_prop: union(enum) {
+            /// kg / m^2
+            density: f32,
+            mass: f32,
+        },
+    };
+
+    pub const DiscOptions = struct {
+        radius: f32 = 1.0,
+    };
+
+    pub const RectangleOptions = struct {
+        width: f32 = 1.0,
+        height: f32 = 0.5,
+    };
+
+    pub const GeometryOptions = union(enum) { disc: DiscOptions, rectangle: RectangleOptions };
+
+    solver: *Solver,
+
+    const Self = @This();
+
+    pub fn makeDiscBody(self: *Self, rigid_opt: BodyOptions, geometry_opt: DiscOptions) !*RigidBody {
+        const mass = switch (rigid_opt.mass_prop) {
+            .mass => |m| m,
+            .density => |density| @as(f32, std.math.pi) * geometry_opt.radius * geometry_opt.radius * density,
+        };
+
+        var body = try rb_mod.DiscBody.init(self.solver.alloc, rigid_opt.pos, rigid_opt.angle, mass, rigid_opt.mu_s, rigid_opt.mu_d, geometry_opt.radius);
+
+        body.props.momentum = nmath.scale2(rigid_opt.vel, mass);
+        body.props.ang_momentum = rigid_opt.omega * body.props.inertia;
+
+        try self.solver.bodies.append(body);
+        return &self.solver.bodies.items[self.solver.bodies.items.len - 1];
+    }
+
+    pub fn makeRectangleBody(self: *Self, rigid_opt: BodyOptions, geometry_opt: RectangleOptions) !*RigidBody {
+        const mass = switch (rigid_opt.mass_prop) {
+            .mass => |m| m,
+            .density => |density| geometry_opt.width * geometry_opt.height * density,
+        };
+
+        var body = try rb_mod.RectangleBody.init(self.solver.alloc, rigid_opt.pos, rigid_opt.angle, mass, rigid_opt.mu_s, rigid_opt.mu_d, geometry_opt.width, geometry_opt.height);
+
+        body.props.momentum = nmath.scale2(rigid_opt.vel, mass);
+        body.props.ang_momentum = rigid_opt.omega * body.props.inertia;
+
+        try self.solver.bodies.append(body);
+        return &self.solver.bodies.items[self.solver.bodies.items.len - 1];
+    }
+
+    pub fn makeDownwardsGravity(self: *Self, g: f32) !void {
+        try self.solver.force_generators.append(try fg_mod.DownwardsGravity.init(self.solver.alloc, g));
+    }
+};
+
 pub const Solver = struct {
     alloc: Allocator,
     bodies: std.ArrayList(RigidBody),
@@ -50,22 +115,27 @@ pub const Solver = struct {
             gen.apply(self.bodies);
         }
 
+        for (self.bodies.items) |*body| {
+            if (body.static) continue;
+            var props: *RigidBody.Props = &body.props;
+
+            props.momentum.addmult(props.force, dt);
+            props.ang_momentum += props.torque * dt;
+        }
+
         try self.updateManifolds(alloc);
 
         var iter = self.manifolds.iterator();
         while (iter.next()) |entry| {
             const manifold = entry.value_ptr;
-            manifold.applyImpulses(entry.key_ptr.*, dt, 0.2, 0.0);
+            manifold.applyImpulses(entry.key_ptr.*, dt, 0.4, 0.01);
         }
 
         for (self.bodies.items) |*body| {
             if (body.static) continue;
             var props: *RigidBody.Props = &body.props;
 
-            props.momentum.addmult(props.force, dt);
             props.pos.addmult(props.momentum, dt / props.mass);
-
-            props.ang_momentum += props.torque * dt;
             props.angle += props.ang_momentum * dt / props.inertia;
 
             props.force = .{};
@@ -106,6 +176,8 @@ pub const Solver = struct {
             for (id1 + 1..self.bodies.items.len) |id2| {
                 const body2 = &self.bodies.items[id2];
 
+                if (body1.static and body2.static) continue;
+
                 var tmp = clsn.CollisionKey{ .ref_body = body1, .inc_body = body2 };
                 if (!self.manifolds.contains(tmp)) {
                     tmp = clsn.CollisionKey{ .ref_body = body2, .inc_body = body1 };
@@ -125,29 +197,19 @@ pub const Solver = struct {
         }
     }
 
-    pub fn getEnergy(self: Self) f32 {
-        var E: f32 = 0;
-        for (self.force_generators.items) |*gen| {
-            E += gen.energy(self.bodies);
-        }
-        for (self.bodies.items) |*body| {
-            const len2 = nmath.length2sq(nmath.scale2(body.props.momentum, 1 / body.props.mass));
-            E += 1 / 2 * body.props.mass * len2;
-            const ang_vel = body.props.ang_momentum / body.props.inertia;
-            E += 1 / 2 * body.props.inertia * ang_vel * ang_vel;
-        }
-        return E;
+    pub fn entityFactory(self: *Self) EntityFactory {
+        return EntityFactory{ .solver = self };
     }
 
-    pub fn makeDiscBody(self: *Self, pos: Vector2, mass: f32, radius: f32, friction: f32) !void {
-        const body: rb_mod.RigidBody = try rb_mod.DiscBody.init(self.alloc, pos, 0, mass, friction, radius);
-        try self.bodies.append(body);
-    }
-
-    pub fn makeRectangleBody(self: *Self, pos: Vector2, mass: f32, width: f32, height: f32, friction: f32) !void {
-        const body: rb_mod.RigidBody = try rb_mod.RectangleBody.init(self.alloc, pos, 0, mass, friction, width, height);
-        try self.bodies.append(body);
-    }
+    // pub fn makeDiscBody(self: *Self, pos: Vector2, mass: f32, radius: f32, friction: f32) !void {
+    //     const body: rb_mod.RigidBody = try rb_mod.DiscBody.init(self.alloc, pos, 0, mass, friction, radius);
+    //     try self.bodies.append(body);
+    // }
+    //
+    // pub fn makeRectangleBody(self: *Self, pos: Vector2, mass: f32, width: f32, height: f32, friction: f32) !void {
+    //     const body: rb_mod.RigidBody = try rb_mod.RectangleBody.init(self.alloc, pos, 0, mass, friction, width, height);
+    //     try self.bodies.append(body);
+    // }
 };
 
 pub const World = struct {

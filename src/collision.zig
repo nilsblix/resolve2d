@@ -76,7 +76,7 @@ pub const CollisionManifold = struct {
                 num = nmath.dot2(delta_v, tangent);
                 const pt = num / kt;
 
-                const mu = (b1.props.friction + b2.props.friction) / 2;
+                const mu = (b1.props.mu_d + b2.props.mu_d) / 2;
                 self.points[idx].?.pt = @max(-mu * pn, @min(mu * pn, pt));
             }
         }

@@ -192,7 +192,7 @@ pub const Renderer = struct {
     spring_options: SpringRenderOptions,
     body_options: BodyOptions,
 
-    const RING_RES: i32 = 30;
+    const RING_RES: i32 = 40;
 
     const Self = @This();
     pub fn init(screen_size: Units.Size, default_world_width: f32) Renderer {
@@ -203,7 +203,7 @@ pub const Renderer = struct {
                 .segment_width = OptPair.init(units, 0.03),
                 .segment_color = rl.Color.white,
             },
-            .body_options = BodyOptions.init(units, rl.Color.red, rl.Color.pink, 0.02),
+            .body_options = BodyOptions.init(units, rl.Color.red, rl.Color.pink, 0.03),
         };
     }
 
@@ -307,7 +307,15 @@ pub const Renderer = struct {
 
     fn discbody(self: Self, screen_pos: rl.Vector2, body: *rb_mod.RigidBody) void {
         const disc: *rb_mod.DiscBody = @ptrCast(@alignCast(body.ptr));
-        const color = if (body.static) self.body_options.static_color else self.body_options.color;
+        var color = if (body.static) self.body_options.static_color else self.body_options.color;
+
+        if (!body.static) {
+            const n = 1;
+            const n2 = 3;
+            const temp_col = rl.Color.init(255, 240, 28, 255);
+            color.inner = rl.Color.init(temp_col.r, temp_col.g, temp_col.b, temp_col.a / n2);
+            color.edge = rl.Color.init(temp_col.r / n, temp_col.g / n, temp_col.b / n, temp_col.a);
+        }
 
         const rad = disc.radius;
         const vec = rl.Vector2.init(screen_pos.x, screen_pos.y);
@@ -325,7 +333,15 @@ pub const Renderer = struct {
 
     pub fn rectanglebody(self: *Self, body: *rb_mod.RigidBody) void {
         const rect: *rb_mod.RectangleBody = @ptrCast(@alignCast(body.ptr));
-        const color = if (body.static) self.body_options.static_color else self.body_options.color;
+        var color = if (body.static) self.body_options.static_color else self.body_options.color;
+
+        if (!body.static) {
+            const n = 1;
+            const n2 = 3;
+            const temp_col = rl.Color.init(164, 255, 28, 255);
+            color.inner = rl.Color.init(temp_col.r, temp_col.g, temp_col.b, temp_col.a / n2);
+            color.edge = rl.Color.init(temp_col.r / n, temp_col.g / n, temp_col.b / n, temp_col.a);
+        }
 
         const edge = self.body_options.edge_thickness.world;
         var outer_verts: [4]Vector2 = undefined;

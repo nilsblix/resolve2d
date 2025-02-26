@@ -8,30 +8,90 @@ const Vector2 = nmath.Vector2;
 const Allocator = std.mem.Allocator;
 const collision = @import("collision.zig");
 
-fn setupScene(alloc: Allocator, solver: *zigics.Solver) !void {
-    const mu = 0.2;
-    try solver.makeDiscBody(Vector2.init(5, 5), 2.0, 0.3, mu);
-    try solver.makeRectangleBody(Vector2.init(3, 2), 2.0, 1.0, 0.5, mu);
-    try solver.makeRectangleBody(Vector2.init(8, 3), 2.0, 1.5, 1.0, mu);
-    try solver.makeDiscBody(Vector2.init(5, 1), 2.0, 0.8, mu);
-    try solver.makeRectangleBody(Vector2.init(8, 0), 1.0, 3.0, 2.5, mu);
-    try solver.makeRectangleBody(Vector2.init(5, 3), 4.0, 3.0, 1.0, mu);
-    try solver.makeDiscBody(Vector2.init(7, 6), 2.0, 0.5, mu);
+fn setupScene(solver: *zigics.Solver) !void {
+    var factory = solver.entityFactory();
 
-    try solver.makeRectangleBody(Vector2.init(4, 6), 2.0, 0.5, 1.0, 1.0);
-    try solver.makeRectangleBody(Vector2.init(5, 8), 5.0, 2.5, 0.5, 1.0);
+    var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .mass = 1.0 } };
 
-    try solver.makeRectangleBody(Vector2.init(5, -2), 1.0, 20, 1.0, 0.4);
-    solver.bodies.items[9].static = true;
+    opt.mass_prop = .{ .density = 5 };
+    opt.mu_d = 0.5;
+    opt.mu_s = 0.7;
 
-    solver.bodies.items[1].static = true;
-    solver.bodies.items[2].static = true;
-    solver.bodies.items[3].static = true;
-    solver.bodies.items[4].static = true;
-    solver.bodies.items[5].props.angle = @as(f32, std.math.pi) / @as(f32, 4);
+    opt.pos = Vector2.init(5, -1);
+    var ground = try factory.makeRectangleBody(opt, .{ .width = 20, .height = 1 });
+    ground.static = true;
 
-    try solver.force_generators.append(try forcegenerator.DownwardsGravity.init(alloc, 9.82));
+    opt.pos = Vector2.init(-4.5, 3.5);
+    var wall1 = try factory.makeRectangleBody(opt, .{ .width = 1, .height = 10 });
+    wall1.static = true;
+
+    opt.pos = Vector2.init(14.5, 3.5);
+    var wall2 = try factory.makeRectangleBody(opt, .{ .width = 1, .height = 10 });
+    wall2.static = true;
+
+    opt.pos = Vector2.init(5, 5);
+    _ = try factory.makeDiscBody(opt, .{ .radius = 1.0 });
+
+    opt.pos = Vector2.init(5, 3);
+    var floating = try factory.makeRectangleBody(opt, .{ .width = 5, .height = 0.5 });
+    floating.props.angle = 0.8;
+    floating.static = true;
+
+    opt.pos = Vector2.init(2, 3);
+    floating = try factory.makeRectangleBody(opt, .{ .width = 5, .height = 0.5 });
+    floating.props.angle = -0.2;
+    floating.static = true;
+
+    opt.pos = Vector2.init(9, 4);
+    floating = try factory.makeDiscBody(opt, .{ .radius = 1.5 });
+    floating.static = true;
+
+    const width: f32 = 1.0;
+    for (0..2) |y| {
+        for (0..15) |i| {
+            const idx: f32 = @floatFromInt(i);
+            const x: f32 = idx * width - 2;
+
+            const height = 0.4 + idx / 20;
+
+            const yf: f32 = @floatFromInt(y);
+            opt.pos = Vector2.init(x, yf + 8.0);
+
+            if (@mod(i, 2) == 0) {
+                _ = try factory.makeRectangleBody(opt, .{ .width = width, .height = height });
+            } else {
+                _ = try factory.makeDiscBody(opt, .{ .radius = width / 2 });
+            }
+        }
+    }
+
+    try factory.makeDownwardsGravity(9.82);
 }
+
+// fn setupScene(alloc: Allocator, solver: *zigics.Solver) !void {
+//     const mu = 0.5;
+//     try solver.makeDiscBody(Vector2.init(5, 5), 2.0, 0.3, mu);
+//     try solver.makeRectangleBody(Vector2.init(3, 2), 2.0, 1.0, 0.5, mu);
+//     try solver.makeRectangleBody(Vector2.init(8, 3), 2.0, 1.5, 1.0, mu);
+//     try solver.makeDiscBody(Vector2.init(5, 1), 2.0, 0.8, mu);
+//     try solver.makeRectangleBody(Vector2.init(8, 0), 1.0, 3.0, 2.5, mu);
+//     try solver.makeRectangleBody(Vector2.init(5, 3), 60.0, 3.0, 1.0, mu);
+//     try solver.makeDiscBody(Vector2.init(7, 6), 2.0, 0.5, mu);
+//
+//     try solver.makeRectangleBody(Vector2.init(4, 6), 2.0, 0.5, 1.0, mu);
+//     try solver.makeRectangleBody(Vector2.init(5, 8), 5.0, 2.5, 0.5, mu);
+//
+//     try solver.makeRectangleBody(Vector2.init(5, -2), 1.0, 40, 1.0, 0.4);
+//     solver.bodies.items[9].static = true;
+//
+//     solver.bodies.items[1].static = true;
+//     solver.bodies.items[2].static = true;
+//     solver.bodies.items[3].static = true;
+//     solver.bodies.items[4].static = true;
+//     solver.bodies.items[5].props.angle = @as(f32, std.math.pi) / @as(f32, 4);
+//
+//     try solver.force_generators.append(try forcegenerator.DownwardsGravity.init(alloc, 9.82));
+// }
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -47,7 +107,7 @@ pub fn main() !void {
     var world = zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true);
     defer world.deinit();
 
-    try setupScene(alloc, &world.solver);
+    try setupScene(&world.solver);
 
     var mouse_spring = MouseSpring{};
 
@@ -56,7 +116,7 @@ pub fn main() !void {
 
     const HZ: i32 = 60;
     const STANDARD_DT: f32 = 1 / @as(f32, HZ);
-    const SUB_STEPS = 8;
+    const SUB_STEPS = 16;
     rl.setTargetFPS(HZ);
 
     var simulating: bool = false;
@@ -112,7 +172,7 @@ pub fn main() !void {
 
         if (rl.isKeyPressed(.r)) {
             world.solver.clear(alloc);
-            try setupScene(alloc, &world.solver);
+            try setupScene(&world.solver);
         }
 
         if (simulating) {
