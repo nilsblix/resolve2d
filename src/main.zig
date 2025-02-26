@@ -68,31 +68,6 @@ fn setupScene(solver: *zigics.Solver) !void {
     try factory.makeDownwardsGravity(9.82);
 }
 
-// fn setupScene(alloc: Allocator, solver: *zigics.Solver) !void {
-//     const mu = 0.5;
-//     try solver.makeDiscBody(Vector2.init(5, 5), 2.0, 0.3, mu);
-//     try solver.makeRectangleBody(Vector2.init(3, 2), 2.0, 1.0, 0.5, mu);
-//     try solver.makeRectangleBody(Vector2.init(8, 3), 2.0, 1.5, 1.0, mu);
-//     try solver.makeDiscBody(Vector2.init(5, 1), 2.0, 0.8, mu);
-//     try solver.makeRectangleBody(Vector2.init(8, 0), 1.0, 3.0, 2.5, mu);
-//     try solver.makeRectangleBody(Vector2.init(5, 3), 60.0, 3.0, 1.0, mu);
-//     try solver.makeDiscBody(Vector2.init(7, 6), 2.0, 0.5, mu);
-//
-//     try solver.makeRectangleBody(Vector2.init(4, 6), 2.0, 0.5, 1.0, mu);
-//     try solver.makeRectangleBody(Vector2.init(5, 8), 5.0, 2.5, 0.5, mu);
-//
-//     try solver.makeRectangleBody(Vector2.init(5, -2), 1.0, 40, 1.0, 0.4);
-//     solver.bodies.items[9].static = true;
-//
-//     solver.bodies.items[1].static = true;
-//     solver.bodies.items[2].static = true;
-//     solver.bodies.items[3].static = true;
-//     solver.bodies.items[4].static = true;
-//     solver.bodies.items[5].props.angle = @as(f32, std.math.pi) / @as(f32, 4);
-//
-//     try solver.force_generators.append(try forcegenerator.DownwardsGravity.init(alloc, 9.82));
-// }
-
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
@@ -123,6 +98,9 @@ pub fn main() !void {
     var show_collisions: bool = true;
     var slow_motion = false;
     var steps: u32 = 0;
+
+    var sim_dt: f32 = -1;
+    var render_dt: f32 = -1;
 
     var screen_prev_mouse_pos: Vector2 = .{};
     var screen_mouse_pos: Vector2 = .{};
@@ -186,6 +164,7 @@ pub fn main() !void {
                 world.solver.bodies.items[1].props.angle -= 0.02;
             }
 
+            const start = std.time.nanoTimestamp();
             if (slow_motion) {
                 const sub_dt = STANDARD_DT / SUB_STEPS;
                 try world.process(alloc, sub_dt);
@@ -196,14 +175,23 @@ pub fn main() !void {
                     try world.process(alloc, sub_dt);
                 }
             }
+            const end = std.time.nanoTimestamp();
+            sim_dt = @floatFromInt(end - start);
         } else {
             rl.drawText("paused", 5, 0, 64, rl.Color.white);
         }
 
         rl.clearBackground(.{ .r = 18, .g = 18, .b = 18, .a = 1 });
+        const start = std.time.nanoTimestamp();
         world.render(show_collisions);
+        const end = std.time.nanoTimestamp();
+        render_dt = @floatFromInt(end - start);
 
         const font_size = 16;
+
+        rl.drawText(rl.textFormat("bodies = %d : manifolds = %d", .{ world.solver.bodies.items.len, world.solver.manifolds.count() }), 5, screen_height - 3 * font_size, font_size, rl.Color.white);
+
+        rl.drawText(rl.textFormat("sr = %.3f ms : render = %.3f ms", .{ sim_dt / 1e6, render_dt / 1e6 }), 5, screen_height - 2 * font_size, font_size, rl.Color.white);
 
         rl.drawText(rl.textFormat("%.3f ms : steps = %d", .{ STANDARD_DT * 1e3, steps }), 5, screen_height - font_size, font_size, rl.Color.white);
     }
