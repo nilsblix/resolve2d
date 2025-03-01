@@ -266,10 +266,10 @@ pub const Renderer = struct {
                         const rls = rl.Vector2.init(screen.x, screen.y);
                         rl.drawCircleV(rls, 0.05 * self.units.mult.w2s, rl.Color.lime);
 
-                        const pn_vec = nmath.scale2(normal, pt.pn);
+                        const pn_vec = nmath.scale2(normal, pt.accumulated_pn);
 
                         const tangent = nmath.rotate90clockwise(normal);
-                        const pt_vec = nmath.scale2(tangent, pt.pt);
+                        const pt_vec = nmath.scale2(tangent, pt.accumulated_pt);
 
                         const p = nmath.add2(pn_vec, pt_vec);
 

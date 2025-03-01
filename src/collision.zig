@@ -21,6 +21,9 @@ pub const CollisionPoint = struct {
     pn: f32 = 0.0,
     pt: f32 = 0.0,
 
+    accumulated_pn: f32 = 0.0,
+    accumulated_pt: f32 = 0.0,
+
     ref_r: Vector2,
     inc_r: Vector2,
 
@@ -64,41 +67,59 @@ pub const CollisionManifold = struct {
 
                 const v_bias = beta_bias / dt * @max(0, -col_pt.depth - delta_slop);
                 var num = nmath.dot2(delta_v, self.normal) + v_bias;
-                const pn = @max(num / kn, 0);
-
+                const pn = num / kn;
                 self.points[idx].?.pn = pn;
 
                 const tangent = nmath.rotate90clockwise(self.normal);
                 const r1xt = nmath.cross2(r1, tangent);
                 const r2xt = nmath.cross2(r2, tangent);
-                const kt = inv_mass + r1xt * r1xt / b1.props.inertia + r2xt * r2xt / b2.props.inertia;
+                const kt = inv_mass + (r1xt * r1xt / b1.props.inertia) + (r2xt * r2xt / b2.props.inertia);
 
                 num = nmath.dot2(delta_v, tangent);
                 const pt = num / kt;
-
-                const mu = (b1.props.mu_d + b2.props.mu_d) / 2;
-                self.points[idx].?.pt = @max(-mu * pn, @min(mu * pn, pt));
+                self.points[idx].?.pt = pt;
             }
         }
     }
 
-    pub fn applyImpulses(self: *Self, key: CollisionKey, dt: f32, beta_bias: f32, delta_slop: f32) void {
+    pub fn applyImpulses(self: *Self, key: CollisionKey, dt: f32, beta_bias: f32, delta_slop: f32, eps: f32) void {
         if (key.ref_body.static and key.inc_body.static) return;
+
+        for (&self.points) |*point| {
+            if (point.*) |*pt| {
+                pt.pn = 0.0;
+                pt.pt = 0.0;
+            }
+        }
 
         self.calculateImpulses(key, dt, beta_bias, delta_slop);
 
         const b1 = key.ref_body;
         const b2 = key.inc_body;
 
-        for (self.points) |point| {
-            if (point) |pt| {
+        for (&self.points) |*point| {
+            if (point.*) |*pt| {
+                if (pt.pn < eps) {
+                    continue;
+                }
+
                 const r1 = pt.ref_r;
                 const r2 = pt.inc_r;
 
-                const pn_vec = nmath.scale2(self.normal, pt.pn);
+                const new_accumulated_pn = @max(0.0, pt.accumulated_pn + pt.pn);
+                const applied_pn = new_accumulated_pn - pt.accumulated_pn;
+                pt.accumulated_pn = new_accumulated_pn;
+
+                const mu = (b1.props.mu_d + b2.props.mu_d) / 2;
+                const sum_pt = pt.accumulated_pt + pt.pt;
+                const new_accumulated_pt = @max(-mu * pt.accumulated_pn, @min(mu * pt.accumulated_pn, sum_pt));
+                const applied_pt = new_accumulated_pt - pt.accumulated_pt;
+                pt.accumulated_pt = new_accumulated_pt;
+
+                const pn_vec = nmath.scale2(self.normal, applied_pn);
 
                 const tangent = nmath.rotate90clockwise(self.normal);
-                const pt_vec = nmath.scale2(tangent, pt.pt);
+                const pt_vec = nmath.scale2(tangent, applied_pt);
 
                 const p = nmath.add2(pn_vec, pt_vec);
 
@@ -124,7 +145,7 @@ pub fn normalShouldFlipSAT(normal: Vector2, reference: *RigidBody, incident: *Ri
 }
 
 pub fn overlapSAT(ret: *Collision, reference: *RigidBody, incident: *RigidBody) bool {
-    const EPS: f32 = 1e-4;
+    const EPS: f32 = 1e-5;
 
     var iter = reference.normal_iter;
     while (iter.next(reference.*, incident.*)) |edge| {

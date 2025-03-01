@@ -110,7 +110,7 @@ pub const Solver = struct {
         self.* = Self.init(alloc);
     }
 
-    pub fn process(self: *Self, alloc: Allocator, dt: f32) !void {
+    pub fn process(self: *Self, alloc: Allocator, dt: f32, collision_iters: usize) !void {
         for (self.force_generators.items) |*gen| {
             gen.apply(self.bodies);
         }
@@ -125,10 +125,12 @@ pub const Solver = struct {
 
         try self.updateManifolds(alloc);
 
-        var iter = self.manifolds.iterator();
-        while (iter.next()) |entry| {
-            const manifold = entry.value_ptr;
-            manifold.applyImpulses(entry.key_ptr.*, dt, 0.4, 0.01);
+        for (0..collision_iters) |_| {
+            var iter = self.manifolds.iterator();
+            while (iter.next()) |entry| {
+                const manifold = entry.value_ptr;
+                manifold.applyImpulses(entry.key_ptr.*, dt, 0.1, 0.01, 1e-7);
+            }
         }
 
         for (self.bodies.items) |*body| {
@@ -200,16 +202,6 @@ pub const Solver = struct {
     pub fn entityFactory(self: *Self) EntityFactory {
         return EntityFactory{ .solver = self };
     }
-
-    // pub fn makeDiscBody(self: *Self, pos: Vector2, mass: f32, radius: f32, friction: f32) !void {
-    //     const body: rb_mod.RigidBody = try rb_mod.DiscBody.init(self.alloc, pos, 0, mass, friction, radius);
-    //     try self.bodies.append(body);
-    // }
-    //
-    // pub fn makeRectangleBody(self: *Self, pos: Vector2, mass: f32, width: f32, height: f32, friction: f32) !void {
-    //     const body: rb_mod.RigidBody = try rb_mod.RectangleBody.init(self.alloc, pos, 0, mass, friction, width, height);
-    //     try self.bodies.append(body);
-    // }
 };
 
 pub const World = struct {
@@ -226,10 +218,6 @@ pub const World = struct {
 
     pub fn deinit(self: *Self) void {
         self.solver.deinit();
-    }
-
-    pub fn process(self: *Self, alloc: Allocator, dt: f32) !void {
-        try self.solver.process(alloc, dt);
     }
 
     pub fn render(self: *Self, show_collisions: bool) void {

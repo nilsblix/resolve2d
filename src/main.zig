@@ -8,6 +8,47 @@ const Vector2 = nmath.Vector2;
 const Allocator = std.mem.Allocator;
 const collision = @import("collision.zig");
 
+fn setupArchScene(solver: *zigics.Solver) !void {
+    var factory = solver.entityFactory();
+
+    var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
+    opt.mu_d = 0.6; // Dynamic friction
+    opt.mu_s = 0.8; // Static friction
+
+    const GROUND_WIDTH: f32 = 20;
+    const GROUND_HEIGHT: f32 = 1;
+    const ARCH_CENTER = Vector2.init(5, 3);
+    const ARCH_RADIUS: f32 = 5.0;
+    const NUM_BLOCKS: f32 = 10;
+    const BLOCK_WIDTH: f32 = 1.5;
+    const BLOCK_HEIGHT: f32 = 0.5;
+    const ANGLE_STEP: f32 = @as(f32, std.math.pi) / (NUM_BLOCKS + 1);
+
+    // Ground
+    opt.pos = Vector2.init(ARCH_CENTER.x, ARCH_CENTER.y - ARCH_RADIUS - 1);
+    var ground = try factory.makeRectangleBody(opt, .{ .width = GROUND_WIDTH, .height = GROUND_HEIGHT });
+    ground.static = true;
+
+    // Arch blocks
+    for (0..NUM_BLOCKS) |i| {
+        const if32: f32 = @floatFromInt(i);
+        const angle = (if32 + 1) * ANGLE_STEP - @as(f32, std.math.pi) / 2;
+        opt.pos.x = ARCH_CENTER.x + ARCH_RADIUS * @cos(angle);
+        opt.pos.y = ARCH_CENTER.y + ARCH_RADIUS * @sin(angle);
+        opt.mass_prop = .{ .density = 5 };
+        var block = try factory.makeRectangleBody(opt, .{ .width = BLOCK_WIDTH, .height = BLOCK_HEIGHT });
+        block.props.angle = angle;
+    }
+
+    // Keystone at the top
+    opt.pos = Vector2.init(ARCH_CENTER.x, ARCH_CENTER.y + ARCH_RADIUS);
+    opt.mass_prop = .{ .mass = 10 };
+    var keystone = try factory.makeRectangleBody(opt, .{ .width = BLOCK_WIDTH, .height = BLOCK_HEIGHT });
+    keystone.props.angle = 0;
+
+    try factory.makeDownwardsGravity(9.82);
+}
+
 fn setupScene(solver: *zigics.Solver) !void {
     var factory = solver.entityFactory();
 
@@ -17,20 +58,31 @@ fn setupScene(solver: *zigics.Solver) !void {
     opt.mu_d = 0.5;
     opt.mu_s = 0.7;
 
-    opt.pos = Vector2.init(5, -1);
-    var ground = try factory.makeRectangleBody(opt, .{ .width = 20, .height = 1 });
+    const AREA_WIDTH: f32 = 30;
+    const AREA_HEIGHT: f32 = 10;
+
+    const AREA_POS = Vector2.init(5, -0.5);
+
+    opt.pos = Vector2.init(AREA_POS.x, AREA_POS.y);
+    var ground = try factory.makeRectangleBody(opt, .{ .width = AREA_WIDTH, .height = 1 });
     ground.static = true;
 
-    opt.pos = Vector2.init(-4.5, 3.5);
+    opt.pos = Vector2.init(AREA_POS.x + 0.5 - AREA_WIDTH / 2, AREA_POS.y - 0.5 + AREA_HEIGHT / 2);
     var wall1 = try factory.makeRectangleBody(opt, .{ .width = 1, .height = 10 });
     wall1.static = true;
 
-    opt.pos = Vector2.init(14.5, 3.5);
+    opt.pos = Vector2.init(AREA_POS.x - 0.5 + AREA_WIDTH / 2, AREA_POS.y - 0.5 + AREA_HEIGHT / 2);
     var wall2 = try factory.makeRectangleBody(opt, .{ .width = 1, .height = 10 });
     wall2.static = true;
 
     opt.pos = Vector2.init(5, 5);
     _ = try factory.makeDiscBody(opt, .{ .radius = 1.0 });
+
+    opt.pos = Vector2.init(5, 12);
+    opt.mass_prop = .{ .mass = 50 };
+    _ = try factory.makeRectangleBody(opt, .{ .width = 3.0, .height = 2.0 });
+
+    opt.mass_prop = .{ .density = 5 };
 
     opt.pos = Vector2.init(5, 3);
     var floating = try factory.makeRectangleBody(opt, .{ .width = 5, .height = 0.5 });
@@ -46,24 +98,44 @@ fn setupScene(solver: *zigics.Solver) !void {
     floating = try factory.makeDiscBody(opt, .{ .radius = 1.5 });
     floating.static = true;
 
-    const width: f32 = 1.0;
-    for (0..2) |y| {
-        for (0..15) |i| {
-            const idx: f32 = @floatFromInt(i);
-            const x: f32 = idx * width - 2;
-
-            const height = 0.4 + idx / 20;
-
-            const yf: f32 = @floatFromInt(y);
-            opt.pos = Vector2.init(x, yf + 8.0);
-
-            if (@mod(i, 2) == 0) {
-                _ = try factory.makeRectangleBody(opt, .{ .width = width, .height = height });
-            } else {
-                _ = try factory.makeDiscBody(opt, .{ .radius = width / 2 });
-            }
-        }
+    opt.pos.x = 15;
+    opt.mass_prop = .{ .density = 4.0 };
+    for (1..30) |y| {
+        var yf: f32 = @floatFromInt(y);
+        yf /= 2;
+        opt.pos.y = yf;
+        _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.5 });
     }
+
+    // for (0..2) |y| {
+    //     for (0..11) |x| {
+    //         const yf: f32 = @floatFromInt(y);
+    //         const xf: f32 = @floatFromInt(x);
+    //
+    //         opt.pos = Vector2.init(xf, yf + 6);
+    //
+    //         _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.5 });
+    //     }
+    // }
+
+    // const width: f32 = 1.0;
+    // for (0..3) |y| {
+    //     for (0..15) |i| {
+    //         const idx: f32 = @floatFromInt(i);
+    //         const x: f32 = idx * width - 2;
+    //
+    //         const height = 0.4 + idx / 20;
+    //
+    //         const yf: f32 = @floatFromInt(y);
+    //         opt.pos = Vector2.init(x, yf + 8.0);
+    //
+    //         if (@mod(i, 2) == 0) {
+    //             _ = try factory.makeRectangleBody(opt, .{ .width = width, .height = height });
+    //         } else {
+    //             _ = try factory.makeDiscBody(opt, .{ .radius = width / 2 });
+    //         }
+    //     }
+    // }
 
     try factory.makeDownwardsGravity(9.82);
 }
@@ -91,7 +163,8 @@ pub fn main() !void {
 
     const HZ: i32 = 60;
     const STANDARD_DT: f32 = 1 / @as(f32, HZ);
-    const SUB_STEPS = 16;
+    const SUB_STEPS = 4;
+    const COLLISION_ITERS = 16;
     rl.setTargetFPS(HZ);
 
     var simulating: bool = false;
@@ -148,9 +221,14 @@ pub fn main() !void {
             slow_motion = !slow_motion;
         }
 
-        if (rl.isKeyPressed(.r)) {
+        if (rl.isKeyPressed(.one)) {
             world.solver.clear(alloc);
             try setupScene(&world.solver);
+        }
+
+        if (rl.isKeyPressed(.two)) {
+            world.solver.clear(alloc);
+            try setupArchScene(&world.solver);
         }
 
         if (simulating) {
@@ -167,12 +245,12 @@ pub fn main() !void {
             const start = std.time.nanoTimestamp();
             if (slow_motion) {
                 const sub_dt = STANDARD_DT / SUB_STEPS;
-                try world.process(alloc, sub_dt);
+                try world.solver.process(alloc, sub_dt, COLLISION_ITERS);
             } else {
                 for (0..SUB_STEPS) |s| {
                     _ = s;
                     const sub_dt = STANDARD_DT / SUB_STEPS;
-                    try world.process(alloc, sub_dt);
+                    try world.solver.process(alloc, sub_dt, COLLISION_ITERS);
                 }
             }
             const end = std.time.nanoTimestamp();
