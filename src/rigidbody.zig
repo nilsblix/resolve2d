@@ -240,6 +240,7 @@ pub const DiscBody = struct {
             .inc_r = nmath.sub2(pos, incident.props.pos),
             .pos = pos,
             .depth = depth,
+            .original_depth = depth,
         };
         return ret;
     }
@@ -416,6 +417,7 @@ pub const RectangleBody = struct {
                             .inc_r = nmath.sub2(pos, incident.props.pos),
                             .pos = pos,
                             .depth = dot,
+                            .original_depth = dot,
                         };
                         i += 1;
                     }
@@ -428,16 +430,19 @@ pub const RectangleBody = struct {
                             .inc_r = nmath.sub2(pos, incident.props.pos),
                             .pos = pos,
                             .depth = dot,
+                            .original_depth = dot,
                         };
                     }
                 },
                 .point => {
                     const pos = incident_edge.point;
+                    const dot = nmath.dot2(nmath.sub2(pos, n.edge.?.a), n.dir);
                     ret[0] = CollisionPoint{
                         .ref_r = nmath.sub2(pos, rigidself.props.pos),
                         .inc_r = nmath.sub2(pos, incident.props.pos),
                         .pos = pos,
-                        .depth = nmath.dot2(nmath.sub2(pos, n.edge.?.a), n.dir),
+                        .depth = dot,
+                        .original_depth = dot,
                     };
                 },
             }

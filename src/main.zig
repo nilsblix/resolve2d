@@ -8,6 +8,54 @@ const Vector2 = nmath.Vector2;
 const Allocator = std.mem.Allocator;
 const collision = @import("collision.zig");
 
+fn setupCollisionPointTestScene(solver: *zigics.Solver) !void {
+    var factory = solver.entityFactory();
+
+    var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
+    opt.mu_d = 0.6; // Dynamic friction
+    opt.mu_s = 0.8; // Static friction
+
+    const AREA_WIDTH: f32 = 30;
+    const AREA_HEIGHT: f32 = 10;
+
+    const AREA_POS = Vector2.init(5, -0.5);
+
+    opt.pos = Vector2.init(AREA_POS.x, AREA_POS.y);
+    var ground = try factory.makeRectangleBody(opt, .{ .width = AREA_WIDTH, .height = 1 });
+    ground.static = true;
+
+    opt.pos = Vector2.init(AREA_POS.x + 0.5 - AREA_WIDTH / 2, AREA_POS.y - 0.5 + AREA_HEIGHT / 2);
+    var wall1 = try factory.makeRectangleBody(opt, .{ .width = 1, .height = 10 });
+    wall1.static = true;
+
+    opt.pos = Vector2.init(AREA_POS.x - 0.5 + AREA_WIDTH / 2, AREA_POS.y - 0.5 + AREA_HEIGHT / 2);
+    var wall2 = try factory.makeRectangleBody(opt, .{ .width = 1, .height = 10 });
+    wall2.static = true;
+
+    opt.pos = Vector2.init(5, 5);
+    _ = try factory.makeDiscBody(opt, .{ .radius = 1.0 });
+
+    opt.pos = Vector2.init(8, 5);
+    _ = try factory.makeDiscBody(opt, .{ .radius = 0.5 });
+
+    opt.pos = Vector2.init(2, 5);
+    _ = try factory.makeRectangleBody(opt, .{ .width = 2.0, .height = 1.0 });
+
+    opt.pos = Vector2.init(5, 3);
+    var floating = try factory.makeRectangleBody(opt, .{ .width = 5, .height = 0.5 });
+    floating.props.angle = 0.8;
+    floating.static = true;
+
+    opt.pos = Vector2.init(2, 3);
+    floating = try factory.makeRectangleBody(opt, .{ .width = 5, .height = 0.5 });
+    floating.props.angle = -0.2;
+    floating.static = true;
+
+    opt.pos = Vector2.init(9, 4);
+    floating = try factory.makeDiscBody(opt, .{ .radius = 1.5 });
+    floating.static = true;
+}
+
 fn setupArchScene(solver: *zigics.Solver) !void {
     var factory = solver.entityFactory();
 
@@ -79,7 +127,7 @@ fn setupScene(solver: *zigics.Solver) !void {
     _ = try factory.makeDiscBody(opt, .{ .radius = 1.0 });
 
     opt.pos = Vector2.init(5, 12);
-    opt.mass_prop = .{ .mass = 50 };
+    opt.mass_prop = .{ .mass = 200 };
     _ = try factory.makeRectangleBody(opt, .{ .width = 3.0, .height = 2.0 });
 
     opt.mass_prop = .{ .density = 5 };
@@ -98,6 +146,9 @@ fn setupScene(solver: *zigics.Solver) !void {
     floating = try factory.makeDiscBody(opt, .{ .radius = 1.5 });
     floating.static = true;
 
+    opt.pos = Vector2.init(-5, -0.4);
+    _ = try factory.makeRectangleBody(opt, .{ .width = 2.0, .height = 1.0 });
+
     opt.pos.x = 15;
     opt.mass_prop = .{ .density = 4.0 };
     for (1..30) |y| {
@@ -107,35 +158,16 @@ fn setupScene(solver: *zigics.Solver) !void {
         _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.5 });
     }
 
-    // for (0..2) |y| {
-    //     for (0..11) |x| {
-    //         const yf: f32 = @floatFromInt(y);
-    //         const xf: f32 = @floatFromInt(x);
-    //
-    //         opt.pos = Vector2.init(xf, yf + 6);
-    //
-    //         _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.5 });
-    //     }
-    // }
+    for (0..4) |y| {
+        for (0..11) |x| {
+            const yf: f32 = @floatFromInt(y);
+            const xf: f32 = @floatFromInt(x);
 
-    // const width: f32 = 1.0;
-    // for (0..3) |y| {
-    //     for (0..15) |i| {
-    //         const idx: f32 = @floatFromInt(i);
-    //         const x: f32 = idx * width - 2;
-    //
-    //         const height = 0.4 + idx / 20;
-    //
-    //         const yf: f32 = @floatFromInt(y);
-    //         opt.pos = Vector2.init(x, yf + 8.0);
-    //
-    //         if (@mod(i, 2) == 0) {
-    //             _ = try factory.makeRectangleBody(opt, .{ .width = width, .height = height });
-    //         } else {
-    //             _ = try factory.makeDiscBody(opt, .{ .radius = width / 2 });
-    //         }
-    //     }
-    // }
+            opt.pos = Vector2.init(xf, yf + 6);
+
+            _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.5 });
+        }
+    }
 
     try factory.makeDownwardsGravity(9.82);
 }
@@ -164,7 +196,7 @@ pub fn main() !void {
     const HZ: i32 = 60;
     const STANDARD_DT: f32 = 1 / @as(f32, HZ);
     const SUB_STEPS = 4;
-    const COLLISION_ITERS = 16;
+    const COLLISION_ITERS = 8;
     rl.setTargetFPS(HZ);
 
     var simulating: bool = false;
@@ -223,6 +255,7 @@ pub fn main() !void {
 
         if (rl.isKeyPressed(.one)) {
             world.solver.clear(alloc);
+            steps = 0;
             try setupScene(&world.solver);
         }
 
@@ -231,31 +264,33 @@ pub fn main() !void {
             try setupArchScene(&world.solver);
         }
 
+        if (rl.isKeyPressed(.three)) {
+            world.solver.clear(alloc);
+            try setupCollisionPointTestScene(&world.solver);
+        }
+
         if (simulating) {
-            steps += 1;
-
-            if (rl.isKeyDown(.m)) {
-                world.solver.bodies.items[1].props.angle += 0.02;
-            }
-
-            if (rl.isKeyDown(.n)) {
-                world.solver.bodies.items[1].props.angle -= 0.02;
-            }
-
             const start = std.time.nanoTimestamp();
-            if (slow_motion) {
-                const sub_dt = STANDARD_DT / SUB_STEPS;
-                try world.solver.process(alloc, sub_dt, COLLISION_ITERS);
-            } else {
-                for (0..SUB_STEPS) |s| {
-                    _ = s;
-                    const sub_dt = STANDARD_DT / SUB_STEPS;
-                    try world.solver.process(alloc, sub_dt, COLLISION_ITERS);
-                }
+            const mod = @mod(@as(f32, @floatFromInt(steps)), SUB_STEPS * 3) == 0;
+
+            steps += 1;
+            if (slow_motion and mod) {
+                try world.solver.process(alloc, STANDARD_DT / SUB_STEPS, 1, COLLISION_ITERS);
+            } else if (!slow_motion) {
+                try world.solver.process(alloc, STANDARD_DT, SUB_STEPS, COLLISION_ITERS);
             }
+
             const end = std.time.nanoTimestamp();
             sim_dt = @floatFromInt(end - start);
         } else {
+            if (rl.isKeyPressed(.right)) {
+                steps += 1;
+                const start = std.time.nanoTimestamp();
+                try world.solver.process(alloc, STANDARD_DT / SUB_STEPS, 1, COLLISION_ITERS);
+                const end = std.time.nanoTimestamp();
+                sim_dt = @floatFromInt(end - start);
+            }
+
             rl.drawText("paused", 5, 0, 64, rl.Color.white);
         }
 

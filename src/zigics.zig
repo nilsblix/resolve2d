@@ -110,38 +110,48 @@ pub const Solver = struct {
         self.* = Self.init(alloc);
     }
 
-    pub fn process(self: *Self, alloc: Allocator, dt: f32, collision_iters: usize) !void {
-        for (self.force_generators.items) |*gen| {
-            gen.apply(self.bodies);
-        }
+    pub fn process(self: *Self, alloc: Allocator, dt: f32, sub_steps: usize, collision_iters: usize) !void {
+        // try self.updateManifolds(alloc);
+        const f32_sub: f32 = @floatFromInt(sub_steps);
+        const sub_dt = dt / f32_sub;
 
-        for (self.bodies.items) |*body| {
-            if (body.static) continue;
-            var props: *RigidBody.Props = &body.props;
-
-            props.momentum.addmult(props.force, dt);
-            props.ang_momentum += props.torque * dt;
-        }
-
-        try self.updateManifolds(alloc);
-
-        for (0..collision_iters) |_| {
-            var iter = self.manifolds.iterator();
-            while (iter.next()) |entry| {
-                const manifold = entry.value_ptr;
-                manifold.applyImpulses(entry.key_ptr.*, dt, 0.1, 0.01, 1e-7);
+        for (0..sub_steps) |_| {
+            for (self.force_generators.items) |*gen| {
+                gen.apply(self.bodies);
             }
-        }
 
-        for (self.bodies.items) |*body| {
-            if (body.static) continue;
-            var props: *RigidBody.Props = &body.props;
+            for (self.bodies.items) |*body| {
+                if (body.static) continue;
+                var props: *RigidBody.Props = &body.props;
 
-            props.pos.addmult(props.momentum, dt / props.mass);
-            props.angle += props.ang_momentum * dt / props.inertia;
+                props.momentum.addmult(props.force, sub_dt);
+                props.ang_momentum += props.torque * sub_dt;
+            }
 
-            props.force = .{};
-            props.torque = 0;
+            try self.updateManifolds(alloc);
+
+            for (0..collision_iters) |_| {
+                var iter = self.manifolds.iterator();
+                while (iter.next()) |entry| {
+                    const manifold = entry.value_ptr;
+                    const key = entry.key_ptr.*;
+                    manifold.resetImpulses();
+                    // manifold.updateTGSDepth(key);
+                    manifold.calculateImpulses(key, sub_dt, 0.05, 0.04);
+                    manifold.applyImpulses(key, 1e-5, 5e-1);
+                }
+            }
+
+            for (self.bodies.items) |*body| {
+                if (body.static) continue;
+                var props: *RigidBody.Props = &body.props;
+
+                props.pos.addmult(props.momentum, sub_dt / props.mass);
+                props.angle += props.ang_momentum * sub_dt / props.inertia;
+
+                props.force = .{};
+                props.torque = 0;
+            }
         }
     }
 
@@ -160,11 +170,33 @@ pub const Solver = struct {
                 continue;
             }
 
+            // var pns: [clsn.CollisionManifold.MAX_POINTS]?f32 = undefined;
+            // var pts: [clsn.CollisionManifold.MAX_POINTS]?f32 = undefined;
+            //
+            // for (manifold.points, 0..) |npoint, idx| {
+            //     if (npoint) |point| {
+            //         pns[idx] = point.accumulated_pn;
+            //         pts[idx] = point.accumulated_pt;
+            //     }
+            // }
+
             key.ref_body = sat.key.ref_body;
             key.inc_body = sat.key.inc_body;
 
             manifold.normal = sat.normal;
             manifold.points = sat.key.ref_body.identifyCollisionPoints(sat.key.inc_body, sat.reference_normal_id);
+
+            // for (&manifold.points, 0..) |*npoint, idx| {
+            //     if (npoint.*) |*point| {
+            //         if (pns[idx]) |pn| {
+            //             point.accumulated_pn = pn;
+            //         }
+            //
+            //         if (pts[idx]) |pt| {
+            //             point.accumulated_pt = pt;
+            //         }
+            //     }
+            // }
         }
 
         for (remove_keys.items) |key| {
@@ -190,6 +222,8 @@ pub const Solver = struct {
                         const manifold = clsn.CollisionManifold{
                             .normal = sat.normal,
                             .points = sat.key.ref_body.identifyCollisionPoints(sat.key.inc_body, sat.reference_normal_id),
+                            .prev_angle_1 = sat.key.ref_body.props.angle,
+                            .prev_angle_2 = sat.key.inc_body.props.angle,
                         };
 
                         try self.manifolds.put(sat.key, manifold);

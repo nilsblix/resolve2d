@@ -29,6 +29,9 @@ pub const CollisionPoint = struct {
 
     pos: Vector2,
     depth: f32,
+    original_depth: f32,
+
+    v_rel: Vector2 = .{},
 };
 
 pub const CollisionManifold = struct {
@@ -37,12 +40,42 @@ pub const CollisionManifold = struct {
     normal: Vector2,
     points: [CollisionManifold.MAX_POINTS]?CollisionPoint,
 
+    prev_angle_1: f32,
+    prev_angle_2: f32,
+
     const Self = @This();
-    fn calculateImpulses(self: *Self, key: CollisionKey, dt: f32, beta_bias: f32, delta_slop: f32) void {
+    pub fn updateTGSDepth(self: *Self, key: CollisionKey) void {
         const b1 = key.ref_body;
         const b2 = key.inc_body;
 
-        const inv_mass = 1 / b1.props.mass + 1 / b2.props.mass;
+        for (&self.points) |*point| {
+            if (point.*) |*col_pt| {
+                const r1 = col_pt.ref_r;
+                const r2 = col_pt.inc_r;
+
+                const r_rot_1 = nmath.rotate2(r1, b1.props.angle - self.prev_angle_1);
+                const r_rot_2 = nmath.rotate2(r2, b2.props.angle - self.prev_angle_2);
+
+                const a1 = nmath.add2(r_rot_1, b1.props.pos);
+                const a2 = nmath.add2(r_rot_2, b2.props.pos);
+
+                const depth = nmath.dot2(self.normal, nmath.sub2(a2, a1));
+                col_pt.depth = depth + col_pt.original_depth;
+
+                col_pt.ref_r = r_rot_1;
+                col_pt.inc_r = r_rot_2;
+            }
+        }
+
+        self.prev_angle_1 = b1.props.angle;
+        self.prev_angle_2 = b2.props.angle;
+    }
+
+    pub fn calculateImpulses(self: *Self, key: CollisionKey, dt: f32, beta_bias: f32, delta_slop: f32) void {
+        const b1 = key.ref_body;
+        const b2 = key.inc_body;
+
+        const inv_mass = (1 / b1.props.mass) + (1 / b2.props.mass);
 
         for (self.points, 0..) |point, idx| {
             if (point) |col_pt| {
@@ -65,7 +98,9 @@ pub const CollisionManifold = struct {
 
                 const delta_v = nmath.sub2(rel_1, rel_2);
 
-                const v_bias = beta_bias / dt * @max(0, -col_pt.depth - delta_slop);
+                self.points[idx].?.v_rel = delta_v;
+
+                const v_bias = (beta_bias / dt) * @max(0, -col_pt.depth - delta_slop);
                 var num = nmath.dot2(delta_v, self.normal) + v_bias;
                 const pn = num / kn;
                 self.points[idx].?.pn = pn;
@@ -82,24 +117,24 @@ pub const CollisionManifold = struct {
         }
     }
 
-    pub fn applyImpulses(self: *Self, key: CollisionKey, dt: f32, beta_bias: f32, delta_slop: f32, eps: f32) void {
-        if (key.ref_body.static and key.inc_body.static) return;
-
+    pub fn resetImpulses(self: *Self) void {
         for (&self.points) |*point| {
             if (point.*) |*pt| {
                 pt.pn = 0.0;
                 pt.pt = 0.0;
             }
         }
+    }
 
-        self.calculateImpulses(key, dt, beta_bias, delta_slop);
+    pub fn applyImpulses(self: *Self, key: CollisionKey, eps: f32, v_rel_static_max: f32) void {
+        if (key.ref_body.static and key.inc_body.static) return;
 
         const b1 = key.ref_body;
         const b2 = key.inc_body;
 
         for (&self.points) |*point| {
             if (point.*) |*pt| {
-                if (pt.pn < eps) {
+                if (@abs(pt.pn) < eps) {
                     continue;
                 }
 
@@ -110,7 +145,14 @@ pub const CollisionManifold = struct {
                 const applied_pn = new_accumulated_pn - pt.accumulated_pn;
                 pt.accumulated_pn = new_accumulated_pn;
 
-                const mu = (b1.props.mu_d + b2.props.mu_d) / 2;
+                var mu: f32 = undefined;
+                const len = nmath.length2(pt.v_rel);
+                if (len < v_rel_static_max) {
+                    mu = 1.0;
+                } else {
+                    mu = @min((b1.props.mu_d + b2.props.mu_d) / 2, 1.0);
+                }
+
                 const sum_pt = pt.accumulated_pt + pt.pt;
                 const new_accumulated_pt = @max(-mu * pt.accumulated_pn, @min(mu * pt.accumulated_pn, sum_pt));
                 const applied_pt = new_accumulated_pt - pt.accumulated_pt;
@@ -145,7 +187,7 @@ pub fn normalShouldFlipSAT(normal: Vector2, reference: *RigidBody, incident: *Ri
 }
 
 pub fn overlapSAT(ret: *Collision, reference: *RigidBody, incident: *RigidBody) bool {
-    const EPS: f32 = 1e-5;
+    const EPS: f32 = 1e-4;
 
     var iter = reference.normal_iter;
     while (iter.next(reference.*, incident.*)) |edge| {
@@ -165,9 +207,9 @@ pub fn overlapSAT(ret: *Collision, reference: *RigidBody, incident: *RigidBody) 
 
         const d1 = p1[1] - p2[0];
         const d2 = p2[1] - p1[0];
-        if (d1 <= 0 or d2 <= 0) return false;
 
         const d = @min(d1, d2);
+        if (d <= 0) return false;
 
         if (!flipped and nmath.approxEql2(normal, ret.normal, EPS)) {
             // if they are the same
@@ -213,9 +255,10 @@ pub fn performNarrowSAT(b1: *RigidBody, b2: *RigidBody) Collision {
 
     // POTENTIAL: using here an arbitrary sorting thing so that when
     // objects with the same normal (ex: disc vs disc) don't swap between
-    // being reference and incident don't swap between
     // being reference and incident
-    const o1 = if (b1.props.pos.x < b2.props.pos.x) b1 else b2;
+    const num1 = @intFromPtr(b1.ptr);
+    const num2 = @intFromPtr(b2.ptr);
+    const o1 = if (b1.props.pos.x < b2.props.pos.x or num1 < num2) b1 else b2;
     const o2 = if (o1 == b1) b2 else b1;
 
     if (!overlapSAT(&ret, o1, o2)) {
