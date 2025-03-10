@@ -14,13 +14,13 @@ pub const Units = struct {
         height: f32,
     };
 
-    const TransformMult = struct {
+    pub const TransformMult = struct {
         w2s: f32,
         s2w: f32,
     };
 
     /// pos is bottom left of the viewport
-    const Camera = struct {
+    pub const Camera = struct {
         pos: Vector2,
         zoom: f32,
         viewport: Size,
@@ -196,7 +196,8 @@ pub const Renderer = struct {
 
     const Self = @This();
     pub fn init(screen_size: Units.Size, default_world_width: f32) Renderer {
-        const units = Units.init(screen_size, default_world_width);
+        var units = Units.init(screen_size, default_world_width);
+        units.camera.pos = Vector2.init(-units.camera.viewport.width / 2, -units.camera.viewport.height / 2);
         return .{
             .units = units,
             .spring_options = .{
@@ -275,8 +276,8 @@ pub const Renderer = struct {
 
                         const screen2 = self.units.w2s(nmath.add2(pt.pos, p));
                         const rls2 = rl.Vector2.init(screen2.x, screen2.y);
-                        const teal = rl.Color.init(66, 182, 245, 255);
-                        rl.drawLineEx(rls, rls2, self.units.mult.w2s * 0.02, teal);
+                        // const teal = rl.Color.init(66, 182, 245, 255);
+                        rl.drawLineEx(rls, rls2, self.units.mult.w2s * 0.02, rl.Color.white);
 
                         var scr = self.units.w2s(nmath.add2(pt.pos, nmath.negate2(pt.ref_r)));
                         var rla = rl.Vector2.init(scr.x, scr.y);

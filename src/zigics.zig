@@ -137,8 +137,10 @@ pub const Solver = struct {
                     const key = entry.key_ptr.*;
                     manifold.resetImpulses();
                     // manifold.updateTGSDepth(key);
-                    manifold.calculateImpulses(key, sub_dt, 0.05, 0.04);
-                    manifold.applyImpulses(key, 1e-5, 5e-1);
+                    // manifold.calculateImpulses(key, sub_dt, 0.05, 0.04);
+                    // manifold.applyImpulses(key, 1e-5, 8e-1);
+                    manifold.calculateImpulses(key, sub_dt, 0.05, 0.00);
+                    manifold.applyImpulses(key, 1e-5, 0.0);
                 }
             }
 

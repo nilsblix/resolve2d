@@ -112,6 +112,7 @@ pub const CollisionManifold = struct {
 
                 num = nmath.dot2(delta_v, tangent);
                 const pt = num / kt;
+                // _ = pt;
                 self.points[idx].?.pt = pt;
             }
         }
@@ -148,7 +149,7 @@ pub const CollisionManifold = struct {
                 var mu: f32 = undefined;
                 const len = nmath.length2(pt.v_rel);
                 if (len < v_rel_static_max) {
-                    mu = 1.0;
+                    mu = @min((b1.props.mu_s + b2.props.mu_s) / 2, 1.0);
                 } else {
                     mu = @min((b1.props.mu_d + b2.props.mu_d) / 2, 1.0);
                 }
@@ -164,6 +165,9 @@ pub const CollisionManifold = struct {
                 const pt_vec = nmath.scale2(tangent, applied_pt);
 
                 const p = nmath.add2(pn_vec, pt_vec);
+                // _ = pt_vec;
+                // const p = pn_vec;
+                // p = .{};
 
                 if (!b1.static) {
                     b1.props.momentum.sub(p);
@@ -187,7 +191,7 @@ pub fn normalShouldFlipSAT(normal: Vector2, reference: *RigidBody, incident: *Ri
 }
 
 pub fn overlapSAT(ret: *Collision, reference: *RigidBody, incident: *RigidBody) bool {
-    const EPS: f32 = 1e-4;
+    const EPS: f32 = 1e-2;
 
     var iter = reference.normal_iter;
     while (iter.next(reference.*, incident.*)) |edge| {
