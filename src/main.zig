@@ -34,8 +34,8 @@ pub fn main() !void {
     const STANDARD_DT: f32 = 1 / @as(f32, HZ);
     // const SUB_STEPS = 4;
     // const COLLISION_ITERS = 3;
-    const SUB_STEPS = 3;
-    const COLLISION_ITERS = 4;
+    const SUB_STEPS = 4;
+    const COLLISION_ITERS = 8;
     rl.setTargetFPS(HZ);
 
     var simulating: bool = false;
@@ -106,6 +106,11 @@ pub fn main() !void {
         if (rl.isKeyPressed(.three)) {
             world.solver.clear(alloc);
             try demos.setupCollisionPointTestScene(&world.solver);
+        }
+
+        if (rl.isKeyPressed(.four)) {
+            world.solver.clear(alloc);
+            try demos.setupSomething(&world.solver);
         }
 
         if (simulating) {

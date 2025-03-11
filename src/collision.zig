@@ -44,32 +44,6 @@ pub const CollisionManifold = struct {
     prev_angle_2: f32,
 
     const Self = @This();
-    pub fn updateTGSDepth(self: *Self, key: CollisionKey) void {
-        const b1 = key.ref_body;
-        const b2 = key.inc_body;
-
-        for (&self.points) |*point| {
-            if (point.*) |*col_pt| {
-                const r1 = col_pt.ref_r;
-                const r2 = col_pt.inc_r;
-
-                const r_rot_1 = nmath.rotate2(r1, b1.props.angle - self.prev_angle_1);
-                const r_rot_2 = nmath.rotate2(r2, b2.props.angle - self.prev_angle_2);
-
-                const a1 = nmath.add2(r_rot_1, b1.props.pos);
-                const a2 = nmath.add2(r_rot_2, b2.props.pos);
-
-                const depth = nmath.dot2(self.normal, nmath.sub2(a2, a1));
-                col_pt.depth = depth + col_pt.original_depth;
-
-                col_pt.ref_r = r_rot_1;
-                col_pt.inc_r = r_rot_2;
-            }
-        }
-
-        self.prev_angle_1 = b1.props.angle;
-        self.prev_angle_2 = b2.props.angle;
-    }
 
     pub fn calculateImpulses(self: *Self, key: CollisionKey, dt: f32, beta_bias: f32, delta_slop: f32) void {
         const b1 = key.ref_body;

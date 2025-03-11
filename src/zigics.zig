@@ -136,11 +136,8 @@ pub const Solver = struct {
                     const manifold = entry.value_ptr;
                     const key = entry.key_ptr.*;
                     manifold.resetImpulses();
-                    // manifold.updateTGSDepth(key);
-                    // manifold.calculateImpulses(key, sub_dt, 0.05, 0.04);
-                    // manifold.applyImpulses(key, 1e-5, 8e-1);
                     manifold.calculateImpulses(key, sub_dt, 0.05, 0.00);
-                    manifold.applyImpulses(key, 1e-5, 0.0);
+                    manifold.applyImpulses(key, 1e-3, 0.0);
                 }
             }
 
@@ -172,33 +169,11 @@ pub const Solver = struct {
                 continue;
             }
 
-            // var pns: [clsn.CollisionManifold.MAX_POINTS]?f32 = undefined;
-            // var pts: [clsn.CollisionManifold.MAX_POINTS]?f32 = undefined;
-            //
-            // for (manifold.points, 0..) |npoint, idx| {
-            //     if (npoint) |point| {
-            //         pns[idx] = point.accumulated_pn;
-            //         pts[idx] = point.accumulated_pt;
-            //     }
-            // }
-
             key.ref_body = sat.key.ref_body;
             key.inc_body = sat.key.inc_body;
 
             manifold.normal = sat.normal;
             manifold.points = sat.key.ref_body.identifyCollisionPoints(sat.key.inc_body, sat.reference_normal_id);
-
-            // for (&manifold.points, 0..) |*npoint, idx| {
-            //     if (npoint.*) |*point| {
-            //         if (pns[idx]) |pn| {
-            //             point.accumulated_pn = pn;
-            //         }
-            //
-            //         if (pts[idx]) |pt| {
-            //             point.accumulated_pt = pt;
-            //         }
-            //     }
-            // }
         }
 
         for (remove_keys.items) |key| {

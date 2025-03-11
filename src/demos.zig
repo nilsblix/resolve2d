@@ -9,6 +9,79 @@ const Allocator = std.mem.Allocator;
 const collision = @import("collision.zig");
 const renderer = @import("default_renderer.zig");
 
+pub fn setupSomething(solver: *zigics.Solver) !void {
+    var factory = solver.entityFactory();
+
+    var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
+    opt.mu_d = 0.2;
+    opt.mu_s = opt.mu_d;
+    var body: *rigidbody.RigidBody = undefined;
+
+    opt.pos = Vector2.init(0, 0);
+    body = try factory.makeRectangleBody(opt, .{ .width = 10.0, .height = 1.0 });
+    body.static = true;
+
+    opt.pos = Vector2.init(-9, -2);
+    opt.angle = 0.45;
+    body = try factory.makeRectangleBody(opt, .{ .width = 10.0, .height = 1.0 });
+    body.static = true;
+    opt.angle = 0;
+
+    opt.pos = Vector2.init(-18, -4);
+    body = try factory.makeRectangleBody(opt, .{ .width = 10.0, .height = 1.0 });
+    body.static = true;
+
+    opt.pos = Vector2.init(9, 2);
+    opt.angle = 0.45;
+    body = try factory.makeRectangleBody(opt, .{ .width = 10.0, .height = 1.0 });
+    body.static = true;
+    opt.angle = 0;
+
+    opt.pos = Vector2.init(18, 4);
+    body = try factory.makeRectangleBody(opt, .{ .width = 10.0, .height = 1.0 });
+    body.static = true;
+
+    opt.pos = Vector2.init(-22, 6);
+    body = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 20 });
+    body.static = true;
+
+    opt.pos = Vector2.init(22, 14);
+    body = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 20 });
+    body.static = true;
+
+    opt.pos = Vector2.init(0, 8);
+    body = try factory.makeDiscBody(opt, .{ .radius = 2.0 });
+    body.static = true;
+
+    opt.pos = Vector2.init(-12, 5);
+    opt.angle = -0.4;
+    body = try factory.makeRectangleBody(opt, .{ .width = 10.0, .height = 0.3 });
+    body.static = true;
+    opt.angle = 0;
+
+    opt.mass_prop = .{ .density = 5.0 };
+
+    opt.pos = Vector2.init(-10, 15);
+    _ = try factory.makeRectangleBody(opt, .{ .width = 4.0, .height = 2.0 });
+
+    for (0..5) |x| {
+        for (0..15) |y| {
+            const xf = @as(f32, @floatFromInt(x)) + 10;
+            const yf = @as(f32, @floatFromInt(y)) + 10;
+
+            opt.pos = Vector2.init(xf, yf);
+
+            if (@mod(x, 2) == 0 and @mod(y, 2) == 0) {
+                _ = try factory.makeDiscBody(opt, .{ .radius = 0.5 });
+            } else {
+                _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.8 });
+            }
+        }
+    }
+
+    try factory.makeDownwardsGravity(9.82);
+}
+
 pub fn setupDominos(solver: *zigics.Solver) !void {
     var factory = solver.entityFactory();
 
