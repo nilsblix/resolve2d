@@ -217,6 +217,7 @@ pub const Solver = struct {
         var queries = std.ArrayList(*RigidBody).init(alloc);
         defer queries.deinit();
 
+        st = std.time.microTimestamp();
         for (self.bodies.items) |*body1| {
             queries.clearRetainingCapacity();
             try self.quadtree.queryAABB(body1.aabb, &queries);
@@ -246,6 +247,8 @@ pub const Solver = struct {
                 }
             }
         }
+        et = std.time.microTimestamp();
+        std.debug.print("time to update narrowly (query + sat) = {}", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
     }
 
     pub fn entityFactory(self: *Self) EntityFactory {
