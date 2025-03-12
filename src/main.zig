@@ -34,13 +34,14 @@ pub fn main() !void {
     const STANDARD_DT: f32 = 1 / @as(f32, HZ);
     // const SUB_STEPS = 4;
     // const COLLISION_ITERS = 3;
-    const SUB_STEPS = 4;
-    const COLLISION_ITERS = 4;
+    const SUB_STEPS = 2;
+    const COLLISION_ITERS = 8;
     rl.setTargetFPS(HZ);
 
     var simulating: bool = false;
     var show_collisions: bool = true;
     var show_qtree: bool = false;
+    var show_aabbs: bool = false;
     var slow_motion = false;
     var steps: u32 = 0;
 
@@ -97,6 +98,10 @@ pub fn main() !void {
             show_qtree = !show_qtree;
         }
 
+        if (rl.isKeyPressed(.a)) {
+            show_aabbs = !show_aabbs;
+        }
+
         if (rl.isKeyPressed(.one)) {
             try world.solver.clear(alloc);
             steps = 0;
@@ -145,7 +150,7 @@ pub fn main() !void {
 
         rl.clearBackground(.{ .r = 18, .g = 18, .b = 18, .a = 1 });
         const start = std.time.nanoTimestamp();
-        world.render(show_collisions, show_qtree);
+        world.render(show_collisions, show_qtree, show_aabbs);
         const end = std.time.nanoTimestamp();
         render_dt = @floatFromInt(end - start);
 

@@ -220,7 +220,7 @@ pub const Renderer = struct {
         self.units.adjustCameraPos(delta);
     }
 
-    pub fn render(self: *Self, solver: Solver, show_collisions: bool, show_qtree: bool) void {
+    pub fn render(self: *Self, solver: Solver, show_collisions: bool, show_qtree: bool, show_aabbs: bool) void {
         if (show_qtree) {
             self.quadtree(solver.quadtree);
         }
@@ -240,10 +240,12 @@ pub const Renderer = struct {
             const nmath_screen_pos = self.units.w2s(body.props.pos);
             const screen_pos = rl.Vector2.init(nmath_screen_pos.x, nmath_screen_pos.y);
 
-            // const screen = self.units.w2s(nmath.sub2(body.props.pos, Vector2.init(body.aabb.half_width, -body.aabb.half_height)));
-            // const rls = rlv2(screen);
-            // const mult = self.units.mult.w2s;
-            // rl.drawRectangleV(rls, rlv2(Vector2.init(body.aabb.half_width * 2 * mult, body.aabb.half_height * 2 * mult)), rl.Color.red);
+            if (show_aabbs) {
+                const screen = self.units.w2s(nmath.sub2(body.props.pos, Vector2.init(body.aabb.half_width, -body.aabb.half_height)));
+                const rls = rlv2(screen);
+                const mult = self.units.mult.w2s;
+                rl.drawRectangleV(rls, rlv2(Vector2.init(body.aabb.half_width * 2 * mult, body.aabb.half_height * 2 * mult)), rl.Color.red);
+            }
 
             switch (body.type) {
                 .disc => {

@@ -172,14 +172,21 @@ pub const Solver = struct {
                 props.torque = 0;
             }
         }
-        // std.debug.print("time spent colliding = {d} ms\n", .{@as(f32, @floatFromInt(time_spent_updating_manifolds)) * 1e-3});
-        // std.debug.print("time spent solving colls = {d} ms\n", .{@as(f32, @floatFromInt(time_spent_solving_collisions)) * 1e-3});
+        std.debug.print("time spent colliding = {d} ms\n", .{@as(f32, @floatFromInt(time_spent_updating_manifolds)) * 1e-3});
+        std.debug.print("time spent solving colls = {d} ms\n", .{@as(f32, @floatFromInt(time_spent_solving_collisions)) * 1e-3});
     }
 
     fn updateManifolds(self: *Self, alloc: Allocator) !void {
         var remove_keys = std.ArrayList(clsn.CollisionKey).init(alloc);
         defer remove_keys.deinit();
 
+        std.debug.print("\n\n<--------> NEW FRAME\n", .{});
+        var total_time: i64 = 0;
+
+        var st: i64 = undefined;
+        var et: i64 = undefined;
+
+        st = std.time.microTimestamp();
         var iter = self.manifolds.iterator();
         while (iter.next()) |entry| {
             const key = entry.key_ptr;
@@ -197,25 +204,36 @@ pub const Solver = struct {
             manifold.normal = sat.normal;
             manifold.points = sat.key.ref_body.identifyCollisionPoints(sat.key.inc_body, sat.reference_normal_id);
         }
+        et = std.time.microTimestamp();
+        std.debug.print("time to update narrowly (beginning) = {d}\n", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
+        total_time += et - st;
 
+        st = std.time.microTimestamp();
         for (remove_keys.items) |key| {
             _ = self.manifolds.swapRemove(key);
         }
+        et = std.time.microTimestamp();
+        std.debug.print("time to remove old manifolds = {d}\n", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
+        total_time += et - st;
 
         try self.manifolds.reIndex();
 
-        var st = std.time.microTimestamp();
+        st = std.time.microTimestamp();
         self.quadtree.clear(alloc);
-        var et = std.time.microTimestamp();
+        et = std.time.microTimestamp();
         std.debug.print("time to clear qtree = {d}\n", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
+        total_time += et - st;
 
         st = std.time.microTimestamp();
         try self.quadtree.insertValues(alloc, self.bodies.items);
         et = std.time.microTimestamp();
         std.debug.print("time to insert values = {d}\n", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
+        total_time += et - st;
 
         var queries = std.ArrayList(*RigidBody).init(alloc);
         defer queries.deinit();
+
+        self.manifolds.clearAndFree();
 
         st = std.time.microTimestamp();
         for (self.bodies.items) |*body1| {
@@ -248,7 +266,10 @@ pub const Solver = struct {
             }
         }
         et = std.time.microTimestamp();
-        std.debug.print("time to update narrowly (query + sat) = {}", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
+        std.debug.print("time to update narrowly (query + sat) = {d}\n", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
+        total_time += et - st;
+
+        std.debug.print("TOTAL TIME = {d}\n", .{@as(f32, @floatFromInt(total_time)) * 1e-3});
     }
 
     pub fn entityFactory(self: *Self) EntityFactory {
@@ -272,9 +293,9 @@ pub const World = struct {
         self.solver.deinit(alloc);
     }
 
-    pub fn render(self: *Self, show_collisions: bool, show_qtree: bool) void {
+    pub fn render(self: *Self, show_collisions: bool, show_qtree: bool, show_aabbs: bool) void {
         if (self.renderer) |*rend| {
-            rend.render(self.solver, show_collisions, show_qtree);
+            rend.render(self.solver, show_collisions, show_qtree, show_aabbs);
         }
     }
 };
