@@ -1,11 +1,9 @@
-nope
+explosions are corelated to the eps value in overlap. (i think it was that)
 
-even without friction the engine has small explosions. they are less frequent but still appear.
+normals might be flipping unintentionally, due to weird epsilons
 
-hmm
+quadtree is slow as fuck. (can it even get better? doesn't feel like it)
 
-what could be causing this?
+Quadtree is sometimes missing to query certain things. (demo nr 1 has a circle which does that)
 
-do not know.
-
-it is not related to slop apparently
+all kinds of pairs exhibit this behaviour
