@@ -7,6 +7,7 @@ const fg_mod = @import("force_generator.zig");
 const rb_mod = @import("rigidbody.zig");
 const rl = @import("raylib");
 const RigidBody = rb_mod.RigidBody;
+const QuadTree = @import("quadtree.zig").QuadTree;
 
 pub const Units = struct {
     pub const Size = struct {
@@ -219,7 +220,11 @@ pub const Renderer = struct {
         self.units.adjustCameraPos(delta);
     }
 
-    pub fn render(self: *Self, solver: Solver, show_collisions: bool) void {
+    pub fn render(self: *Self, solver: Solver, show_collisions: bool, show_qtree: bool) void {
+        if (show_qtree) {
+            self.quadtree(solver.quadtree);
+        }
+
         for (solver.force_generators.items) |*gen| {
             switch (gen.type) {
                 .downwards_gravity => continue,
@@ -300,6 +305,39 @@ pub const Renderer = struct {
                 }
             }
         }
+    }
+
+    fn quadtree(self: Self, qtree: QuadTree) void {
+        const T = struct {
+            pub fn renderNode(rend: Renderer, node: QuadTree.Node) void {
+                const sf = rend;
+                if (node.children[0] == null) {
+                    const a = node.aabb;
+                    const mult = sf.units.mult.w2s * 2;
+
+                    const dims = Vector2.init(a.half_width, a.half_height);
+                    const scr = Vector2.init(a.pos.x - dims.x, a.pos.y + dims.y);
+                    var rls = rlv2(sf.units.w2s(scr));
+                    rl.drawRectangleV(rls, rl.Vector2.init(dims.x * mult, dims.y * mult), rl.Color.sky_blue);
+
+                    // dims.add(Vector2.init(-0.02, -0.02));
+                    // scr = Vector2.init(a.pos.x - dims.x, a.pos.y + dims.y);
+                    const off = 1;
+                    rls = rlv2(sf.units.w2s(scr));
+                    rls.x += off;
+                    rls.y += off;
+                    rl.drawRectangleV(rls, rl.Vector2.init(dims.x * mult - 2 * off, dims.y * mult - 2 * off), rl.Color.black);
+                } else {
+                    for (node.children) |child| {
+                        if (child) |kid| {
+                            renderNode(sf, kid.*);
+                        }
+                    }
+                }
+            }
+        };
+
+        T.renderNode(self, qtree.root);
     }
 
     fn spring(self: Self, start_pos: Vector2, end_pos: Vector2) void {

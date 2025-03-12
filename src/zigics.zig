@@ -11,6 +11,8 @@ const def_rend = @import("default_renderer.zig");
 pub const Units = def_rend.Units;
 const Renderer = def_rend.Renderer;
 const clsn = @import("collision.zig");
+const qtree = @import("quadtree.zig");
+const QuadTree = qtree.QuadTree;
 
 pub const EntityFactory = struct {
     pub const BodyOptions = struct {
@@ -77,23 +79,26 @@ pub const EntityFactory = struct {
     }
 };
 
+// pub fn Solver(comptime qtree_node_threshold: usize, comptime qtree_max_depth: usize) type {
 pub const Solver = struct {
     alloc: Allocator,
     bodies: std.ArrayList(RigidBody),
     force_generators: std.ArrayList(ForceGenerator),
     manifolds: std.AutoArrayHashMap(clsn.CollisionKey, clsn.CollisionManifold),
+    quadtree: QuadTree,
 
     const Self = @This();
-    pub fn init(alloc: Allocator) Self {
+    pub fn init(alloc: Allocator, comptime quadtree_node_threshold: usize, comptime quadtree_max_depth: usize) !Self {
         return .{
             .alloc = alloc,
             .bodies = std.ArrayList(RigidBody).init(alloc),
             .force_generators = std.ArrayList(ForceGenerator).init(alloc),
             .manifolds = std.AutoArrayHashMap(clsn.CollisionKey, clsn.CollisionManifold).init(alloc),
+            .quadtree = try QuadTree.init(alloc, quadtree_node_threshold, quadtree_max_depth),
         };
     }
 
-    pub fn deinit(self: *Self) void {
+    pub fn deinit(self: *Self, alloc: Allocator) void {
         self.manifolds.deinit();
         for (self.force_generators.items) |*gen| {
             gen.deinit(self.alloc);
@@ -103,15 +108,19 @@ pub const Solver = struct {
             body.deinit(self.alloc);
         }
         self.bodies.deinit();
+        self.quadtree.deinit(alloc);
     }
 
-    pub fn clear(self: *Self, alloc: Allocator) void {
-        self.deinit();
-        self.* = Self.init(alloc);
+    pub fn clear(self: *Self, alloc: Allocator) !void {
+        self.deinit(alloc);
+        self.bodies = std.ArrayList(RigidBody).init(alloc);
+        self.force_generators = std.ArrayList(ForceGenerator).init(alloc);
+        self.manifolds = std.AutoArrayHashMap(clsn.CollisionKey, clsn.CollisionManifold).init(alloc);
+        // self.quadtree.clear(alloc);
+        self.quadtree.initRoot(alloc);
     }
 
     pub fn process(self: *Self, alloc: Allocator, dt: f32, sub_steps: usize, collision_iters: usize) !void {
-        // try self.updateManifolds(alloc);
         const f32_sub: f32 = @floatFromInt(sub_steps);
         const sub_dt = dt / f32_sub;
 
@@ -163,8 +172,8 @@ pub const Solver = struct {
                 props.torque = 0;
             }
         }
-        std.debug.print("time spent colliding = {d} ms\n", .{@as(f32, @floatFromInt(time_spent_updating_manifolds)) * 1e-3});
-        std.debug.print("time spent solving colls = {d} ms\n", .{@as(f32, @floatFromInt(time_spent_solving_collisions)) * 1e-3});
+        // std.debug.print("time spent colliding = {d} ms\n", .{@as(f32, @floatFromInt(time_spent_updating_manifolds)) * 1e-3});
+        // std.debug.print("time spent solving colls = {d} ms\n", .{@as(f32, @floatFromInt(time_spent_solving_collisions)) * 1e-3});
     }
 
     fn updateManifolds(self: *Self, alloc: Allocator) !void {
@@ -195,12 +204,26 @@ pub const Solver = struct {
 
         try self.manifolds.reIndex();
 
-        for (0..self.bodies.items.len) |id1| {
-            const body1 = &self.bodies.items[id1];
-            for (id1 + 1..self.bodies.items.len) |id2| {
-                const body2 = &self.bodies.items[id2];
+        var st = std.time.microTimestamp();
+        self.quadtree.clear(alloc);
+        var et = std.time.microTimestamp();
+        std.debug.print("time to clear qtree = {d}\n", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
 
+        st = std.time.microTimestamp();
+        try self.quadtree.insertValues(alloc, self.bodies.items);
+        et = std.time.microTimestamp();
+        std.debug.print("time to insert values = {d}\n", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
+
+        var queries = std.ArrayList(*RigidBody).init(alloc);
+        defer queries.deinit();
+
+        for (self.bodies.items) |*body1| {
+            queries.clearRetainingCapacity();
+            try self.quadtree.queryAABB(body1.aabb, &queries);
+
+            for (queries.items) |body2| {
                 if (body1.static and body2.static) continue;
+                if (body1.ptr == body2.ptr) continue;
 
                 var tmp = clsn.CollisionKey{ .ref_body = body1, .inc_body = body2 };
                 if (!self.manifolds.contains(tmp)) {
@@ -235,20 +258,20 @@ pub const World = struct {
     renderer: ?Renderer,
 
     const Self = @This();
-    pub fn init(alloc: Allocator, screen_size: Units.Size, default_world_width: f32, init_renderer: bool) World {
+    pub fn init(alloc: Allocator, screen_size: Units.Size, default_world_width: f32, init_renderer: bool, comptime quadtree_node_threshold: usize, comptime quadtree_max_depth: usize) !Self {
         return .{
-            .solver = Solver.init(alloc),
+            .solver = try Solver.init(alloc, quadtree_node_threshold, quadtree_max_depth),
             .renderer = if (init_renderer) Renderer.init(screen_size, default_world_width) else null,
         };
     }
 
-    pub fn deinit(self: *Self) void {
-        self.solver.deinit();
+    pub fn deinit(self: *Self, alloc: Allocator) void {
+        self.solver.deinit(alloc);
     }
 
-    pub fn render(self: *Self, show_collisions: bool) void {
+    pub fn render(self: *Self, show_collisions: bool, show_qtree: bool) void {
         if (self.renderer) |*rend| {
-            rend.render(self.solver, show_collisions);
+            rend.render(self.solver, show_collisions, show_qtree);
         }
     }
 };

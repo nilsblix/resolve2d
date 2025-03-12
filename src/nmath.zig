@@ -82,7 +82,10 @@ pub fn length2(a: Vector2) f32 {
 
 pub fn normalize2(a: Vector2) Vector2 {
     const len = length2(a);
-    if (len < 1e-3) std.debug.print("nmath.normalize2 has calculated a low len = {}", .{len});
+    if (len < 1e-3) {
+        std.debug.print("nmath.normalize2 has calculated a low len = {}", .{len});
+        return Vector2{};
+    }
     return scale2(a, 1 / len);
 }
 

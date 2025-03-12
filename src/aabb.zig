@@ -20,6 +20,10 @@ pub const AABB = struct {
         return (dx <= (self.half_width + other.half_width)) and
             (dy <= (self.half_height + other.half_height));
     }
+
+    pub fn isInside(self: Self, pos: Vector2) bool {
+        return pos.x > self.pos.x - self.half_width and pos.x < self.pos.x + self.half_width and pos.y > self.pos.y - self.half_height and pos.y < self.pos.y + self.half_height;
+    }
 };
 
 test "sanity check aabb overlapping" {

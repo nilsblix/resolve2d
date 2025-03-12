@@ -20,8 +20,8 @@ pub fn main() !void {
     const screen_width = 1280;
     const screen_height = 720;
 
-    var world = zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true);
-    defer world.deinit();
+    var world = try zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true, 2, 10);
+    defer world.deinit(alloc);
 
     try demos.setupScene(&world.solver);
 
@@ -40,6 +40,7 @@ pub fn main() !void {
 
     var simulating: bool = false;
     var show_collisions: bool = true;
+    var show_qtree: bool = false;
     var slow_motion = false;
     var steps: u32 = 0;
 
@@ -92,25 +93,29 @@ pub fn main() !void {
             slow_motion = !slow_motion;
         }
 
+        if (rl.isKeyPressed(.t)) {
+            show_qtree = !show_qtree;
+        }
+
         if (rl.isKeyPressed(.one)) {
-            world.solver.clear(alloc);
+            try world.solver.clear(alloc);
             steps = 0;
             try demos.setupScene(&world.solver);
         }
 
         if (rl.isKeyPressed(.two)) {
-            world.solver.clear(alloc);
+            try world.solver.clear(alloc);
             try demos.setupDominos(&world.solver);
         }
 
         if (rl.isKeyPressed(.three)) {
-            world.solver.clear(alloc);
+            try world.solver.clear(alloc);
             try demos.setupCollisionPointTestScene(&world.solver);
         }
 
         if (rl.isKeyPressed(.four)) {
-            world.solver.clear(alloc);
-            try demos.setupSomething(&world.solver);
+            try world.solver.clear(alloc);
+            try demos.setupPrimary(&world.solver);
         }
 
         if (simulating) {
@@ -140,11 +145,13 @@ pub fn main() !void {
 
         rl.clearBackground(.{ .r = 18, .g = 18, .b = 18, .a = 1 });
         const start = std.time.nanoTimestamp();
-        world.render(show_collisions);
+        world.render(show_collisions, show_qtree);
         const end = std.time.nanoTimestamp();
         render_dt = @floatFromInt(end - start);
 
         const font_size = 16;
+
+        rl.drawText(rl.textFormat("num qtree nodes = %d", .{world.solver.quadtree.calculateNumNodes()}), 5, screen_height - 4 * font_size, font_size, rl.Color.white);
 
         rl.drawText(rl.textFormat("bodies = %d : manifolds = %d", .{ world.solver.bodies.items.len, world.solver.manifolds.count() }), 5, screen_height - 3 * font_size, font_size, rl.Color.white);
 

@@ -9,7 +9,7 @@ const Allocator = std.mem.Allocator;
 const collision = @import("collision.zig");
 const renderer = @import("default_renderer.zig");
 
-pub fn setupSomething(solver: *zigics.Solver) !void {
+pub fn setupPrimary(solver: *zigics.Solver) !void {
     var factory = solver.entityFactory();
 
     var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
