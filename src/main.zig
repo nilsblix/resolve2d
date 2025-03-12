@@ -35,7 +35,7 @@ pub fn main() !void {
     // const SUB_STEPS = 4;
     // const COLLISION_ITERS = 3;
     const SUB_STEPS = 4;
-    const COLLISION_ITERS = 8;
+    const COLLISION_ITERS = 4;
     rl.setTargetFPS(HZ);
 
     var simulating: bool = false;

@@ -5,6 +5,7 @@ const Vector2 = nmath.Vector2;
 const collision = @import("collision.zig");
 const manifold_max_points = collision.CollisionManifold.MAX_POINTS;
 const CollisionPoint = collision.CollisionPoint;
+const aabb = @import("aabb.zig");
 
 pub const RigidBodies = enum {
     disc,
@@ -49,6 +50,7 @@ const EdgeNormalIterator = struct {
 pub const RigidBody = struct {
     pub const VTable = struct {
         deinit: *const fn (ptr: *anyopaque, alloc: Allocator) void,
+        updateAABB: *const fn (rigidself: *RigidBody) void,
         isInside: *const fn (ptr: *anyopaque, props: Props, pos: Vector2) bool,
         closestPoint: *const fn (ptr: *anyopaque, props: Props, pos: Vector2) Vector2,
         getNormal: *const fn (ptr: *anyopaque, props: RigidBody.Props, body: RigidBody, iter: usize) ?Edge,
@@ -73,6 +75,7 @@ pub const RigidBody = struct {
         mu_s: f32,
     };
 
+    aabb: aabb.AABB,
     normal_iter: EdgeNormalIterator,
     static: bool = false,
     type: RigidBodies,
@@ -85,6 +88,10 @@ pub const RigidBody = struct {
 
     pub fn deinit(self: *Self, alloc: Allocator) void {
         self.vtable.deinit(self.ptr, alloc);
+    }
+
+    pub fn updateAABB(self: *Self) void {
+        self.vtable.updateAABB(self);
     }
 
     pub fn isInside(self: Self, pos: Vector2) bool {
@@ -140,6 +147,7 @@ pub const DiscBody = struct {
 
     const rigidbody_vtable = RigidBody.VTable{
         .deinit = DiscBody.deinit,
+        .updateAABB = DiscBody.updateAABB,
         .isInside = DiscBody.isInside,
         .closestPoint = DiscBody.closestPoint,
         .getNormal = DiscBody.getNormal,
@@ -154,7 +162,7 @@ pub const DiscBody = struct {
         var self: *Self = try alloc.create(Self);
         self.radius = radius;
 
-        return RigidBody{
+        var rigidbody = RigidBody{
             .props = .{
                 .pos = pos,
                 .momentum = .{},
@@ -167,16 +175,26 @@ pub const DiscBody = struct {
                 .mu_s = mu_s,
                 .mu_d = mu_d,
             },
+            .aabb = undefined,
             .normal_iter = EdgeNormalIterator{ .num_iters = 1 },
             .type = RigidBodies.disc,
             .ptr = self,
             .vtable = DiscBody.rigidbody_vtable,
         };
+
+        rigidbody.updateAABB();
+
+        return rigidbody;
     }
 
     pub fn deinit(ptr: *anyopaque, alloc: Allocator) void {
         const self: *Self = @ptrCast(@alignCast(ptr));
         alloc.destroy(self);
+    }
+
+    pub fn updateAABB(rigidself: *RigidBody) void {
+        const self: *Self = @ptrCast(@alignCast(rigidself.ptr));
+        rigidself.aabb = .{ .pos = rigidself.props.pos, .half_width = self.radius, .half_height = self.radius };
     }
 
     pub fn isInside(ptr: *anyopaque, props: RigidBody.Props, pos: Vector2) bool {
@@ -261,6 +279,7 @@ pub const RectangleBody = struct {
 
     const rigidbody_vtable = RigidBody.VTable{
         .deinit = RectangleBody.deinit,
+        .updateAABB = RectangleBody.updateAABB,
         .isInside = RectangleBody.isInside,
         .closestPoint = RectangleBody.closestPoint,
         .getNormal = RectangleBody.getNormal,
@@ -280,7 +299,7 @@ pub const RectangleBody = struct {
         const h = height / 2;
         self.local_vertices = [4]Vector2{ Vector2.init(-w, -h), Vector2.init(-w, h), Vector2.init(w, h), Vector2.init(w, -h) };
 
-        return RigidBody{
+        var rigidbody = RigidBody{
             .props = .{
                 .pos = pos,
                 .momentum = .{},
@@ -293,16 +312,37 @@ pub const RectangleBody = struct {
                 .mu_s = mu_s,
                 .mu_d = mu_d,
             },
+            .aabb = undefined,
             .normal_iter = EdgeNormalIterator{ .num_iters = 4 },
             .type = RigidBodies.rectangle,
             .ptr = self,
             .vtable = RectangleBody.rigidbody_vtable,
         };
+
+        rigidbody.updateAABB();
+        return rigidbody;
     }
 
     pub fn deinit(ptr: *anyopaque, alloc: Allocator) void {
         const self: *Self = @ptrCast(@alignCast(ptr));
         alloc.destroy(self);
+    }
+
+    pub fn updateAABB(rigidself: *RigidBody) void {
+        const self: *Self = @ptrCast(@alignCast(rigidself.ptr));
+        var width: f32 = 0;
+        var height: f32 = 0;
+        for (self.local_vertices) |vert| {
+            const rot = nmath.rotate2(vert, rigidself.props.angle);
+            if (rot.x > width) {
+                width = rot.x;
+            }
+            if (rot.y > height) {
+                height = rot.y;
+            }
+        }
+
+        rigidself.aabb = .{ .pos = rigidself.props.pos, .half_width = width, .half_height = height };
     }
 
     pub fn getWorldVertices(self: *Self, props: RigidBody.Props) [4]Vector2 {

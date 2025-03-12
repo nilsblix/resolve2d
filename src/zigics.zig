@@ -115,6 +115,9 @@ pub const Solver = struct {
         const f32_sub: f32 = @floatFromInt(sub_steps);
         const sub_dt = dt / f32_sub;
 
+        var time_spent_updating_manifolds: i64 = 0;
+        var time_spent_solving_collisions: i64 = 0;
+
         for (0..sub_steps) |_| {
             for (self.force_generators.items) |*gen| {
                 gen.apply(self.bodies);
@@ -126,10 +129,16 @@ pub const Solver = struct {
 
                 props.momentum.addmult(props.force, sub_dt);
                 props.ang_momentum += props.torque * sub_dt;
+
+                body.updateAABB();
             }
 
+            var st = std.time.microTimestamp();
             try self.updateManifolds(alloc);
+            var et = std.time.microTimestamp();
+            time_spent_updating_manifolds += et - st;
 
+            st = std.time.microTimestamp();
             for (0..collision_iters) |_| {
                 var iter = self.manifolds.iterator();
                 while (iter.next()) |entry| {
@@ -137,9 +146,11 @@ pub const Solver = struct {
                     const key = entry.key_ptr.*;
                     manifold.resetImpulses();
                     manifold.calculateImpulses(key, sub_dt, 0.05, 0.00);
-                    manifold.applyImpulses(key, 1e-3, 0.0);
+                    manifold.applyImpulses(key, 1e-4, 4e-1);
                 }
             }
+            et = std.time.microTimestamp();
+            time_spent_solving_collisions += et - st;
 
             for (self.bodies.items) |*body| {
                 if (body.static) continue;
@@ -152,6 +163,8 @@ pub const Solver = struct {
                 props.torque = 0;
             }
         }
+        std.debug.print("time spent colliding = {d} ms\n", .{@as(f32, @floatFromInt(time_spent_updating_manifolds)) * 1e-3});
+        std.debug.print("time spent solving colls = {d} ms\n", .{@as(f32, @floatFromInt(time_spent_solving_collisions)) * 1e-3});
     }
 
     fn updateManifolds(self: *Self, alloc: Allocator) !void {
@@ -193,6 +206,8 @@ pub const Solver = struct {
                 if (!self.manifolds.contains(tmp)) {
                     tmp = clsn.CollisionKey{ .ref_body = body2, .inc_body = body1 };
                     if (!self.manifolds.contains(tmp)) {
+                        if (!body1.aabb.intersects(body2.aabb)) continue;
+
                         const sat = clsn.performNarrowSAT(body1, body2);
                         if (!sat.collides) continue;
 

@@ -13,8 +13,10 @@ pub fn setupSomething(solver: *zigics.Solver) !void {
     var factory = solver.entityFactory();
 
     var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
+    // opt.mu_d = 0.4;
+    // opt.mu_s = 0.5;
     opt.mu_d = 0.2;
-    opt.mu_s = opt.mu_d;
+    opt.mu_s = 0.3;
     var body: *rigidbody.RigidBody = undefined;
 
     opt.pos = Vector2.init(0, 0);
@@ -23,7 +25,7 @@ pub fn setupSomething(solver: *zigics.Solver) !void {
 
     opt.pos = Vector2.init(-9, -2);
     opt.angle = 0.45;
-    body = try factory.makeRectangleBody(opt, .{ .width = 10.0, .height = 1.0 });
+    body = try factory.makeRectangleBody(opt, .{ .width = 9.0, .height = 1.0 });
     body.static = true;
     opt.angle = 0;
 
@@ -33,7 +35,7 @@ pub fn setupSomething(solver: *zigics.Solver) !void {
 
     opt.pos = Vector2.init(9, 2);
     opt.angle = 0.45;
-    body = try factory.makeRectangleBody(opt, .{ .width = 10.0, .height = 1.0 });
+    body = try factory.makeRectangleBody(opt, .{ .width = 9.0, .height = 1.0 });
     body.static = true;
     opt.angle = 0;
 
@@ -77,6 +79,14 @@ pub fn setupSomething(solver: *zigics.Solver) !void {
                 _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.8 });
             }
         }
+    }
+
+    opt.pos.x = 15;
+    const height = 0.7;
+    for (0..15) |y| {
+        opt.pos.y = 5 + height * @as(f32, @floatFromInt(y));
+
+        _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = height });
     }
 
     try factory.makeDownwardsGravity(9.82);
