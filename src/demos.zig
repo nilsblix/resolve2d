@@ -9,6 +9,65 @@ const Allocator = std.mem.Allocator;
 const collision = @import("collision.zig");
 const renderer = @import("default_renderer.zig");
 
+pub fn setupStacking(solver: *zigics.Solver) !void {
+    var factory = solver.entityFactory();
+
+    var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
+    // opt.mu_d = 0.2;
+    // opt.mu_s = 0.3;
+    opt.mu_d = 0.1;
+    opt.mu_s = 0.2;
+    var body: *rigidbody.RigidBody = undefined;
+
+    opt.pos = Vector2.init(0, 0);
+    body = try factory.makeRectangleBody(opt, .{ .width = 10.0, .height = 1.0 });
+    body.static = true;
+
+    opt.pos = Vector2.init(-9, -2);
+    opt.angle = 0.45;
+    body = try factory.makeRectangleBody(opt, .{ .width = 9.0, .height = 1.0 });
+    body.static = true;
+    opt.angle = 0;
+
+    opt.pos = Vector2.init(-18, -4);
+    body = try factory.makeRectangleBody(opt, .{ .width = 10.0, .height = 1.0 });
+    body.static = true;
+
+    opt.pos = Vector2.init(9, 2);
+    opt.angle = 0.45;
+    body = try factory.makeRectangleBody(opt, .{ .width = 9.0, .height = 1.0 });
+    body.static = true;
+    opt.angle = 0;
+
+    opt.pos = Vector2.init(18, 4);
+    body = try factory.makeRectangleBody(opt, .{ .width = 10.0, .height = 1.0 });
+    body.static = true;
+
+    opt.pos = Vector2.init(-22, 6);
+    body = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 20 });
+    body.static = true;
+
+    opt.pos = Vector2.init(22, 14);
+    body = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 20 });
+    body.static = true;
+
+    try factory.makeDownwardsGravity(9.82);
+
+    opt.pos.x = 0.0;
+    const width: f32 = 1.0;
+    const height: f32 = 0.7;
+    for (0..10) |y| {
+        opt.pos.y = @as(f32, @floatFromInt(y)) * height + 1.0;
+        _ = try factory.makeRectangleBody(opt, .{ .width = width, .height = height });
+    }
+
+    opt.pos.x = 15.0;
+    for (0..10) |y| {
+        opt.pos.y = @as(f32, @floatFromInt(y)) * height + 5.0;
+        _ = try factory.makeRectangleBody(opt, .{ .width = width, .height = height });
+    }
+}
+
 pub fn setupPrimary(solver: *zigics.Solver) !void {
     var factory = solver.entityFactory();
 
@@ -115,7 +174,7 @@ pub fn setupDominos(solver: *zigics.Solver) !void {
 
     const height: f32 = 2.5;
     const width: f32 = 0.6;
-    opt.pos.y = height / 2;
+    opt.pos.y = height / 2 + 0.05;
     const rect_opt: zigics.EntityFactory.RectangleOptions = .{ .width = width, .height = height };
     for (1..10) |xi| {
         const x_offset: f32 = 2 * (@as(f32, @floatFromInt(xi)) - 5);

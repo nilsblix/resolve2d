@@ -283,8 +283,8 @@ pub const Renderer = struct {
 
                         const tangent = nmath.rotate90clockwise(normal);
                         const pt_vec = nmath.scale2(tangent, pt.accumulated_pt);
-
                         const p = nmath.add2(pn_vec, pt_vec);
+                        // const p = pn_vec;
 
                         const screen2 = self.units.w2s(nmath.add2(pt.pos, p));
                         const rls2 = rl.Vector2.init(screen2.x, screen2.y);

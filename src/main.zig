@@ -20,7 +20,7 @@ pub fn main() !void {
     const screen_width = 1280;
     const screen_height = 720;
 
-    var world = try zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true, 4, 5);
+    var world = try zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true, 4, 4);
     defer world.deinit(alloc);
 
     try demos.setupScene(&world.solver);
@@ -32,10 +32,8 @@ pub fn main() !void {
 
     const HZ: i32 = 60;
     const STANDARD_DT: f32 = 1 / @as(f32, HZ);
-    // const SUB_STEPS = 4;
-    // const COLLISION_ITERS = 3;
-    const SUB_STEPS = 2;
-    const COLLISION_ITERS = 8;
+    const SUB_STEPS = 4;
+    const COLLISION_ITERS = 5;
     rl.setTargetFPS(HZ);
 
     var simulating: bool = false;
@@ -123,13 +121,19 @@ pub fn main() !void {
             try demos.setupPrimary(&world.solver);
         }
 
+        if (rl.isKeyPressed(.five)) {
+            try world.solver.clear(alloc);
+            try demos.setupStacking(&world.solver);
+        }
+
         if (simulating) {
             const start = std.time.nanoTimestamp();
-            const mod = @mod(@as(f32, @floatFromInt(steps)), SUB_STEPS * 1) == 0;
+            const mod = @mod(@as(f32, @floatFromInt(steps)), 8) == 0;
 
             steps += 1;
             if (slow_motion and mod) {
-                try world.solver.process(alloc, STANDARD_DT / SUB_STEPS, 1, COLLISION_ITERS);
+                // try world.solver.process(alloc, STANDARD_DT / SUB_STEPS, 1, COLLISION_ITERS);
+                try world.solver.process(alloc, STANDARD_DT, SUB_STEPS, COLLISION_ITERS);
             } else if (!slow_motion) {
                 try world.solver.process(alloc, STANDARD_DT, SUB_STEPS, COLLISION_ITERS);
             }
@@ -155,6 +159,8 @@ pub fn main() !void {
         render_dt = @floatFromInt(end - start);
 
         const font_size = 16;
+
+        rl.drawText(rl.textFormat("mouse pos = %.3f, %.3f", .{ mouse_pos.x, mouse_pos.y }), 5, screen_height - 5 * font_size, font_size, rl.Color.white);
 
         rl.drawText(rl.textFormat("num qtree nodes = %d", .{world.solver.quadtree.calculateNumNodes()}), 5, screen_height - 4 * font_size, font_size, rl.Color.white);
 

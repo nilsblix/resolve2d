@@ -122,8 +122,7 @@ pub const Solver = struct {
         const f32_sub: f32 = @floatFromInt(sub_steps);
         const sub_dt = dt / f32_sub;
 
-        var time_spent_updating_manifolds: i64 = 0;
-        var time_spent_solving_collisions: i64 = 0;
+        try self.updateManifolds(alloc);
 
         for (0..sub_steps) |_| {
             for (self.force_generators.items) |*gen| {
@@ -140,24 +139,17 @@ pub const Solver = struct {
                 body.updateAABB();
             }
 
-            var st = std.time.microTimestamp();
-            try self.updateManifolds(alloc);
-            var et = std.time.microTimestamp();
-            time_spent_updating_manifolds += et - st;
-
-            st = std.time.microTimestamp();
             for (0..collision_iters) |_| {
                 var iter = self.manifolds.iterator();
                 while (iter.next()) |entry| {
                     const manifold = entry.value_ptr;
                     const key = entry.key_ptr.*;
-                    manifold.resetImpulses();
-                    manifold.calculateImpulses(key, sub_dt, 0.05, 0.00);
-                    manifold.applyImpulses(key, 1e-4, 4e-1);
+                    // manifold.resetImpulses();
+                    manifold.updateTGSDepth(key);
+                    manifold.calculateImpulses(key, sub_dt, 0.05, 0.005);
+                    manifold.applyImpulses(key, 1e-8, 0.0);
                 }
             }
-            et = std.time.microTimestamp();
-            time_spent_solving_collisions += et - st;
 
             for (self.bodies.items) |*body| {
                 if (body.static) continue;
@@ -170,21 +162,12 @@ pub const Solver = struct {
                 props.torque = 0;
             }
         }
-        std.debug.print("time spent colliding = {d} ms\n", .{@as(f32, @floatFromInt(time_spent_updating_manifolds)) * 1e-3});
-        std.debug.print("time spent solving colls = {d} ms\n", .{@as(f32, @floatFromInt(time_spent_solving_collisions)) * 1e-3});
     }
 
     fn updateManifolds(self: *Self, alloc: Allocator) !void {
         var remove_keys = std.ArrayList(clsn.CollisionKey).init(alloc);
         defer remove_keys.deinit();
 
-        std.debug.print("\n\n<--------> NEW FRAME\n", .{});
-        var total_time: i64 = 0;
-
-        var st: i64 = undefined;
-        var et: i64 = undefined;
-
-        st = std.time.microTimestamp();
         var iter = self.manifolds.iterator();
         while (iter.next()) |entry| {
             const key = entry.key_ptr;
@@ -207,49 +190,25 @@ pub const Solver = struct {
             manifold.normal = sat.normal;
             manifold.points = sat.key.ref_body.identifyCollisionPoints(sat.key.inc_body, sat.reference_normal_id);
         }
-        et = std.time.microTimestamp();
-        std.debug.print("time to update narrowly (beginning) = {d}\n", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
-        total_time += et - st;
 
-        st = std.time.microTimestamp();
         for (remove_keys.items) |key| {
             _ = self.manifolds.swapRemove(key);
         }
-        et = std.time.microTimestamp();
-        std.debug.print("time to remove old manifolds = {d}\n", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
-        total_time += et - st;
 
         try self.manifolds.reIndex();
 
-        st = std.time.microTimestamp();
         self.quadtree.clear(alloc);
-        et = std.time.microTimestamp();
-        std.debug.print("time to clear qtree = {d}\n", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
-        total_time += et - st;
 
-        st = std.time.microTimestamp();
         try self.quadtree.insertValues(alloc, self.bodies.items);
-        et = std.time.microTimestamp();
-        std.debug.print("time to insert values = {d}\n", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
-        total_time += et - st;
 
         var queries = std.ArrayList(*RigidBody).init(alloc);
         defer queries.deinit();
 
         self.manifolds.clearAndFree();
 
-        var total_query: i64 = 0;
-        var total_sat: i64 = 0;
-        var total_cps: i64 = 0;
-        var total_put: i64 = 0;
-
-        st = std.time.microTimestamp();
         for (self.bodies.items) |*body1| {
-            var sti = std.time.microTimestamp();
             queries.clearRetainingCapacity();
             try self.quadtree.queryAABB(body1.aabb, &queries);
-            var eti = std.time.microTimestamp();
-            total_query += eti - sti;
 
             for (queries.items) |body2| {
                 if (body1.static and body2.static) continue;
@@ -261,41 +220,146 @@ pub const Solver = struct {
                     if (!self.manifolds.contains(tmp)) {
                         if (!body1.aabb.intersects(body2.aabb)) continue;
 
-                        sti = std.time.microTimestamp();
                         const sat = clsn.performNarrowSAT(body1, body2);
-                        eti = std.time.microTimestamp();
-                        total_sat += eti - sti;
 
                         if (!sat.collides) continue;
 
-                        sti = std.time.microTimestamp();
                         const manifold = clsn.CollisionManifold{
                             .normal = sat.normal,
                             .points = sat.key.ref_body.identifyCollisionPoints(sat.key.inc_body, sat.reference_normal_id),
                             .prev_angle_1 = sat.key.ref_body.props.angle,
                             .prev_angle_2 = sat.key.inc_body.props.angle,
                         };
-                        eti = std.time.microTimestamp();
-                        total_cps += eti - sti;
 
-                        sti = std.time.microTimestamp();
                         try self.manifolds.put(sat.key, manifold);
-                        eti = std.time.microTimestamp();
-                        total_put += eti - sti;
                     }
                 }
             }
         }
-        et = std.time.microTimestamp();
-        std.debug.print("time to update total query = {d}\n", .{@as(f32, @floatFromInt(total_query)) * 1e-3});
-        std.debug.print("time to update total sat = {d}\n", .{@as(f32, @floatFromInt(total_sat)) * 1e-3});
-        std.debug.print("time to update total colpts = {d}\n", .{@as(f32, @floatFromInt(total_cps)) * 1e-3});
-        std.debug.print("time to update total mani-put = {d}\n", .{@as(f32, @floatFromInt(total_put)) * 1e-3});
-        std.debug.print("time to update narrowly (query + sat) = {d}\n", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
-        total_time += et - st;
-
-        std.debug.print("TOTAL TIME = {d}\n", .{@as(f32, @floatFromInt(total_time)) * 1e-3});
     }
+
+    // fn updateManifolds(self: *Self, alloc: Allocator) !void {
+    //     var remove_keys = std.ArrayList(clsn.CollisionKey).init(alloc);
+    //     defer remove_keys.deinit();
+    //
+    //     std.debug.print("\n\n<--------> NEW FRAME\n", .{});
+    //     var total_time: i64 = 0;
+    //
+    //     var st: i64 = undefined;
+    //     var et: i64 = undefined;
+    //
+    //     st = std.time.microTimestamp();
+    //     var iter = self.manifolds.iterator();
+    //     while (iter.next()) |entry| {
+    //         const key = entry.key_ptr;
+    //         const manifold = entry.value_ptr;
+    //
+    //         if (!key.ref_body.aabb.intersects(key.inc_body.aabb)) {
+    //             try remove_keys.append(key.*);
+    //             continue;
+    //         }
+    //
+    //         const sat = clsn.performNarrowSAT(key.ref_body, key.inc_body);
+    //         if (!sat.collides) {
+    //             try remove_keys.append(key.*);
+    //             continue;
+    //         }
+    //
+    //         key.ref_body = sat.key.ref_body;
+    //         key.inc_body = sat.key.inc_body;
+    //
+    //         manifold.normal = sat.normal;
+    //         manifold.points = sat.key.ref_body.identifyCollisionPoints(sat.key.inc_body, sat.reference_normal_id);
+    //     }
+    //     et = std.time.microTimestamp();
+    //     std.debug.print("time to update narrowly (beginning) = {d}\n", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
+    //     total_time += et - st;
+    //
+    //     st = std.time.microTimestamp();
+    //     for (remove_keys.items) |key| {
+    //         _ = self.manifolds.swapRemove(key);
+    //     }
+    //     et = std.time.microTimestamp();
+    //     std.debug.print("time to remove old manifolds = {d}\n", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
+    //     total_time += et - st;
+    //
+    //     try self.manifolds.reIndex();
+    //
+    //     st = std.time.microTimestamp();
+    //     self.quadtree.clear(alloc);
+    //     et = std.time.microTimestamp();
+    //     std.debug.print("time to clear qtree = {d}\n", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
+    //     total_time += et - st;
+    //
+    //     st = std.time.microTimestamp();
+    //     try self.quadtree.insertValues(alloc, self.bodies.items);
+    //     et = std.time.microTimestamp();
+    //     std.debug.print("time to insert values = {d}\n", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
+    //     total_time += et - st;
+    //
+    //     var queries = std.ArrayList(*RigidBody).init(alloc);
+    //     defer queries.deinit();
+    //
+    //     self.manifolds.clearAndFree();
+    //
+    //     var total_query: i64 = 0;
+    //     var total_sat: i64 = 0;
+    //     var total_cps: i64 = 0;
+    //     var total_put: i64 = 0;
+    //
+    //     st = std.time.microTimestamp();
+    //     for (self.bodies.items) |*body1| {
+    //         var sti = std.time.microTimestamp();
+    //         queries.clearRetainingCapacity();
+    //         try self.quadtree.queryAABB(body1.aabb, &queries);
+    //         var eti = std.time.microTimestamp();
+    //         total_query += eti - sti;
+    //
+    //         for (queries.items) |body2| {
+    //             if (body1.static and body2.static) continue;
+    //             if (body1.ptr == body2.ptr) continue;
+    //
+    //             var tmp = clsn.CollisionKey{ .ref_body = body1, .inc_body = body2 };
+    //             if (!self.manifolds.contains(tmp)) {
+    //                 tmp = clsn.CollisionKey{ .ref_body = body2, .inc_body = body1 };
+    //                 if (!self.manifolds.contains(tmp)) {
+    //                     if (!body1.aabb.intersects(body2.aabb)) continue;
+    //
+    //                     sti = std.time.microTimestamp();
+    //                     const sat = clsn.performNarrowSAT(body1, body2);
+    //                     eti = std.time.microTimestamp();
+    //                     total_sat += eti - sti;
+    //
+    //                     if (!sat.collides) continue;
+    //
+    //                     sti = std.time.microTimestamp();
+    //                     const manifold = clsn.CollisionManifold{
+    //                         .normal = sat.normal,
+    //                         .points = sat.key.ref_body.identifyCollisionPoints(sat.key.inc_body, sat.reference_normal_id),
+    //                         .prev_angle_1 = sat.key.ref_body.props.angle,
+    //                         .prev_angle_2 = sat.key.inc_body.props.angle,
+    //                     };
+    //                     eti = std.time.microTimestamp();
+    //                     total_cps += eti - sti;
+    //
+    //                     sti = std.time.microTimestamp();
+    //                     try self.manifolds.put(sat.key, manifold);
+    //                     eti = std.time.microTimestamp();
+    //                     total_put += eti - sti;
+    //                 }
+    //             }
+    //         }
+    //     }
+    //     et = std.time.microTimestamp();
+    //     std.debug.print("time to update total query = {d}\n", .{@as(f32, @floatFromInt(total_query)) * 1e-3});
+    //     std.debug.print("time to update total sat = {d}\n", .{@as(f32, @floatFromInt(total_sat)) * 1e-3});
+    //     std.debug.print("time to update total colpts = {d}\n", .{@as(f32, @floatFromInt(total_cps)) * 1e-3});
+    //     std.debug.print("time to update total mani-put = {d}\n", .{@as(f32, @floatFromInt(total_put)) * 1e-3});
+    //     std.debug.print("time to update narrowly (query + sat) = {d}\n", .{@as(f32, @floatFromInt((et - st))) * 1e-3});
+    //     total_time += et - st;
+    //
+    //     std.debug.print("TOTAL TIME = {d}\n", .{@as(f32, @floatFromInt(total_time)) * 1e-3});
+    // }
 
     pub fn entityFactory(self: *Self) EntityFactory {
         return EntityFactory{ .solver = self };

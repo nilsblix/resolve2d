@@ -45,20 +45,49 @@ pub const CollisionManifold = struct {
 
     const Self = @This();
 
+    pub fn updateTGSDepth(self: *Self, key: CollisionKey) void {
+        const b1 = key.ref_body;
+        const b2 = key.inc_body;
+
+        for (&self.points) |*point| {
+            if (point.*) |*col_pt| {
+                const r1 = col_pt.ref_r;
+                const r2 = col_pt.inc_r;
+
+                const r_rot_1 = nmath.rotate2(r1, b1.props.angle - self.prev_angle_1);
+                const r_rot_2 = nmath.rotate2(r2, b2.props.angle - self.prev_angle_2);
+
+                const a1 = nmath.add2(r_rot_1, b1.props.pos);
+                const a2 = nmath.add2(r_rot_2, b2.props.pos);
+
+                const depth = nmath.dot2(self.normal, nmath.sub2(a2, a1));
+                col_pt.depth = depth + col_pt.original_depth;
+
+                col_pt.ref_r = r_rot_1;
+                col_pt.inc_r = r_rot_2;
+            }
+        }
+
+        self.prev_angle_1 = b1.props.angle;
+        self.prev_angle_2 = b2.props.angle;
+    }
+
     pub fn calculateImpulses(self: *Self, key: CollisionKey, dt: f32, beta_bias: f32, delta_slop: f32) void {
         const b1 = key.ref_body;
         const b2 = key.inc_body;
 
-        const inv_mass = (1 / b1.props.mass) + (1 / b2.props.mass);
+        const inv1 = if (b1.static) 0 else (1 / b1.props.mass);
+        const inv2 = if (b2.static) 0 else (1 / b2.props.mass);
+        const inv_mass = inv1 + inv2;
 
         for (self.points, 0..) |point, idx| {
             if (point) |col_pt| {
                 const r1 = col_pt.ref_r;
                 const r2 = col_pt.inc_r;
 
-                const r1xn = nmath.cross2(r1, self.normal);
-                const r2xn = nmath.cross2(r2, self.normal);
-                const kn = inv_mass + r1xn * r1xn / b1.props.inertia + r2xn * r2xn / b2.props.inertia;
+                const r1xn = if (b1.static) 0.0 else nmath.cross2(r1, self.normal);
+                const r2xn = if (b2.static) 0.0 else nmath.cross2(r2, self.normal);
+                const kn = inv_mass + (r1xn * r1xn / b1.props.inertia) + (r2xn * r2xn / b2.props.inertia);
 
                 const v1 = nmath.scale2(b1.props.momentum, 1 / b1.props.mass);
                 const omega1 = b1.props.ang_momentum / b1.props.inertia;
@@ -74,14 +103,14 @@ pub const CollisionManifold = struct {
 
                 self.points[idx].?.v_rel = delta_v;
 
-                const v_bias = (beta_bias / dt) * @max(0, -col_pt.depth - delta_slop);
+                const v_bias = beta_bias * @max(0, -col_pt.depth - delta_slop) / dt;
                 var num = nmath.dot2(delta_v, self.normal) + v_bias;
                 const pn = num / kn;
                 self.points[idx].?.pn = pn;
 
                 const tangent = nmath.rotate90clockwise(self.normal);
-                const r1xt = nmath.cross2(r1, tangent);
-                const r2xt = nmath.cross2(r2, tangent);
+                const r1xt = if (b1.static) 0.0 else nmath.cross2(r1, tangent);
+                const r2xt = if (b2.static) 0.0 else nmath.cross2(r2, tangent);
                 const kt = inv_mass + (r1xt * r1xt / b1.props.inertia) + (r2xt * r2xt / b2.props.inertia);
 
                 num = nmath.dot2(delta_v, tangent);
@@ -141,7 +170,6 @@ pub const CollisionManifold = struct {
                 const p = nmath.add2(pn_vec, pt_vec);
                 // _ = pt_vec;
                 // const p = pn_vec;
-                // p = .{};
 
                 if (!b1.static) {
                     b1.props.momentum.sub(p);
