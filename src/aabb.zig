@@ -10,10 +10,6 @@ pub const AABB = struct {
     const Self = @This();
 
     pub fn intersects(self: Self, other: AABB) bool {
-        // const p = nmath.sub2(other.pos, self.pos);
-        //
-        // return (self.half_width > p.x - other.half_width or p.x + other.half_width > -self.half_width) and (self.half_height > p.y - other.half_height or p.y + other.half_height > -self.half_height);
-
         const dx = @abs(other.pos.x - self.pos.x);
         const dy = @abs(other.pos.y - self.pos.y);
 
@@ -22,7 +18,16 @@ pub const AABB = struct {
     }
 
     pub fn isInside(self: Self, pos: Vector2) bool {
-        return pos.x > self.pos.x - self.half_width and pos.x < self.pos.x + self.half_width and pos.y > self.pos.y - self.half_height and pos.y < self.pos.y + self.half_height;
+        return pos.x >= self.pos.x - self.half_width and pos.x <= self.pos.x + self.half_width and pos.y >= self.pos.y - self.half_height and pos.y <= self.pos.y + self.half_height;
+    }
+
+    pub fn getVertices(self: Self) [4]Vector2 {
+        return .{
+            Vector2.init(self.pos.x - self.half_width, self.pos.y - self.half_height),
+            Vector2.init(self.pos.x + self.half_width, self.pos.y - self.half_height),
+            Vector2.init(self.pos.x + self.half_width, self.pos.y + self.half_height),
+            Vector2.init(self.pos.x - self.half_width, self.pos.y + self.half_height),
+        };
     }
 };
 

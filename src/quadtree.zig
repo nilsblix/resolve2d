@@ -6,18 +6,18 @@ const rb_mod = @import("rigidbody.zig");
 const RigidBody = rb_mod.RigidBody;
 const AABB = @import("aabb.zig").AABB;
 
-test "error handling with quadrant" {
-    const aabb = AABB{ .pos = Vector2.init(4, 2), .half_width = 2.0, .half_height = 1.0 };
-
-    var ret = try getQuadrant(aabb, Vector2.init(3, 1.5));
-    std.debug.print("should be bottom left: {}\n", .{ret});
-
-    ret = try getQuadrant(aabb, Vector2.init(5, 1.5));
-    std.debug.print("should be bottom right: {}\n", .{ret});
-
-    std.debug.print("THIS SHOULD FAIL: below should fail with Error.PointisOutsideOfAABB;\n", .{});
-    ret = try getQuadrant(aabb, Vector2.init(0, 0));
-}
+// test "error handling with quadrant" {
+//     const aabb = AABB{ .pos = Vector2.init(4, 2), .half_width = 2.0, .half_height = 1.0 };
+//
+//     var ret = try getQuadrant(aabb, Vector2.init(3, 1.5));
+//     std.debug.print("should be bottom left: {}\n", .{ret});
+//
+//     ret = try getQuadrant(aabb, Vector2.init(5, 1.5));
+//     std.debug.print("should be bottom right: {}\n", .{ret});
+//
+//     std.debug.print("THIS SHOULD FAIL: below should fail with Error.PointisOutsideOfAABB;\n", .{});
+//     ret = try getQuadrant(aabb, Vector2.init(0, 0));
+// }
 
 fn getEntireAABB(bodies: []RigidBody) AABB {
     var max = Vector2.init(-std.math.inf(f32), -std.math.inf(f32));
@@ -45,21 +45,6 @@ pub const Quadrant = enum {
     top_right,
     top_left,
 };
-
-pub fn getQuadrant(aabb: AABB, pos: Vector2) !Quadrant {
-    // if (!aabb.isInside(pos)) {
-    //     std.log.err("zigics: fn (getQuadrant) Point is outside of AABB. An error has been returned", .{});
-    //     return error.zigics;
-    // }
-
-    if (pos.x <= aabb.pos.x and pos.y <= aabb.pos.y) return Quadrant.bottom_left;
-    if (pos.x > aabb.pos.x and pos.y <= aabb.pos.y) return Quadrant.bottom_right;
-    if (pos.x > aabb.pos.x and pos.y > aabb.pos.y) return Quadrant.top_right;
-    if (pos.x <= aabb.pos.x and pos.y > aabb.pos.y) return Quadrant.top_left;
-
-    std.log.err("zigics: fn (getQuadrant) Point is neither outside or inside of AABB", .{});
-    return error.zigics;
-}
 
 pub fn computeNextAABB(aabb: AABB, quadrant: Quadrant) AABB {
     const half_dims = nmath.scale2(Vector2.init(aabb.half_width, aabb.half_height), 0.5);
@@ -123,13 +108,12 @@ pub const QuadTree = struct {
                     try node.append(alloc, value, depth, threshold, max_depth);
                 }
             } else {
-                const q = try getQuadrant(node.aabb, value.props.pos);
-                const child = node.getChild(q);
-
-                if (child) |kid| {
-                    try kid.append(alloc, value, depth + 1, threshold, max_depth);
-                } else {
-                    return error.zigics_QuadTreeNodeAppend_TriedToInsertRigidBodyIntoNullChild;
+                for (node.children) |child| {
+                    if (child) |kid| {
+                        if (kid.aabb.intersects(value.aabb)) {
+                            try kid.append(alloc, value, depth + 1, threshold, max_depth);
+                        }
+                    }
                 }
             }
         }
@@ -148,13 +132,12 @@ pub const QuadTree = struct {
             }
 
             for (node.values.items) |value| {
-                const q = try getQuadrant(aabb, value.props.pos);
-                const child = node.getChild(q);
-
-                if (child) |kid| {
-                    try kid.append(alloc, value, depth + 1, threshold, max_depth);
-                } else {
-                    return error.zigics_QuadTreeNodeSplit_TriedToInsertRigidBodyIntoNullChild;
+                for (node.children) |child| {
+                    if (child) |kid| {
+                        if (kid.aabb.intersects(value.aabb)) {
+                            try kid.append(alloc, value, depth + 1, threshold, max_depth);
+                        }
+                    }
                 }
             }
         }
@@ -162,15 +145,16 @@ pub const QuadTree = struct {
         pub fn queryAABB(node: *Node, query_aabb: AABB, results: *std.ArrayList(*RigidBody)) !void {
             if (!node.aabb.intersects(query_aabb)) return;
 
-            for (node.values.items) |value| {
-                try results.append(value);
+            if (node.isLeaf()) {
+                for (node.values.items) |value| {
+                    try results.append(value);
+                }
+                return;
             }
 
-            if (!node.isLeaf()) {
-                for (node.children) |child| {
-                    if (child) |kid| {
-                        try kid.queryAABB(query_aabb, results);
-                    }
+            for (node.children) |child| {
+                if (child) |kid| {
+                    try kid.queryAABB(query_aabb, results);
                 }
             }
         }
@@ -212,15 +196,6 @@ pub const QuadTree = struct {
     pub fn clear(self: *Self, alloc: Allocator) void {
         self.root.deinit(alloc);
         self.root = Node.init(alloc, AABB{ .pos = .{}, .half_width = 0.0, .half_height = 0.0 }, self.node_threshold) catch unreachable;
-        // for (&self.root.children) |*child| {
-        //     if (child.*) |kid| {
-        //         kid.deinit(alloc);
-        //         alloc.destroy(kid);
-        //         child.* = null;
-        //     }
-        // }
-        //
-        // self.root.values.clearRetainingCapacity();
     }
 
     pub fn initRoot(self: *Self, alloc: Allocator) void {

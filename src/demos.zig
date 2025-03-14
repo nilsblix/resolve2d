@@ -13,10 +13,10 @@ pub fn setupPrimary(solver: *zigics.Solver) !void {
     var factory = solver.entityFactory();
 
     var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
-    // opt.mu_d = 0.4;
-    // opt.mu_s = 0.5;
-    opt.mu_d = 0.2;
-    opt.mu_s = 0.3;
+    // opt.mu_d = 0.2;
+    // opt.mu_s = 0.3;
+    opt.mu_d = 0.1;
+    opt.mu_s = 0.2;
     var body: *rigidbody.RigidBody = undefined;
 
     opt.pos = Vector2.init(0, 0);
@@ -67,7 +67,7 @@ pub fn setupPrimary(solver: *zigics.Solver) !void {
     _ = try factory.makeRectangleBody(opt, .{ .width = 4.0, .height = 2.0 });
 
     for (0..5) |x| {
-        for (0..15) |y| {
+        for (0..35) |y| {
             const xf = @as(f32, @floatFromInt(x)) + 10;
             const yf = @as(f32, @floatFromInt(y)) + 10;
 

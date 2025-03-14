@@ -20,7 +20,7 @@ pub fn main() !void {
     const screen_width = 1280;
     const screen_height = 720;
 
-    var world = try zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true, 2, 10);
+    var world = try zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true, 4, 5);
     defer world.deinit(alloc);
 
     try demos.setupScene(&world.solver);
