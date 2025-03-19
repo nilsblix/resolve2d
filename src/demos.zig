@@ -53,25 +53,47 @@ pub fn setupStacking(solver: *zigics.Solver) !void {
 
     try factory.makeDownwardsGravity(9.82);
 
+    opt.mass_prop = .{ .density = 5 };
+
     opt.pos.x = 0.0;
-    const width: f32 = 1.0;
-    const height: f32 = 0.7;
+    var width: f32 = 1.0;
+    var height: f32 = 0.7;
     for (0..10) |y| {
         opt.pos.y = @as(f32, @floatFromInt(y)) * height + 1.0;
         _ = try factory.makeRectangleBody(opt, .{ .width = width, .height = height });
     }
 
+    width = 0.8;
+    height = 1.0;
     opt.pos.x = 15.0;
     for (0..10) |y| {
-        opt.pos.y = @as(f32, @floatFromInt(y)) * height + 5.0;
+        opt.pos.y = @as(f32, @floatFromInt(y)) * height + 5.1;
         _ = try factory.makeRectangleBody(opt, .{ .width = width, .height = height });
     }
+
+    // opt.pos = Vector2.init(18, 10);
+    // opt.vel = Vector2.init(-15, 0);
+    // opt.angle = -0.5;
+    // _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.8 });
+    // opt.angle = 0.0;
+    // opt.vel = .{};
+
+    opt.pos = Vector2.init(-20, -3.25);
+    _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.7 });
+
+    opt.pos = Vector2.init(-18, -3.25);
+    _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.7 });
+
+    opt.pos = Vector2.init(-16, -3.25);
+    opt.angle = 0.1;
+    _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.7 });
+    opt.angle = 0.0;
 }
 
 pub fn setupPrimary(solver: *zigics.Solver) !void {
     var factory = solver.entityFactory();
 
-    var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
+    var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 1 } };
     // opt.mu_d = 0.2;
     // opt.mu_s = 0.3;
     opt.mu_d = 0.1;
@@ -125,7 +147,7 @@ pub fn setupPrimary(solver: *zigics.Solver) !void {
     opt.pos = Vector2.init(-10, 15);
     _ = try factory.makeRectangleBody(opt, .{ .width = 4.0, .height = 2.0 });
 
-    for (0..5) |x| {
+    for (0..10) |x| {
         for (0..35) |y| {
             const xf = @as(f32, @floatFromInt(x)) + 10;
             const yf = @as(f32, @floatFromInt(y)) + 10;
@@ -155,7 +177,7 @@ pub fn setupDominos(solver: *zigics.Solver) !void {
     var factory = solver.entityFactory();
 
     var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
-    opt.mu_d = 0.2;
+    opt.mu_d = 0.5;
     opt.mu_s = opt.mu_d;
 
     const AREA_WIDTH: f32 = 30;
@@ -174,16 +196,17 @@ pub fn setupDominos(solver: *zigics.Solver) !void {
 
     const height: f32 = 2.5;
     const width: f32 = 0.6;
-    opt.pos.y = height / 2 + 0.05;
+    opt.pos.y = height / 2 - 0.15;
+    opt.angle = 0.02;
     const rect_opt: zigics.EntityFactory.RectangleOptions = .{ .width = width, .height = height };
-    for (1..10) |xi| {
-        const x_offset: f32 = 2 * (@as(f32, @floatFromInt(xi)) - 5);
+    for (1..13) |xi| {
+        const x_offset: f32 = 2.51 * (@as(f32, @floatFromInt(xi)) - 7);
         opt.pos.x = x_offset;
         if (xi == 1) {
-            var saved = opt;
-            saved.pos.x += 1.0;
-            var body = try factory.makeRectangleBody(saved, rect_opt);
-            body.props.angle = -0.9;
+            // var saved = opt;
+            // saved.pos.x += 1.5;
+            // var body = try factory.makeRectangleBody(saved, rect_opt);
+            // body.props.angle = -0.9;
         } else {
             _ = try factory.makeRectangleBody(opt, rect_opt);
         }
@@ -194,48 +217,60 @@ pub fn setupCollisionPointTestScene(solver: *zigics.Solver) !void {
     var factory = solver.entityFactory();
 
     var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
-    opt.mu_d = 0.6; // Dynamic friction
-    opt.mu_s = 0.8; // Static friction
+    opt.mu_d = 0.2;
+    opt.mu_s = opt.mu_d;
 
-    const AREA_WIDTH: f32 = 30;
-    const AREA_HEIGHT: f32 = 10;
+    const AREA_WIDTH: f32 = 60;
+    const AREA_POS = Vector2.init(0, -0.5);
 
-    const AREA_POS = Vector2.init(5, -0.5);
+    _ = try factory.makeDownwardsGravity(9.82);
 
     opt.pos = Vector2.init(AREA_POS.x, AREA_POS.y);
     var ground = try factory.makeRectangleBody(opt, .{ .width = AREA_WIDTH, .height = 1 });
     ground.static = true;
 
-    opt.pos = Vector2.init(AREA_POS.x + 0.5 - AREA_WIDTH / 2, AREA_POS.y - 0.5 + AREA_HEIGHT / 2);
-    var wall1 = try factory.makeRectangleBody(opt, .{ .width = 1, .height = 10 });
-    wall1.static = true;
+    const width = 30;
+    const x_block = width / 3;
+    const angle = 0.25;
 
-    opt.pos = Vector2.init(AREA_POS.x - 0.5 + AREA_WIDTH / 2, AREA_POS.y - 0.5 + AREA_HEIGHT / 2);
-    var wall2 = try factory.makeRectangleBody(opt, .{ .width = 1, .height = 10 });
-    wall2.static = true;
+    opt.mu_d = 0.0;
+    opt.mass_prop = .{ .mass = 1 };
 
-    opt.pos = Vector2.init(5, 5);
-    _ = try factory.makeDiscBody(opt, .{ .radius = 1.0 });
+    opt.pos = Vector2.init(-x_block, 20);
+    opt.angle = -angle;
+    var body = try factory.makeRectangleBody(opt, .{ .width = width, .height = 0.5 });
+    body.static = true;
+    opt.angle = 0;
 
-    opt.pos = Vector2.init(8, 5);
-    _ = try factory.makeDiscBody(opt, .{ .radius = 0.5 });
+    opt.pos = Vector2.init(x_block, 15);
+    opt.angle = angle;
+    body = try factory.makeRectangleBody(opt, .{ .width = width, .height = 0.5 });
+    body.static = true;
+    opt.angle = 0;
 
-    opt.pos = Vector2.init(2, 5);
-    _ = try factory.makeRectangleBody(opt, .{ .width = 2.0, .height = 1.0 });
+    opt.pos = Vector2.init(-x_block, 10);
+    opt.angle = -angle;
+    body = try factory.makeRectangleBody(opt, .{ .width = width, .height = 0.5 });
+    body.static = true;
+    opt.angle = 0;
 
-    opt.pos = Vector2.init(5, 3);
-    var floating = try factory.makeRectangleBody(opt, .{ .width = 5, .height = 0.5 });
-    floating.props.angle = 0.8;
-    floating.static = true;
+    opt.pos = Vector2.init(x_block, 5);
+    opt.angle = angle;
+    body = try factory.makeRectangleBody(opt, .{ .width = width, .height = 0.5 });
+    body.static = true;
+    opt.angle = 0;
 
-    opt.pos = Vector2.init(2, 3);
-    floating = try factory.makeRectangleBody(opt, .{ .width = 5, .height = 0.5 });
-    floating.props.angle = -0.2;
-    floating.static = true;
+    opt.mass_prop = .{ .mass = 1.0 };
 
-    opt.pos = Vector2.init(9, 4);
-    floating = try factory.makeDiscBody(opt, .{ .radius = 1.5 });
-    floating.static = true;
+    const x: f32 = -x_block - width * 0.4;
+    opt.angle = -angle;
+    for (0..10) |xi| {
+        opt.pos = Vector2.init(x + 1.8 * @as(f32, @floatFromInt(xi)), 28);
+        opt.mu_d = 0.6 - 0.05 * @as(f32, @floatFromInt(xi));
+        _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.8 });
+    }
+
+    _ = try factory.makeDownwardsGravity(9.82);
 }
 
 pub fn setupArchScene(solver: *zigics.Solver) !void {

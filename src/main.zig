@@ -33,7 +33,7 @@ pub fn main() !void {
     const HZ: i32 = 60;
     const STANDARD_DT: f32 = 1 / @as(f32, HZ);
     const SUB_STEPS = 4;
-    const COLLISION_ITERS = 5;
+    const COLLISION_ITERS = 4;
     rl.setTargetFPS(HZ);
 
     var simulating: bool = false;
@@ -41,7 +41,10 @@ pub fn main() !void {
     var show_qtree: bool = false;
     var show_aabbs: bool = false;
     var slow_motion = false;
+    var high_speed = false;
     var steps: u32 = 0;
+
+    var tried_steps: u32 = 0;
 
     var sim_dt: f32 = -1;
     var render_dt: f32 = -1;
@@ -92,6 +95,10 @@ pub fn main() !void {
             slow_motion = !slow_motion;
         }
 
+        if (rl.isKeyPressed(.f)) {
+            high_speed = !high_speed;
+        }
+
         if (rl.isKeyPressed(.t)) {
             show_qtree = !show_qtree;
         }
@@ -107,34 +114,45 @@ pub fn main() !void {
         }
 
         if (rl.isKeyPressed(.two)) {
+            steps = 0;
             try world.solver.clear(alloc);
             try demos.setupDominos(&world.solver);
         }
 
         if (rl.isKeyPressed(.three)) {
+            steps = 0;
             try world.solver.clear(alloc);
             try demos.setupCollisionPointTestScene(&world.solver);
         }
 
         if (rl.isKeyPressed(.four)) {
+            steps = 0;
             try world.solver.clear(alloc);
             try demos.setupPrimary(&world.solver);
         }
 
         if (rl.isKeyPressed(.five)) {
+            steps = 0;
             try world.solver.clear(alloc);
             try demos.setupStacking(&world.solver);
         }
 
+        tried_steps += 1;
         if (simulating) {
             const start = std.time.nanoTimestamp();
-            const mod = @mod(@as(f32, @floatFromInt(steps)), 8) == 0;
+            const mod = @mod(@as(f32, @floatFromInt(tried_steps)), 8) == 0;
 
-            steps += 1;
             if (slow_motion and mod) {
+                steps += 1;
                 // try world.solver.process(alloc, STANDARD_DT / SUB_STEPS, 1, COLLISION_ITERS);
                 try world.solver.process(alloc, STANDARD_DT, SUB_STEPS, COLLISION_ITERS);
-            } else if (!slow_motion) {
+            } else if (!slow_motion and high_speed) {
+                for (0..3) |_| {
+                    steps += 1;
+                    try world.solver.process(alloc, STANDARD_DT, SUB_STEPS, COLLISION_ITERS);
+                }
+            } else if (!slow_motion and !high_speed) {
+                steps += 1;
                 try world.solver.process(alloc, STANDARD_DT, SUB_STEPS, COLLISION_ITERS);
             }
 
@@ -144,7 +162,7 @@ pub fn main() !void {
             if (rl.isKeyPressed(.right)) {
                 steps += 1;
                 const start = std.time.nanoTimestamp();
-                try world.solver.process(alloc, STANDARD_DT / SUB_STEPS, 1, COLLISION_ITERS);
+                try world.solver.process(alloc, STANDARD_DT, SUB_STEPS, COLLISION_ITERS);
                 const end = std.time.nanoTimestamp();
                 sim_dt = @floatFromInt(end - start);
             }
@@ -202,7 +220,7 @@ const MouseSpring = struct {
         }
 
         if (self.active and rl.isKeyReleased(.v)) {
-            var spring = physics.force_generators.popOrNull();
+            var spring = physics.force_generators.pop();
             spring.?.deinit(alloc);
             self.active = false;
         }

@@ -6,19 +6,6 @@ const rb_mod = @import("rigidbody.zig");
 const RigidBody = rb_mod.RigidBody;
 const AABB = @import("aabb.zig").AABB;
 
-// test "error handling with quadrant" {
-//     const aabb = AABB{ .pos = Vector2.init(4, 2), .half_width = 2.0, .half_height = 1.0 };
-//
-//     var ret = try getQuadrant(aabb, Vector2.init(3, 1.5));
-//     std.debug.print("should be bottom left: {}\n", .{ret});
-//
-//     ret = try getQuadrant(aabb, Vector2.init(5, 1.5));
-//     std.debug.print("should be bottom right: {}\n", .{ret});
-//
-//     std.debug.print("THIS SHOULD FAIL: below should fail with Error.PointisOutsideOfAABB;\n", .{});
-//     ret = try getQuadrant(aabb, Vector2.init(0, 0));
-// }
-
 fn getEntireAABB(bodies: []RigidBody) AABB {
     var max = Vector2.init(-std.math.inf(f32), -std.math.inf(f32));
     var min = Vector2.init(std.math.inf(f32), std.math.inf(f32));

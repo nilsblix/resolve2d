@@ -29,7 +29,7 @@ pub const Edge = struct {
     edge: ?Points = null,
 };
 
-const EdgeNormalIterator = struct {
+pub const EdgeNormalIterator = struct {
     num_iters: usize,
     iter_performed: usize = 0,
 
@@ -42,6 +42,11 @@ const EdgeNormalIterator = struct {
         }
         self.iter_performed = 0;
         return null;
+    }
+
+    pub fn peekNormal(body: RigidBody, other: RigidBody) ?Edge {
+        const ret = body.vtable.getNormal(body.ptr, body.props, other, 0);
+        return ret;
     }
 };
 
@@ -253,13 +258,7 @@ pub const DiscBody = struct {
         for (0..manifold_max_points) |i| {
             ret[i] = null;
         }
-        ret[0] = CollisionPoint{
-            .ref_r = nmath.sub2(pos, rigidself.props.pos),
-            .inc_r = nmath.sub2(pos, incident.props.pos),
-            .pos = pos,
-            .depth = depth,
-            .original_depth = depth,
-        };
+        ret[0] = CollisionPoint.init(pos, depth, rigidself.*, incident.*);
         return ret;
     }
 
@@ -452,38 +451,20 @@ pub const RectangleBody = struct {
                     var dot = nmath.dot2(nmath.sub2(a, n.edge.?.a), n.dir);
                     if (dot < 0.0) {
                         const pos = incident_edge.edge.a;
-                        ret[i] = CollisionPoint{
-                            .ref_r = nmath.sub2(pos, rigidself.props.pos),
-                            .inc_r = nmath.sub2(pos, incident.props.pos),
-                            .pos = pos,
-                            .depth = dot,
-                            .original_depth = dot,
-                        };
+                        ret[i] = CollisionPoint.init(pos, dot, rigidself.*, incident.*);
                         i += 1;
                     }
 
                     dot = nmath.dot2(nmath.sub2(b, n.edge.?.b), n.dir);
                     if (dot < 0.0) {
                         const pos = incident_edge.edge.b;
-                        ret[i] = CollisionPoint{
-                            .ref_r = nmath.sub2(pos, rigidself.props.pos),
-                            .inc_r = nmath.sub2(pos, incident.props.pos),
-                            .pos = pos,
-                            .depth = dot,
-                            .original_depth = dot,
-                        };
+                        ret[i] = CollisionPoint.init(pos, dot, rigidself.*, incident.*);
                     }
                 },
                 .point => {
                     const pos = incident_edge.point;
                     const dot = nmath.dot2(nmath.sub2(pos, n.edge.?.a), n.dir);
-                    ret[0] = CollisionPoint{
-                        .ref_r = nmath.sub2(pos, rigidself.props.pos),
-                        .inc_r = nmath.sub2(pos, incident.props.pos),
-                        .pos = pos,
-                        .depth = dot,
-                        .original_depth = dot,
-                    };
+                    ret[0] = CollisionPoint.init(pos, dot, rigidself.*, incident.*);
                 },
             }
         } else {

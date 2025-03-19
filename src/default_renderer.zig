@@ -291,6 +291,11 @@ pub const Renderer = struct {
                         // const teal = rl.Color.init(66, 182, 245, 255);
                         rl.drawLineEx(rls, rls2, self.units.mult.w2s * 0.02, rl.Color.white);
 
+                        // const screen3 = self.units.w2s(nmath.add2(pt.pos, pt_vec));
+                        // const rls3 = rl.Vector2.init(screen3.x, screen3.y);
+                        // // const teal = rl.Color.init(66, 182, 245, 255);
+                        // rl.drawLineEx(rls, rls3, self.units.mult.w2s * 0.02, rl.Color.white);
+
                         var scr = self.units.w2s(nmath.add2(pt.pos, nmath.negate2(pt.ref_r)));
                         var rla = rl.Vector2.init(scr.x, scr.y);
                         rl.drawLineEx(rla, rls, self.units.mult.w2s * 0.015, rl.Color.red);
