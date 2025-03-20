@@ -9,6 +9,56 @@ const Allocator = std.mem.Allocator;
 const collision = @import("collision.zig");
 const renderer = @import("default_renderer.zig");
 
+pub fn setupConstraints(solver: *zigics.Solver) !void {
+    var factory = solver.entityFactory();
+
+    var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
+    // opt.mu_d = 0.2;
+    // opt.mu_s = 0.3;
+    opt.mu_d = 0.3;
+    opt.mu_s = 0.4;
+    var body: *rigidbody.RigidBody = undefined;
+
+    opt.pos = Vector2.init(0, 0);
+    body = try factory.makeRectangleBody(opt, .{ .width = 10.0, .height = 1.0 });
+    body.static = true;
+
+    opt.pos = Vector2.init(-9, -2);
+    opt.angle = 0.45;
+    body = try factory.makeRectangleBody(opt, .{ .width = 9.0, .height = 1.0 });
+    body.static = true;
+    opt.angle = 0;
+
+    opt.pos = Vector2.init(-18, -4);
+    body = try factory.makeRectangleBody(opt, .{ .width = 10.0, .height = 1.0 });
+    body.static = true;
+
+    opt.pos = Vector2.init(9, 2);
+    opt.angle = 0.45;
+    body = try factory.makeRectangleBody(opt, .{ .width = 9.0, .height = 1.0 });
+    body.static = true;
+    opt.angle = 0;
+
+    opt.pos = Vector2.init(18, 4);
+    body = try factory.makeRectangleBody(opt, .{ .width = 10.0, .height = 1.0 });
+    body.static = true;
+
+    opt.pos = Vector2.init(-22, 6);
+    body = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 20 });
+    body.static = true;
+
+    opt.pos = Vector2.init(22, 14);
+    body = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 20 });
+    body.static = true;
+
+    try factory.makeDownwardsGravity(9.82);
+
+    opt.pos = Vector2.init(0, 5);
+    body = try factory.makeRectangleBody(opt, .{ .width = 2.0, .height = 1.0 });
+
+    _ = try factory.makeSingleLinkJoint(.{ .beta = 5 }, body, Vector2.init(0.5, 5), Vector2.init(0, 10), 0.5);
+}
+
 pub fn setupStacking(solver: *zigics.Solver) !void {
     var factory = solver.entityFactory();
 

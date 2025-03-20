@@ -8,6 +8,8 @@ const rb_mod = @import("rigidbody.zig");
 const rl = @import("raylib");
 const RigidBody = rb_mod.RigidBody;
 const QuadTree = @import("quadtree.zig").QuadTree;
+const ctr_mod = @import("constraint.zig");
+const Constraint = ctr_mod.Constraint;
 
 pub const Units = struct {
     pub const Size = struct {
@@ -310,6 +312,17 @@ pub const Renderer = struct {
                         rl.drawCircleV(rla, self.units.mult.w2s * 0.02, rl.Color.blue);
                     }
                 }
+            }
+        }
+
+        for (solver.constraints.items) |constraint| {
+            switch (constraint.type) {
+                .single_link_joint => {
+                    const joint: *ctr_mod.SingleLinkJoint = @ptrCast(@alignCast(constraint.ptr));
+                    const r = nmath.rotate2(joint.local_r, joint.body.props.angle);
+                    const a = nmath.add2(joint.body.props.pos, r);
+                    self.spring(a, joint.q);
+                },
             }
         }
     }

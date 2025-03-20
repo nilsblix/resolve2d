@@ -13,6 +13,8 @@ const Renderer = def_rend.Renderer;
 const clsn = @import("collision.zig");
 const qtree = @import("quadtree.zig");
 const QuadTree = qtree.QuadTree;
+const ctr_mod = @import("constraint.zig");
+const Constraint = ctr_mod.Constraint;
 
 pub const EntityFactory = struct {
     pub const BodyOptions = struct {
@@ -38,7 +40,10 @@ pub const EntityFactory = struct {
         height: f32 = 0.5,
     };
 
-    pub const GeometryOptions = union(enum) { disc: DiscOptions, rectangle: RectangleOptions };
+    pub const GeometryOptions = union(enum) {
+        disc: DiscOptions,
+        rectangle: RectangleOptions,
+    };
 
     solver: *Solver,
 
@@ -77,6 +82,13 @@ pub const EntityFactory = struct {
     pub fn makeDownwardsGravity(self: *Self, g: f32) !void {
         try self.solver.force_generators.append(try fg_mod.DownwardsGravity.init(self.solver.alloc, g));
     }
+
+    pub fn makeSingleLinkJoint(self: *Self, params: Constraint.Parameters, body: *RigidBody, a: Vector2, q: Vector2, dist: f32) !*Constraint {
+        const r = nmath.rotate2(nmath.sub2(a, body.props.pos), -body.props.angle);
+        const ctr = try ctr_mod.SingleLinkJoint.init(self.solver.alloc, params, body, r, q, dist);
+        try self.solver.constraints.append(ctr);
+        return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
+    }
 };
 
 pub const Solver = struct {
@@ -85,6 +97,7 @@ pub const Solver = struct {
     force_generators: std.ArrayList(ForceGenerator),
     manifolds: std.AutoArrayHashMap(clsn.CollisionKey, clsn.CollisionManifold),
     quadtree: QuadTree,
+    constraints: std.ArrayList(Constraint),
 
     const Self = @This();
     pub fn init(alloc: Allocator, comptime quadtree_node_threshold: usize, comptime quadtree_max_depth: usize, comptime quadtree_min_node_side_len: f32) !Self {
@@ -94,6 +107,7 @@ pub const Solver = struct {
             .force_generators = std.ArrayList(ForceGenerator).init(alloc),
             .manifolds = std.AutoArrayHashMap(clsn.CollisionKey, clsn.CollisionManifold).init(alloc),
             .quadtree = try QuadTree.init(alloc, quadtree_node_threshold, quadtree_max_depth, quadtree_min_node_side_len),
+            .constraints = std.ArrayList(Constraint).init(alloc),
         };
     }
 
@@ -108,6 +122,7 @@ pub const Solver = struct {
         }
         self.bodies.deinit();
         self.quadtree.deinit(alloc);
+        self.constraints.deinit();
     }
 
     pub fn clear(self: *Self, alloc: Allocator) !void {
@@ -116,11 +131,13 @@ pub const Solver = struct {
         self.force_generators = std.ArrayList(ForceGenerator).init(alloc);
         self.manifolds = std.AutoArrayHashMap(clsn.CollisionKey, clsn.CollisionManifold).init(alloc);
         self.quadtree.initRoot(alloc);
+        self.constraints = std.ArrayList(Constraint).init(alloc);
     }
 
     pub fn process(self: *Self, alloc: Allocator, dt: f32, sub_steps: usize, collision_iters: usize) !void {
         const f32_sub: f32 = @floatFromInt(sub_steps);
         const sub_dt = dt / f32_sub;
+        const inv_sub_dt = 1 / sub_dt;
 
         try self.updateManifolds(alloc);
 
@@ -152,6 +169,9 @@ pub const Solver = struct {
                     const manifold = entry.value_ptr;
                     const key = entry.key_ptr.*;
                     manifold.applyImpulses(key, sub_dt, 0.02, 0.02);
+                }
+                for (self.constraints.items) |*constraint| {
+                    constraint.applyImpulses(sub_dt, inv_sub_dt);
                 }
             }
 

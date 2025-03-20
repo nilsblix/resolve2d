@@ -8,6 +8,7 @@ const Vector2 = nmath.Vector2;
 const Allocator = std.mem.Allocator;
 const collision = @import("collision.zig");
 const demos = @import("demos.zig");
+const ctr_mod = @import("constraint.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -137,6 +138,12 @@ pub fn main() !void {
             try demos.setupStacking(&world.solver);
         }
 
+        if (rl.isKeyPressed(.six)) {
+            steps = 0;
+            try world.solver.clear(alloc);
+            try demos.setupConstraints(&world.solver);
+        }
+
         tried_steps += 1;
         if (simulating) {
             const start = std.time.nanoTimestamp();
@@ -205,8 +212,15 @@ const MouseSpring = struct {
                 if (body.isInside(mouse_pos)) {
                     const r_rotated = nmath.sub2(mouse_pos, body.props.pos);
                     const r = nmath.rotate2(r_rotated, -body.props.angle);
-                    const spring = try forcegenerator.StaticSpring.init(alloc, body, mouse_pos, r, 80.0);
-                    try physics.force_generators.append(spring);
+                    const params = ctr_mod.Constraint.Parameters{
+                        .beta = 100,
+                        .lower_lambda = -20,
+                        .upper_lambda = 20,
+                    };
+                    const joint = try ctr_mod.SingleLinkJoint.init(alloc, params, body, r, mouse_pos, 0.1);
+                    try physics.constraints.append(joint);
+                    // const spring = try forcegenerator.StaticSpring.init(alloc, body, mouse_pos, r, 80.0);
+                    // try physics.force_generators.append(spring);
                     self.active = true;
                     return;
                 }
@@ -214,14 +228,14 @@ const MouseSpring = struct {
         }
 
         if (self.active and rl.isKeyDown(.v)) {
-            const gen = physics.force_generators.items[physics.force_generators.items.len - 1];
-            const spring: *forcegenerator.StaticSpring = @ptrCast(@alignCast(gen.ptr));
-            spring.pos = mouse_pos;
+            const item = physics.constraints.items[physics.constraints.items.len - 1];
+            const joint: *ctr_mod.SingleLinkJoint = @ptrCast(@alignCast(item.ptr));
+            joint.q = mouse_pos;
         }
 
         if (self.active and rl.isKeyReleased(.v)) {
-            var spring = physics.force_generators.pop();
-            spring.?.deinit(alloc);
+            var item = physics.constraints.pop();
+            item.?.deinit(alloc);
             self.active = false;
         }
     }
