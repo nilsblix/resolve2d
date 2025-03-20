@@ -79,10 +79,16 @@ pub const SingleLinkJoint = struct {
         const k = nmath.sub2(nmath.add2(self.body.props.pos, r), self.q);
         const c = 0.5 * (nmath.dot2(k, k) - self.distance * self.distance);
 
-        const n = nmath.normalize2(k);
-        const rt = nmath.cross2(r, n);
-        const inv_i = rt * rt / self.body.props.inertia;
         const inv_m = 1 / self.body.props.mass;
+        var inv_i: f32 = undefined;
+        const k_len = nmath.length2(k);
+        if (k_len < 1e-2) {
+            inv_i = 1 / self.body.props.inertia;
+        } else {
+            const n = nmath.scale2(k, 1 / k_len);
+            const rn = nmath.cross2(r, n);
+            inv_i = rn * rn / self.body.props.inertia;
+        }
         const w = inv_i + inv_m;
 
         const v = nmath.scale2(self.body.props.momentum, inv_m);

@@ -83,8 +83,7 @@ pub const EntityFactory = struct {
         try self.solver.force_generators.append(try fg_mod.DownwardsGravity.init(self.solver.alloc, g));
     }
 
-    pub fn makeSingleLinkJoint(self: *Self, params: Constraint.Parameters, body: *RigidBody, a: Vector2, q: Vector2, dist: f32) !*Constraint {
-        const r = nmath.rotate2(nmath.sub2(a, body.props.pos), -body.props.angle);
+    pub fn makeSingleLinkJoint(self: *Self, params: Constraint.Parameters, body: *RigidBody, r: Vector2, q: Vector2, dist: f32) !*Constraint {
         const ctr = try ctr_mod.SingleLinkJoint.init(self.solver.alloc, params, body, r, q, dist);
         try self.solver.constraints.append(ctr);
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
@@ -111,8 +110,13 @@ pub const Solver = struct {
         };
     }
 
-    pub fn deinit(self: *Self, alloc: Allocator) void {
+    pub fn deinit(self: *Self) void {
         self.manifolds.deinit();
+        self.quadtree.deinit(self.alloc);
+        for (self.constraints.items) |*constraint| {
+            constraint.deinit(self.alloc);
+        }
+        self.constraints.deinit();
         for (self.force_generators.items) |*gen| {
             gen.deinit(self.alloc);
         }
@@ -121,12 +125,10 @@ pub const Solver = struct {
             body.deinit(self.alloc);
         }
         self.bodies.deinit();
-        self.quadtree.deinit(alloc);
-        self.constraints.deinit();
     }
 
     pub fn clear(self: *Self, alloc: Allocator) !void {
-        self.deinit(alloc);
+        self.deinit();
         self.bodies = std.ArrayList(RigidBody).init(alloc);
         self.force_generators = std.ArrayList(ForceGenerator).init(alloc);
         self.manifolds = std.AutoArrayHashMap(clsn.CollisionKey, clsn.CollisionManifold).init(alloc);
@@ -171,7 +173,9 @@ pub const Solver = struct {
                     manifold.applyImpulses(key, sub_dt, 0.02, 0.02);
                 }
                 for (self.constraints.items) |*constraint| {
+                    std.debug.print("hello world\n", .{});
                     constraint.applyImpulses(sub_dt, inv_sub_dt);
+                    std.debug.print("hello world\n", .{});
                 }
             }
 
@@ -249,8 +253,8 @@ pub const World = struct {
         };
     }
 
-    pub fn deinit(self: *Self, alloc: Allocator) void {
-        self.solver.deinit(alloc);
+    pub fn deinit(self: *Self) void {
+        self.solver.deinit();
     }
 
     pub fn render(self: *Self, show_collisions: bool, show_qtree: bool, show_aabbs: bool) void {

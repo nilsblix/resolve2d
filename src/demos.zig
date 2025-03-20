@@ -8,6 +8,7 @@ const Vector2 = nmath.Vector2;
 const Allocator = std.mem.Allocator;
 const collision = @import("collision.zig");
 const renderer = @import("default_renderer.zig");
+const ctrs = @import("constraint.zig");
 
 pub fn setupConstraints(solver: *zigics.Solver) !void {
     var factory = solver.entityFactory();
@@ -53,10 +54,16 @@ pub fn setupConstraints(solver: *zigics.Solver) !void {
 
     try factory.makeDownwardsGravity(9.82);
 
-    opt.pos = Vector2.init(0, 5);
+    opt.pos = Vector2.init(-1, 5);
     body = try factory.makeRectangleBody(opt, .{ .width = 2.0, .height = 1.0 });
 
-    _ = try factory.makeSingleLinkJoint(.{ .beta = 5 }, body, Vector2.init(0.5, 5), Vector2.init(0, 10), 0.5);
+    opt.pos = Vector2.init(1, 5);
+    body = try factory.makeRectangleBody(opt, .{ .width = 2.0, .height = 1.0 });
+
+    _ = try factory.makeSingleLinkJoint(.{ .beta = 5 }, body, .{}, Vector2.init(0, 5.001), 0.0);
+
+    opt.pos = Vector2.init(3, 5);
+    body = try factory.makeRectangleBody(opt, .{ .width = 2.0, .height = 1.0 });
 }
 
 pub fn setupStacking(solver: *zigics.Solver) !void {
@@ -219,6 +226,12 @@ pub fn setupPrimary(solver: *zigics.Solver) !void {
 
         _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = height });
     }
+
+    opt.pos = Vector2.init(-10, 10);
+    body = try factory.makeRectangleBody(opt, .{ .width = 8.0, .height = 0.6 });
+
+    const q = nmath.add2(body.props.pos, Vector2.init(0.01, 0));
+    _ = try factory.makeSingleLinkJoint(.{ .beta = 5 }, body, .{}, q, 0.0);
 
     try factory.makeDownwardsGravity(9.82);
 }

@@ -16,15 +16,16 @@ pub fn main() !void {
 
     const alloc = gpa.allocator();
 
-    const screen_width = 1536;
-    const screen_height = 864;
-    // const screen_width = 1280;
-    // const screen_height = 720;
+    // const screen_width = 1536;
+    // const screen_height = 864;
+    const screen_width = 1280;
+    const screen_height = 720;
 
     var world = try zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true, 4, 20, 2.5);
-    defer world.deinit(alloc);
+    defer world.deinit();
 
-    try demos.setupScene(&world.solver);
+    // try demos.setupScene(&world.solver);
+    try demos.setupPrimary(&world.solver);
 
     var mouse_spring = MouseSpring{};
 
@@ -214,13 +215,11 @@ const MouseSpring = struct {
                     const r = nmath.rotate2(r_rotated, -body.props.angle);
                     const params = ctr_mod.Constraint.Parameters{
                         .beta = 100,
-                        .lower_lambda = -20,
-                        .upper_lambda = 20,
+                        .lower_lambda = -400,
+                        .upper_lambda = 400,
                     };
                     const joint = try ctr_mod.SingleLinkJoint.init(alloc, params, body, r, mouse_pos, 0.1);
                     try physics.constraints.append(joint);
-                    // const spring = try forcegenerator.StaticSpring.init(alloc, body, mouse_pos, r, 80.0);
-                    // try physics.force_generators.append(spring);
                     self.active = true;
                     return;
                 }
