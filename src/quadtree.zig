@@ -85,27 +85,28 @@ pub const QuadTree = struct {
             };
         }
 
-        pub fn append(node: *Node, alloc: Allocator, value: *RigidBody, depth: usize, threshold: usize, max_depth: usize) anyerror!void {
+        pub fn append(node: *Node, alloc: Allocator, value: *RigidBody, depth: usize, threshold: usize, max_depth: usize, min_node_side: f32) anyerror!void {
             if (node.isLeaf()) {
-                if (depth >= max_depth or node.values.items.len < threshold) {
+                const side = @min(node.aabb.half_width, node.aabb.half_height);
+                if (2 * side <= min_node_side or depth >= max_depth or node.values.items.len < threshold) {
                     try node.values.append(alloc, value);
                 } else {
                     // we split this thing
-                    try node.split(alloc, depth, threshold, max_depth);
-                    try node.append(alloc, value, depth, threshold, max_depth);
+                    try node.split(alloc, depth, threshold, max_depth, min_node_side);
+                    try node.append(alloc, value, depth, threshold, max_depth, min_node_side);
                 }
             } else {
                 for (node.children) |child| {
                     if (child) |kid| {
                         if (kid.aabb.intersects(value.aabb)) {
-                            try kid.append(alloc, value, depth + 1, threshold, max_depth);
+                            try kid.append(alloc, value, depth + 1, threshold, max_depth, min_node_side);
                         }
                     }
                 }
             }
         }
 
-        pub fn split(node: *Node, alloc: Allocator, depth: usize, threshold: usize, max_depth: usize) !void {
+        pub fn split(node: *Node, alloc: Allocator, depth: usize, threshold: usize, max_depth: usize, min_node_side: f32) !void {
             const aabb = node.aabb;
 
             for (0..4) |q| {
@@ -122,7 +123,7 @@ pub const QuadTree = struct {
                 for (node.children) |child| {
                     if (child) |kid| {
                         if (kid.aabb.intersects(value.aabb)) {
-                            try kid.append(alloc, value, depth + 1, threshold, max_depth);
+                            try kid.append(alloc, value, depth + 1, threshold, max_depth, min_node_side);
                         }
                     }
                 }
@@ -148,14 +149,17 @@ pub const QuadTree = struct {
     };
 
     root: Node = undefined,
-    node_threshold: usize = 1,
-    max_depth: usize = 0,
+    node_threshold: usize,
+    max_depth: usize,
+    smallest_node_side_length: f32,
 
     const Self = @This();
-    pub fn init(alloc: Allocator, comptime node_threshold: usize, comptime max_depth: usize) !QuadTree {
-        var qtree = QuadTree{};
-        qtree.node_threshold = node_threshold;
-        qtree.max_depth = max_depth;
+    pub fn init(alloc: Allocator, comptime node_threshold: usize, comptime max_depth: usize, comptime smallest_node_side: f32) !QuadTree {
+        var qtree = QuadTree{
+            .node_threshold = node_threshold,
+            .max_depth = max_depth,
+            .smallest_node_side_length = smallest_node_side,
+        };
 
         const aabb = AABB{ .pos = .{}, .half_height = 0.0, .half_width = 0.0 };
         qtree.root = try Node.init(alloc, aabb, node_threshold);
@@ -176,7 +180,7 @@ pub const QuadTree = struct {
         self.root.aabb = aabb;
 
         for (bodies) |*body| {
-            try self.root.append(alloc, body, 0, self.node_threshold, self.max_depth);
+            try self.root.append(alloc, body, 0, self.node_threshold, self.max_depth, self.smallest_node_side_length);
         }
     }
 

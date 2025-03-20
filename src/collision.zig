@@ -115,17 +115,22 @@ pub const CollisionManifold = struct {
                 const r1 = point.ref_r;
                 const r2 = point.inc_r;
 
-                const r1n = nmath.dot2(r1, self.normal);
-                const r2n = nmath.dot2(r2, self.normal);
-                const kn = inv_mass + inv_i1 * (nmath.dot2(r1, r1) - r1n * r1n) + inv_i2 * (nmath.dot2(r2, r2) - r2n * r2n);
+                // const r1n = nmath.dot2(r1, self.normal);
+                // const r2n = nmath.dot2(r2, self.normal);
+                // const kn = inv_mass + inv_i1 * (nmath.dot2(r1, r1) - r1n * r1n) + inv_i2 * (nmath.dot2(r2, r2) - r2n * r2n);
+                const r1n = nmath.cross2(r1, self.normal);
+                const r2n = nmath.cross2(r2, self.normal);
+                const kn = inv_mass + inv_i1 * (r1n * r1n) + inv_i2 * (r2n * r2n);
 
-                const tangent = nmath.rotate90clockwise(self.normal);
-                const r1t = nmath.dot2(r1, tangent);
-                const r2t = nmath.dot2(r2, tangent);
-                const kt = inv_mass + inv_i1 * (nmath.dot2(r1, r1) - r1t * r1t) + inv_i2 * (nmath.dot2(r2, r2) - r2t * r2t);
+                // const r1t = nmath.dot2(r1, tangent);
+                // const r2t = nmath.dot2(r2, tangent);
+                // const kt = inv_mass + inv_i1 * (nmath.dot2(r1, r1) - r1t * r1t) + inv_i2 * (nmath.dot2(r2, r2) - r2t * r2t);
+                const r1t = nmath.cross2(r1, self.tangent);
+                const r2t = nmath.cross2(r2, self.tangent);
+                const kt = inv_mass + inv_i1 * (r1t * r1t) + inv_i2 * (r2t * r2t);
 
-                point.mass_n = if (kn > 0.0) 1 / kn else 0.0;
-                point.mass_t = if (kt > 0.0) 1 / kt else 0.0;
+                point.mass_n = if (kn > 0.0) (1 / kn) else 0.0;
+                point.mass_t = if (kt > 0.0) (1 / kt) else 0.0;
             }
         }
     }
@@ -162,18 +167,19 @@ pub const CollisionManifold = struct {
                 var num = nmath.dot2(point.dv, self.normal) + bias;
                 point.pn = num * point.mass_n;
 
+                if (point.pn < 1e-5) continue;
+
                 num = nmath.dot2(point.dv, self.tangent);
                 point.pt = num * point.mass_t;
 
                 // APPLICATION
-                const new_accumulated_pn = @max(0.0, point.accumulated_pn + point.pn);
+                const new_accumulated_pn = @max(0, point.accumulated_pn + point.pn);
                 const applied_pn = new_accumulated_pn - point.accumulated_pn;
                 point.accumulated_pn = new_accumulated_pn;
 
-                const max_pt = self.friction * point.accumulated_pn;
+                const max_pt = self.friction * @abs(point.accumulated_pn);
 
-                const sum_pt = point.accumulated_pt + point.pt;
-                const new_accumulated_pt = std.math.clamp(sum_pt, -max_pt, max_pt);
+                const new_accumulated_pt = std.math.clamp(point.accumulated_pt + point.pt, -max_pt, max_pt);
                 const applied_pt = new_accumulated_pt - point.accumulated_pt;
                 point.accumulated_pt = new_accumulated_pt;
 

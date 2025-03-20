@@ -15,12 +15,12 @@ pub fn main() !void {
 
     const alloc = gpa.allocator();
 
-    // const screen_width = 1536;
-    // const screen_height = 864;
-    const screen_width = 1280;
-    const screen_height = 720;
+    const screen_width = 1536;
+    const screen_height = 864;
+    // const screen_width = 1280;
+    // const screen_height = 720;
 
-    var world = try zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true, 4, 4);
+    var world = try zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true, 4, 20, 2.5);
     defer world.deinit(alloc);
 
     try demos.setupScene(&world.solver);

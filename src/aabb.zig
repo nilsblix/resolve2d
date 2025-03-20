@@ -10,11 +10,12 @@ pub const AABB = struct {
     const Self = @This();
 
     pub fn intersects(self: Self, other: AABB) bool {
+        const EPS: f32 = 0.05;
         const dx = @abs(other.pos.x - self.pos.x);
         const dy = @abs(other.pos.y - self.pos.y);
 
-        return (dx <= (self.half_width + other.half_width)) and
-            (dy <= (self.half_height + other.half_height));
+        return (dx <= (self.half_width + other.half_width) + EPS) and
+            (dy <= (self.half_height + other.half_height) + EPS);
     }
 
     pub fn isInside(self: Self, pos: Vector2) bool {

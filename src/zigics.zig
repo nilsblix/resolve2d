@@ -87,13 +87,13 @@ pub const Solver = struct {
     quadtree: QuadTree,
 
     const Self = @This();
-    pub fn init(alloc: Allocator, comptime quadtree_node_threshold: usize, comptime quadtree_max_depth: usize) !Self {
+    pub fn init(alloc: Allocator, comptime quadtree_node_threshold: usize, comptime quadtree_max_depth: usize, comptime quadtree_min_node_side_len: f32) !Self {
         return .{
             .alloc = alloc,
             .bodies = std.ArrayList(RigidBody).init(alloc),
             .force_generators = std.ArrayList(ForceGenerator).init(alloc),
             .manifolds = std.AutoArrayHashMap(clsn.CollisionKey, clsn.CollisionManifold).init(alloc),
-            .quadtree = try QuadTree.init(alloc, quadtree_node_threshold, quadtree_max_depth),
+            .quadtree = try QuadTree.init(alloc, quadtree_node_threshold, quadtree_max_depth, quadtree_min_node_side_len),
         };
     }
 
@@ -138,22 +138,20 @@ pub const Solver = struct {
                 props.ang_momentum += props.torque * sub_dt;
             }
 
-            {
-                var iter = self.manifolds.iterator();
-                while (iter.next()) |entry| {
-                    const manifold = entry.value_ptr;
-                    const key = entry.key_ptr.*;
-                    manifold.preStep(key);
-                    manifold.updateTGSDepth(key);
-                }
+            var iter = self.manifolds.iterator();
+            while (iter.next()) |entry| {
+                const manifold = entry.value_ptr;
+                const key = entry.key_ptr.*;
+                manifold.updateTGSDepth(key);
+                manifold.preStep(key);
             }
 
             for (0..collision_iters) |_| {
-                var iter = self.manifolds.iterator();
+                iter.reset();
                 while (iter.next()) |entry| {
                     const manifold = entry.value_ptr;
                     const key = entry.key_ptr.*;
-                    manifold.applyImpulses(key, sub_dt, 0.02, 0.005);
+                    manifold.applyImpulses(key, sub_dt, 0.02, 0.02);
                 }
             }
 
@@ -224,9 +222,9 @@ pub const World = struct {
     renderer: ?Renderer,
 
     const Self = @This();
-    pub fn init(alloc: Allocator, screen_size: Units.Size, default_world_width: f32, init_renderer: bool, comptime quadtree_node_threshold: usize, comptime quadtree_max_depth: usize) !Self {
+    pub fn init(alloc: Allocator, screen_size: Units.Size, default_world_width: f32, init_renderer: bool, comptime quadtree_node_threshold: usize, comptime quadtree_max_depth: usize, comptime quadtree_min_node_side_len: f32) !Self {
         return .{
-            .solver = try Solver.init(alloc, quadtree_node_threshold, quadtree_max_depth),
+            .solver = try Solver.init(alloc, quadtree_node_threshold, quadtree_max_depth, quadtree_min_node_side_len),
             .renderer = if (init_renderer) Renderer.init(screen_size, default_world_width) else null,
         };
     }
