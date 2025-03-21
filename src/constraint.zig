@@ -7,12 +7,13 @@ const RigidBody = rb_mod.RigidBody;
 
 pub const Constraints = enum {
     single_link_joint,
+    motor_joint,
 };
 
 pub const Constraint = struct {
     const VTable = struct {
         deinit: *const fn (ctrself: *Constraint, alloc: Allocator) void,
-        applyImpulses: *const fn (ctrself: *Constraint, dt: f32, inv_dt: f32) void,
+        solve: *const fn (ctrself: *Constraint, dt: f32, inv_dt: f32) void,
     };
 
     pub const Parameters = struct {
@@ -32,8 +33,68 @@ pub const Constraint = struct {
         self.vtable.deinit(self, alloc);
     }
 
-    pub fn applyImpulses(self: *Self, dt: f32, inv_dt: f32) void {
-        self.vtable.applyImpulses(self, dt, inv_dt);
+    pub fn solve(self: *Self, dt: f32, inv_dt: f32) void {
+        self.vtable.solve(self, dt, inv_dt);
+    }
+};
+
+pub const MotorJoint = struct {
+    body: *RigidBody,
+    omega_t: f32,
+
+    const VTable = Constraint.VTable{
+        .deinit = MotorJoint.deinit,
+        .solve = MotorJoint.solve,
+    };
+
+    const Self = @This();
+
+    pub fn init(alloc: Allocator, params: Constraint.Parameters, body: *RigidBody, omega_t: f32) !Constraint {
+        const joint = try alloc.create(MotorJoint);
+        joint.* = MotorJoint{
+            .body = body,
+            .omega_t = omega_t,
+        };
+
+        return Constraint{
+            .type = Constraints.motor_joint,
+            .params = params,
+            .ptr = joint,
+            .vtable = MotorJoint.VTable,
+        };
+    }
+
+    pub fn deinit(ctrself: *Constraint, alloc: Allocator) void {
+        const self: *Self = @ptrCast(@alignCast(ctrself.ptr));
+        alloc.destroy(self);
+    }
+
+    pub fn solve(ctrself: *Constraint, dt: f32, inv_dt: f32) void {
+        const self: *Self = @ptrCast(@alignCast(ctrself.ptr));
+
+        _ = dt;
+        _ = inv_dt;
+        const omega = self.body.props.ang_momentum / self.body.props.inertia;
+        const delta = self.omega_t - omega;
+        self.body.props.ang_momentum += ctrself.params.beta * delta;
+
+        // const inv_m = 1 / self.body.props.mass;
+        // const inv_i = 1 / self.body.props.inertia;
+        // const w = inv_i + inv_m;
+        //
+        // const omega = self.body.props.ang_momentum / self.body.props.inertia;
+        // // const inv_omega = if (omega < 1e-6) 1 else 1 / omega;
+        //
+        // // const tau = @as(f32, std.math.tau);
+        // var lambda = inv_dt * (self.omega_t - omega) / w;
+        //
+        // lambda = std.math.clamp(lambda, ctrself.params.lower_lambda, ctrself.params.upper_lambda);
+        //
+        // const torque = lambda;
+        //
+        // const p_ang = torque * dt;
+        //
+        // self.body.props.ang_momentum += p_ang;
     }
 };
 
@@ -45,7 +106,7 @@ pub const SingleLinkJoint = struct {
 
     const VTable = Constraint.VTable{
         .deinit = SingleLinkJoint.deinit,
-        .applyImpulses = SingleLinkJoint.applyImpulses,
+        .solve = SingleLinkJoint.solve,
     };
 
     const Self = @This();
@@ -72,7 +133,7 @@ pub const SingleLinkJoint = struct {
         alloc.destroy(self);
     }
 
-    pub fn applyImpulses(ctrself: *Constraint, dt: f32, inv_dt: f32) void {
+    pub fn solve(ctrself: *Constraint, dt: f32, inv_dt: f32) void {
         const self: *Self = @ptrCast(@alignCast(ctrself.ptr));
 
         const r = nmath.rotate2(self.local_r, self.body.props.angle);

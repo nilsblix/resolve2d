@@ -88,6 +88,12 @@ pub const EntityFactory = struct {
         try self.solver.constraints.append(ctr);
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
     }
+
+    pub fn makeMotorJoint(self: *Self, params: Constraint.Parameters, body: *RigidBody, target_omega: f32) !*Constraint {
+        const ctr = try ctr_mod.MotorJoint.init(self.solver.alloc, params, body, target_omega);
+        try self.solver.constraints.append(ctr);
+        return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
+    }
 };
 
 pub const Solver = struct {
@@ -166,16 +172,14 @@ pub const Solver = struct {
             }
 
             for (0..collision_iters) |_| {
+                for (self.constraints.items) |*constraint| {
+                    constraint.solve(sub_dt, inv_sub_dt);
+                }
                 iter.reset();
                 while (iter.next()) |entry| {
                     const manifold = entry.value_ptr;
                     const key = entry.key_ptr.*;
                     manifold.applyImpulses(key, sub_dt, 0.02, 0.02);
-                }
-                for (self.constraints.items) |*constraint| {
-                    std.debug.print("hello world\n", .{});
-                    constraint.applyImpulses(sub_dt, inv_sub_dt);
-                    std.debug.print("hello world\n", .{});
                 }
             }
 

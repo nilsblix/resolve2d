@@ -323,6 +323,7 @@ pub const Renderer = struct {
                     const a = nmath.add2(joint.body.props.pos, r);
                     self.spring(a, joint.q);
                 },
+                .motor_joint => {},
             }
         }
     }

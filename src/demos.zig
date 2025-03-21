@@ -60,10 +60,18 @@ pub fn setupConstraints(solver: *zigics.Solver) !void {
     opt.pos = Vector2.init(1, 5);
     body = try factory.makeRectangleBody(opt, .{ .width = 2.0, .height = 1.0 });
 
-    _ = try factory.makeSingleLinkJoint(.{ .beta = 5 }, body, .{}, Vector2.init(0, 5.001), 0.0);
+    _ = try factory.makeSingleLinkJoint(.{ .beta = 100 }, body, .{}, Vector2.init(0, 5.001), 0.0);
 
     opt.pos = Vector2.init(3, 5);
     body = try factory.makeRectangleBody(opt, .{ .width = 2.0, .height = 1.0 });
+
+    const width = 0.8;
+    const height = 1.0;
+    opt.pos.x = 15.0;
+    for (0..2) |y| {
+        opt.pos.y = @as(f32, @floatFromInt(y)) * height + 5.1;
+        _ = try factory.makeRectangleBody(opt, .{ .width = width, .height = height });
+    }
 }
 
 pub fn setupStacking(solver: *zigics.Solver) !void {
@@ -227,11 +235,14 @@ pub fn setupPrimary(solver: *zigics.Solver) !void {
         _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = height });
     }
 
+    opt.mass_prop = .{ .mass = 20 };
     opt.pos = Vector2.init(-10, 10);
     body = try factory.makeRectangleBody(opt, .{ .width = 8.0, .height = 0.6 });
 
     const q = nmath.add2(body.props.pos, Vector2.init(0.01, 0));
-    _ = try factory.makeSingleLinkJoint(.{ .beta = 5 }, body, .{}, q, 0.0);
+    _ = try factory.makeSingleLinkJoint(.{ .beta = 100 }, body, .{}, q, 0.0);
+    // const tau = @as(f32, std.math.tau);
+    _ = try factory.makeMotorJoint(.{ .beta = 5 }, body, 3.1415);
 
     try factory.makeDownwardsGravity(9.82);
 }

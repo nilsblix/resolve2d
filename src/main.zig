@@ -34,8 +34,8 @@ pub fn main() !void {
 
     const HZ: i32 = 60;
     const STANDARD_DT: f32 = 1 / @as(f32, HZ);
-    const SUB_STEPS = 4;
-    const COLLISION_ITERS = 4;
+    const SUB_STEPS = 10;
+    const COLLISION_ITERS = 1;
     rl.setTargetFPS(HZ);
 
     var simulating: bool = false;
