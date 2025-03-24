@@ -143,15 +143,17 @@ pub fn setupStacking(solver: *zigics.Solver) !void {
     // opt.angle = 0.0;
     // opt.vel = .{};
 
-    opt.pos = Vector2.init(-20, -3.25);
-    _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.7 });
+    height = 2.0;
+    opt.pos.y = -2;
+    opt.pos.x = -20;
+    _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = height });
 
-    opt.pos = Vector2.init(-18, -3.25);
-    _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.7 });
+    opt.pos.x = -18;
+    _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = height });
 
-    opt.pos = Vector2.init(-16, -3.25);
+    opt.pos.x = -16;
     opt.angle = 0.1;
-    _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.7 });
+    _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = height });
     opt.angle = 0.0;
 }
 
@@ -222,7 +224,7 @@ pub fn setupPrimary(solver: *zigics.Solver) !void {
             if (@mod(x, 2) == 0 and @mod(y, 2) == 0) {
                 _ = try factory.makeDiscBody(opt, .{ .radius = 0.5 });
             } else {
-                // _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.8 });
+                _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.8 });
             }
         }
     }
@@ -241,8 +243,7 @@ pub fn setupPrimary(solver: *zigics.Solver) !void {
 
     const q = nmath.add2(body.props.pos, Vector2.init(0.01, 0));
     _ = try factory.makeSingleLinkJoint(.{ .beta = 100 }, body, .{}, q, 0.0);
-    // const tau = @as(f32, std.math.tau);
-    _ = try factory.makeMotorJoint(.{ .beta = 5 }, body, 3.1415);
+    _ = try factory.makeMotorJoint(.{ .beta = 5 }, body, -3.1415);
 
     try factory.makeDownwardsGravity(9.82);
 }

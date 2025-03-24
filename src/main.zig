@@ -34,8 +34,8 @@ pub fn main() !void {
 
     const HZ: i32 = 60;
     const STANDARD_DT: f32 = 1 / @as(f32, HZ);
-    const SUB_STEPS = 10;
-    const COLLISION_ITERS = 1;
+    const SUB_STEPS = 6;
+    const COLLISION_ITERS = 4;
     rl.setTargetFPS(HZ);
 
     var simulating: bool = false;
@@ -215,10 +215,10 @@ const MouseSpring = struct {
                     const r = nmath.rotate2(r_rotated, -body.props.angle);
                     const params = ctr_mod.Constraint.Parameters{
                         .beta = 100,
-                        .lower_lambda = -400,
-                        .upper_lambda = 400,
+                        .lower_lambda = -100,
+                        .upper_lambda = 100,
                     };
-                    const joint = try ctr_mod.SingleLinkJoint.init(alloc, params, body, r, mouse_pos, 0.1);
+                    const joint = try ctr_mod.SingleLinkJoint.init(alloc, params, body, r, mouse_pos, 0.0);
                     try physics.constraints.append(joint);
                     self.active = true;
                     return;

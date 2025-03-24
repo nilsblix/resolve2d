@@ -179,7 +179,7 @@ pub const Solver = struct {
                 while (iter.next()) |entry| {
                     const manifold = entry.value_ptr;
                     const key = entry.key_ptr.*;
-                    manifold.applyImpulses(key, sub_dt, 0.02, 0.02);
+                    manifold.applyImpulses(key, sub_dt);
                 }
             }
 

@@ -1,5 +1,6 @@
 const std = @import("std");
 const expect = std.testing.expect;
+const consts = @import("zigics_consts.zig");
 
 pub fn approxEql(a: f32, b: f32, eps: f32) bool {
     return a > b - eps and a < b + eps;
@@ -82,7 +83,7 @@ pub fn length2(a: Vector2) f32 {
 
 pub fn normalize2(a: Vector2) Vector2 {
     const len = length2(a);
-    if (len < 1e-3) {
+    if (len < consts.NMATH_WARN_DIVIDING_BELOW) {
         std.debug.print("nmath.normalize2 has calculated a low len = {}\n", .{len});
         return Vector2{};
     }

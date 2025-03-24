@@ -116,16 +116,10 @@ pub const CollisionManifold = struct {
                 const r1 = point.ref_r;
                 const r2 = point.inc_r;
 
-                // const r1n = nmath.dot2(r1, self.normal);
-                // const r2n = nmath.dot2(r2, self.normal);
-                // const kn = inv_mass + inv_i1 * (nmath.dot2(r1, r1) - r1n * r1n) + inv_i2 * (nmath.dot2(r2, r2) - r2n * r2n);
                 const r1n = nmath.cross2(r1, self.normal);
                 const r2n = nmath.cross2(r2, self.normal);
                 const kn = inv_mass + inv_i1 * (r1n * r1n) + inv_i2 * (r2n * r2n);
 
-                // const r1t = nmath.dot2(r1, tangent);
-                // const r2t = nmath.dot2(r2, tangent);
-                // const kt = inv_mass + inv_i1 * (nmath.dot2(r1, r1) - r1t * r1t) + inv_i2 * (nmath.dot2(r2, r2) - r2t * r2t);
                 const r1t = nmath.cross2(r1, self.tangent);
                 const r2t = nmath.cross2(r2, self.tangent);
                 const kt = inv_mass + inv_i1 * (r1t * r1t) + inv_i2 * (r2t * r2t);
@@ -136,7 +130,7 @@ pub const CollisionManifold = struct {
         }
     }
 
-    pub fn applyImpulses(self: *Self, key: CollisionKey, dt: f32, baumgarte: f32, slop: f32) void {
+    pub fn applyImpulses(self: *Self, key: CollisionKey, dt: f32) void {
         const b1 = key.ref_body;
         const b2 = key.inc_body;
 
@@ -164,11 +158,11 @@ pub const CollisionManifold = struct {
 
                 point.dv = nmath.sub2(v1, v2);
 
-                const bias = baumgarte * @max(0, (-point.depth) - slop) / dt;
+                const bias = consts.BAUMGARTE * @max(0, (-point.depth) - consts.BAUMGARTE_SLOP) / dt;
                 var num = nmath.dot2(point.dv, self.normal) + bias;
                 point.pn = num * point.mass_n;
 
-                if (point.pn < 1e-5) continue;
+                if (point.pn < consts.MIN_MANIFOLD_IMPULSE) continue;
 
                 num = nmath.dot2(point.dv, self.tangent);
                 point.pt = num * point.mass_t;
@@ -213,7 +207,7 @@ pub fn normalShouldFlipSAT(normal: Vector2, reference: *RigidBody, incident: *Ri
 }
 
 pub fn overlapSAT(ret: *Collision, reference: *RigidBody, incident: *RigidBody) bool {
-    const EPS: f32 = 1e-3;
+    const EPS: f32 = consts.SAT_OVERLAP_THRESHOLD;
 
     var iter = reference.normal_iter;
     while (iter.next(reference.*, incident.*)) |edge| {
