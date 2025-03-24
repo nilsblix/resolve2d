@@ -258,7 +258,7 @@ pub const DiscBody = struct {
         for (0..manifold_max_points) |i| {
             ret[i] = null;
         }
-        ret[0] = CollisionPoint.init(pos, depth, rigidself.*, incident.*);
+        ret[0] = CollisionPoint.init(pos, depth, rigidself.*, incident.*, edge.?.dir);
         return ret;
     }
 
@@ -451,20 +451,20 @@ pub const RectangleBody = struct {
                     var dot = nmath.dot2(nmath.sub2(a, n.edge.?.a), n.dir);
                     if (dot < 0.0) {
                         const pos = incident_edge.edge.a;
-                        ret[i] = CollisionPoint.init(pos, dot, rigidself.*, incident.*);
+                        ret[i] = CollisionPoint.init(pos, dot, rigidself.*, incident.*, n.dir);
                         i += 1;
                     }
 
                     dot = nmath.dot2(nmath.sub2(b, n.edge.?.b), n.dir);
                     if (dot < 0.0) {
                         const pos = incident_edge.edge.b;
-                        ret[i] = CollisionPoint.init(pos, dot, rigidself.*, incident.*);
+                        ret[i] = CollisionPoint.init(pos, dot, rigidself.*, incident.*, n.dir);
                     }
                 },
                 .point => {
                     const pos = incident_edge.point;
                     const dot = nmath.dot2(nmath.sub2(pos, n.edge.?.a), n.dir);
-                    ret[0] = CollisionPoint.init(pos, dot, rigidself.*, incident.*);
+                    ret[0] = CollisionPoint.init(pos, dot, rigidself.*, incident.*, n.dir);
                 },
             }
         } else {

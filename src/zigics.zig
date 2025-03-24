@@ -175,11 +175,12 @@ pub const Solver = struct {
                 for (self.constraints.items) |*constraint| {
                     constraint.solve(sub_dt, inv_sub_dt);
                 }
+
                 iter.reset();
                 while (iter.next()) |entry| {
                     const manifold = entry.value_ptr;
                     const key = entry.key_ptr.*;
-                    manifold.applyImpulses(key, sub_dt, 0.02, 0.02);
+                    manifold.applyImpulses(key, sub_dt, 0.02, 0.001);
                 }
             }
 

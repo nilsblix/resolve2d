@@ -36,7 +36,9 @@ pub const CollisionPoint = struct {
     mass_n: f32,
     mass_t: f32,
 
-    pub fn init(pos: Vector2, depth: f32, ref: RigidBody, inc: RigidBody) CollisionPoint {
+    pub fn init(pos: Vector2, depth: f32, ref: RigidBody, inc: RigidBody, normal: Vector2) CollisionPoint {
+        // const p = nmath.submult2(pos, normal, 0.5 * depth);
+        _ = normal;
         return CollisionPoint{
             .pn = 0,
             .pt = 0,
@@ -115,16 +117,10 @@ pub const CollisionManifold = struct {
                 const r1 = point.ref_r;
                 const r2 = point.inc_r;
 
-                // const r1n = nmath.dot2(r1, self.normal);
-                // const r2n = nmath.dot2(r2, self.normal);
-                // const kn = inv_mass + inv_i1 * (nmath.dot2(r1, r1) - r1n * r1n) + inv_i2 * (nmath.dot2(r2, r2) - r2n * r2n);
                 const r1n = nmath.cross2(r1, self.normal);
                 const r2n = nmath.cross2(r2, self.normal);
                 const kn = inv_mass + inv_i1 * (r1n * r1n) + inv_i2 * (r2n * r2n);
 
-                // const r1t = nmath.dot2(r1, tangent);
-                // const r2t = nmath.dot2(r2, tangent);
-                // const kt = inv_mass + inv_i1 * (nmath.dot2(r1, r1) - r1t * r1t) + inv_i2 * (nmath.dot2(r2, r2) - r2t * r2t);
                 const r1t = nmath.cross2(r1, self.tangent);
                 const r2t = nmath.cross2(r2, self.tangent);
                 const kt = inv_mass + inv_i1 * (r1t * r1t) + inv_i2 * (r2t * r2t);

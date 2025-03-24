@@ -1,0 +1,5 @@
+constraints are kindof working.
+
+check when adding constraints. order does matter. in primarysetup, if singlelink is placed in the middle it gets fucked up.
+
+something about pointer arithmetic or something weird
