@@ -222,7 +222,7 @@ pub fn setupPrimary(solver: *zigics.Solver) !void {
             if (@mod(x, 2) == 0 and @mod(y, 2) == 0) {
                 _ = try factory.makeDiscBody(opt, .{ .radius = 0.5 });
             } else {
-                _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.8 });
+                // _ = try factory.makeRectangleBody(opt, .{ .width = 1.0, .height = 0.8 });
             }
         }
     }
