@@ -497,40 +497,7 @@ pub const RectangleBody = struct {
             curr_world = next_world;
         }
 
-        const T = nmath.rotate90clockwise(normal);
-
-        const A = edge.a;
-        const B = edge.b;
-        const C = best_edge.a;
-        const D = best_edge.b;
-
-        var Cp = C;
-        var Dp = D;
-
-        const line_dist = nmath.length2(nmath.sub2(A, B));
-
-        const scalar_C = nmath.dot2(nmath.sub2(C, A), T);
-        const scalar_D = nmath.dot2(nmath.sub2(D, A), T);
-
-        const c_between = scalar_C > 0 and scalar_C < line_dist;
-        const d_between = scalar_D > 0 and scalar_D < line_dist;
-
-        if (!c_between) {
-            const clos = if (scalar_C < line_dist / 2) A else B;
-
-            const delta_L = nmath.sub2(C, D);
-            const t = -nmath.dot2(T, nmath.sub2(D, clos)) / nmath.dot2(delta_L, T);
-            Cp = nmath.addmult2(D, delta_L, t);
-        }
-
-        if (!d_between) {
-            const clos = if (scalar_D < line_dist / 2) A else B;
-
-            const delta_L = nmath.sub2(D, C);
-            const t = -nmath.dot2(T, nmath.sub2(C, clos)) / nmath.dot2(delta_L, T);
-            Dp = nmath.addmult2(C, delta_L, t);
-        }
-
-        return Incident{ .edge = .{ .a = Cp, .b = Dp } };
+        const clipped = collision.clipLineToLine(.{ .a = edge.a, .b = edge.b }, .{ .a = best_edge.a, .b = best_edge.b });
+        return Incident{ .edge = .{ .a = clipped.a, .b = clipped.b } };
     }
 };

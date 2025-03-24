@@ -3,6 +3,7 @@ const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
 const rb_mod = @import("rigidbody.zig");
 const RigidBody = rb_mod.RigidBody;
+const consts = @import("zigics_consts.zig");
 
 pub const Collision = struct {
     collides: bool,
@@ -297,4 +298,47 @@ pub fn performNarrowSAT(b1: *RigidBody, b2: *RigidBody) Collision {
     ret.collides = true;
 
     return ret;
+}
+
+pub const Line = struct {
+    a: Vector2,
+    b: Vector2,
+};
+
+/// Line `a` is reference.
+/// Line `b` is incident.
+/// Line `b` is going to be clipped onto line a.
+pub fn clipLineToLine(a: Line, b: Line) Line {
+    const delta_a = nmath.sub2(a.b, a.a);
+    const a_len = nmath.length2(delta_a);
+    const tang = nmath.scale2(delta_a, 1 / a_len);
+
+    var p1: Vector2 = b.a;
+    var p2: Vector2 = b.b;
+
+    {
+        const scalar = nmath.dot2(nmath.sub2(b.a, a.a), tang);
+        if (!(scalar > 0 and scalar < a_len)) {
+            const clos = if (scalar < 0.5 * a_len) a.a else a.b;
+
+            const delta_p = nmath.sub2(b.a, b.b);
+
+            const t = -nmath.dot2(tang, nmath.sub2(b.b, clos)) / nmath.dot2(tang, delta_p);
+            p1 = nmath.addmult2(b.b, delta_p, t);
+        }
+    }
+
+    {
+        const scalar = nmath.dot2(nmath.sub2(b.b, a.a), tang);
+        if (!(scalar > 0 and scalar < a_len)) {
+            const clos = if (scalar < 0.5 * a_len) a.a else a.b;
+
+            const delta_p = nmath.sub2(b.b, b.a);
+
+            const t = -nmath.dot2(tang, nmath.sub2(b.a, clos)) / nmath.dot2(tang, delta_p);
+            p2 = nmath.addmult2(b.a, delta_p, t);
+        }
+    }
+
+    return Line{ .a = p1, .b = p2 };
 }

@@ -1,0 +1,1 @@
+pub const SAT_LINE_SEGMENT_CLIP_EPS: f32 = 1e-4;
