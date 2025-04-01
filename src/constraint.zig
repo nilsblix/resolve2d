@@ -76,6 +76,7 @@ pub const MotorJoint = struct {
         _ = inv_dt;
         const omega = self.body.props.ang_momentum / self.body.props.inertia;
         const delta = self.omega_t - omega;
+
         self.body.props.ang_momentum += ctrself.params.beta * delta;
 
         // const inv_m = 1 / self.body.props.mass;

@@ -13,15 +13,16 @@ const ctr_mod = @import("constraint.zig");
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     defer _ = gpa.deinit();
-
     const alloc = gpa.allocator();
+
+    // const alloc = std.heap.c_allocator;
 
     // const screen_width = 1536;
     // const screen_height = 864;
     const screen_width = 1280;
     const screen_height = 720;
 
-    var world = try zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true, 4, 20, 2.5);
+    var world = try zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true, 4, 20, 2.0);
     defer world.deinit();
 
     // try demos.setupScene(&world.solver);
@@ -34,7 +35,7 @@ pub fn main() !void {
 
     const HZ: i32 = 60;
     const STANDARD_DT: f32 = 1 / @as(f32, HZ);
-    const SUB_STEPS = 6;
+    const SUB_STEPS = 4;
     const COLLISION_ITERS = 4;
     rl.setTargetFPS(HZ);
 
@@ -143,6 +144,12 @@ pub fn main() !void {
             steps = 0;
             try world.solver.clear(alloc);
             try demos.setupConstraints(&world.solver);
+        }
+
+        if (rl.isKeyPressed(.seven)) {
+            steps = 0;
+            try world.solver.clear(alloc);
+            try demos.setupPseudoStatic(&world.solver);
         }
 
         tried_steps += 1;

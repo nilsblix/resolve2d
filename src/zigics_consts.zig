@@ -1,5 +1,5 @@
 /// The collision-solver (manifold) stops trying to solve the collision when the applied impulse goes below this value
-pub const MIN_MANIFOLD_IMPULSE: f32 = 1e-4;
+pub const MIN_MANIFOLD_IMPULSE: f32 = 1e-2;
 /// The baumgarte factor applied to collisions
 pub const BAUMGARTE: f32 = 0.02;
 /// The baumgarte slop allowed by the collision-solver
