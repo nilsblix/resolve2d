@@ -118,19 +118,23 @@ pub const Solver = struct {
 
     pub fn deinit(self: *Self) void {
         self.manifolds.deinit();
+
         self.quadtree.deinit(self.alloc);
-        for (self.constraints.items) |*constraint| {
-            constraint.deinit(self.alloc);
-        }
-        self.constraints.deinit();
-        for (self.force_generators.items) |*gen| {
-            gen.deinit(self.alloc);
-        }
-        self.force_generators.deinit();
+
         for (self.bodies.items) |*body| {
             body.deinit(self.alloc);
         }
         self.bodies.deinit();
+
+        for (self.constraints.items) |*constr| {
+            constr.deinit(self.alloc);
+        }
+        self.constraints.deinit();
+
+        for (self.force_generators.items) |*gen| {
+            gen.deinit(self.alloc);
+        }
+        self.force_generators.deinit();
     }
 
     pub fn clear(self: *Self, alloc: Allocator) !void {
@@ -147,7 +151,24 @@ pub const Solver = struct {
         const sub_dt = dt / f32_sub;
         const inv_sub_dt = 1 / sub_dt;
 
+        // for (self.bodies.items) |*body| {
+        //     if (body.static) continue;
+        //     var props: *RigidBody.Props = &body.props;
+        //
+        //     props.pos.addmult(props.momentum, dt / props.mass);
+        //     props.angle += props.ang_momentum * dt / props.inertia;
+        // }
+
         try self.updateManifolds(alloc);
+        var iter = self.manifolds.iterator();
+
+        // for (self.bodies.items) |*body| {
+        //     if (body.static) continue;
+        //     var props: *RigidBody.Props = &body.props;
+        //
+        //     props.pos.submult(props.momentum, dt / props.mass);
+        //     props.angle -= props.ang_momentum * dt / props.inertia;
+        // }
 
         for (0..sub_steps) |_| {
             for (self.force_generators.items) |*gen| {
@@ -163,7 +184,7 @@ pub const Solver = struct {
                 props.ang_momentum += props.torque * sub_dt;
             }
 
-            var iter = self.manifolds.iterator();
+            iter.reset();
             while (iter.next()) |entry| {
                 const manifold = entry.value_ptr;
                 const key = entry.key_ptr.*;
@@ -179,7 +200,7 @@ pub const Solver = struct {
                 while (iter.next()) |entry| {
                     const manifold = entry.value_ptr;
                     const key = entry.key_ptr.*;
-                    manifold.applyImpulses(key, sub_dt);
+                    manifold.calculateImpulses(key, sub_dt);
                 }
             }
 
@@ -208,7 +229,9 @@ pub const Solver = struct {
         self.manifolds.clearRetainingCapacity();
 
         for (self.bodies.items) |*body1| {
-            queries.clearRetainingCapacity();
+            if (queries.items.len != 0) {
+                queries.clearRetainingCapacity();
+            }
             // queries.clearAndFree();
             try self.quadtree.queryAABB(body1.aabb, &queries);
 

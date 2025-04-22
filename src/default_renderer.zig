@@ -262,7 +262,6 @@ pub const Renderer = struct {
         if (show_collisions) {
             var iter = solver.manifolds.iterator();
             while (iter.next()) |entry| {
-                // const key = entry.key_ptr;
                 const manifold = entry.value_ptr;
                 const key = entry.key_ptr;
 

@@ -37,6 +37,8 @@ pub const CollisionPoint = struct {
     mass_n: f32,
     mass_t: f32,
 
+    const Self = @This();
+
     pub fn init(pos: Vector2, depth: f32, ref: RigidBody, inc: RigidBody) CollisionPoint {
         return CollisionPoint{
             .pn = 0,
@@ -64,6 +66,11 @@ pub const CollisionManifold = struct {
 
     prev_angle_1: f32,
     prev_angle_2: f32,
+
+    applied_linear_p1: Vector2 = .{},
+    applied_linear_p2: Vector2 = .{},
+    applied_rot_p_1: f32 = 0,
+    applied_rot_p_2: f32 = 0,
 
     friction: f32 = 0.0,
 
@@ -130,7 +137,7 @@ pub const CollisionManifold = struct {
         }
     }
 
-    pub fn applyImpulses(self: *Self, key: CollisionKey, dt: f32) void {
+    pub fn calculateImpulses(self: *Self, key: CollisionKey, dt: f32) void {
         const b1 = key.ref_body;
         const b2 = key.inc_body;
 
@@ -140,26 +147,29 @@ pub const CollisionManifold = struct {
         const inv_i1 = if (b1.static) 0 else (1 / b1.props.inertia);
         const inv_i2 = if (b2.static) 0 else (1 / b2.props.inertia);
 
+        const vlinear_1 = nmath.scale2(b1.props.momentum, inv_m1);
+        const omega1 = b1.props.ang_momentum * inv_i1;
+
+        const vlinear_2 = nmath.scale2(b2.props.momentum, inv_m2);
+        const omega2 = b2.props.ang_momentum * inv_i2;
+
         for (&self.points) |*null_point| {
             if (null_point.*) |*point| {
                 const r1 = point.ref_r;
                 const r2 = point.inc_r;
 
                 // CALCULATION
-                const vlinear_1 = nmath.scale2(b1.props.momentum, inv_m1);
-                const omega1 = b1.props.ang_momentum * inv_i1;
                 const vrot_1 = Vector2.init(-r1.y * omega1, r1.x * omega1);
                 const v1 = nmath.add2(vlinear_1, vrot_1);
 
-                const vlinear_2 = nmath.scale2(b2.props.momentum, inv_m2);
-                const omega2 = b2.props.ang_momentum * inv_i2;
                 const vrot_2 = Vector2.init(-r2.y * omega2, r2.x * omega2);
                 const v2 = nmath.add2(vlinear_2, vrot_2);
 
                 point.dv = nmath.sub2(v1, v2);
 
                 const bias = consts.BAUMGARTE * @max(0, (-point.depth) - consts.BAUMGARTE_SLOP) / dt;
-                var num = nmath.dot2(point.dv, self.normal) + bias;
+                const fact = consts.NORMAL_COLLISION_IMPULSE_FACTOR;
+                var num = fact * nmath.dot2(point.dv, self.normal) + bias;
                 point.pn = num * point.mass_n;
 
                 if (point.pn < consts.MIN_MANIFOLD_IMPULSE) continue;
@@ -182,20 +192,29 @@ pub const CollisionManifold = struct {
                 const pt_vec = nmath.scale2(self.tangent, applied_pt);
 
                 const dp = nmath.add2(pn_vec, pt_vec);
-                // var dp = nmath.add2(pn_vec, pt_vec);
-                // dp = .{};
 
                 if (!b1.static) {
-                    b1.props.momentum.sub(dp);
-                    b1.props.ang_momentum -= nmath.cross2(r1, dp);
+                    self.applied_linear_p1.sub(dp);
+                    self.applied_rot_p_1 -= nmath.cross2(r1, dp);
                 }
 
                 if (!b2.static) {
-                    b2.props.momentum.add(dp);
-                    b2.props.ang_momentum += nmath.cross2(r2, dp);
+                    self.applied_linear_p2.add(dp);
+                    self.applied_rot_p_2 += nmath.cross2(r2, dp);
                 }
             }
         }
+
+        b1.props.momentum.add(self.applied_linear_p1);
+        b1.props.ang_momentum += self.applied_rot_p_1;
+
+        b2.props.momentum.add(self.applied_linear_p2);
+        b2.props.ang_momentum += self.applied_rot_p_2;
+
+        self.applied_linear_p1 = .{};
+        self.applied_rot_p_1 = 0;
+        self.applied_linear_p2 = .{};
+        self.applied_rot_p_2 = 0;
     }
 };
 
@@ -229,7 +248,7 @@ pub fn overlapSAT(ret: *Collision, reference: *RigidBody, incident: *RigidBody) 
         const d2 = p2[1] - p1[0];
 
         const d = @min(d1, d2);
-        if (d <= 0.0) return false;
+        if (d <= -EPS) return false;
 
         if (!flipped and nmath.approxEql2(normal, ret.normal, EPS)) {
             // if they are the same
@@ -273,13 +292,15 @@ pub fn performNarrowSAT(b1: *RigidBody, b2: *RigidBody) Collision {
     ret.collides = false;
     ret.penetration = std.math.inf(f32);
 
-    // POTENTIAL: using here an arbitrary sorting thing so that when
-    // objects with the same normal (ex: disc vs disc) don't swap between
-    // being reference and incident
-    const num1 = @intFromPtr(b1.ptr);
-    const num2 = @intFromPtr(b2.ptr);
-    const o1 = if (num1 < num2) b1 else b2;
-    const o2 = if (o1 == b1) b2 else b1;
+    // FIXME: Allocators don't align memory the same --> Non deterministic
+    // behaviour between allocators.
+    // const num1 = @intFromPtr(b1.ptr);
+    // const num2 = @intFromPtr(b2.ptr);
+    // const o1 = if (num1 < num2) b1 else b2;
+    // const o2 = if (o1 == b1) b2 else b1;
+
+    const o1 = b1;
+    const o2 = b2;
 
     if (!overlapSAT(&ret, o1, o2)) {
         return ret;

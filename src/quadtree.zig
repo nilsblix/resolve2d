@@ -51,13 +51,11 @@ pub const QuadTree = struct {
     pub const Node = struct {
         children: [4]?*Node = .{ null, null, null, null },
         values: std.ArrayListUnmanaged(*RigidBody),
-        // values: std.ArrayList(*RigidBody),
         aabb: AABB,
 
         pub fn init(alloc: Allocator, aabb: AABB, threshold: usize) !Node {
             return Node{
                 .values = try std.ArrayListUnmanaged(*RigidBody).initCapacity(alloc, threshold),
-                // .values = std.ArrayList(*RigidBody).init(alloc),
                 .aabb = aabb,
             };
         }

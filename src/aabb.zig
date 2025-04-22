@@ -1,6 +1,7 @@
 const std = @import("std");
 const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
+const consts = @import("zigics_consts.zig");
 
 pub const AABB = struct {
     pos: Vector2,
@@ -10,7 +11,7 @@ pub const AABB = struct {
     const Self = @This();
 
     pub fn intersects(self: Self, other: AABB) bool {
-        const EPS: f32 = 0.05;
+        const EPS = consts.AABB_EPS_OVERLAP;
         const dx = @abs(other.pos.x - self.pos.x);
         const dy = @abs(other.pos.y - self.pos.y);
 

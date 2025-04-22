@@ -15,12 +15,15 @@ pub fn main() !void {
     defer _ = gpa.deinit();
     const alloc = gpa.allocator();
 
+    // const alloc = std.heap.page_allocator;
     // const alloc = std.heap.c_allocator;
 
     // const screen_width = 1536;
     // const screen_height = 864;
     const screen_width = 1280;
     const screen_height = 720;
+    // const screen_width = 1920;
+    // const screen_height = 1080;
 
     var world = try zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true, 4, 20, 2.0);
     defer world.deinit();
@@ -30,6 +33,7 @@ pub fn main() !void {
 
     var mouse_spring = MouseSpring{};
 
+    rl.setConfigFlags(.{ .msaa_4x_hint = true });
     rl.initWindow(screen_width, screen_height, "zigics");
     defer rl.closeWindow();
 

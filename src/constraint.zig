@@ -51,10 +51,8 @@ pub const MotorJoint = struct {
 
     pub fn init(alloc: Allocator, params: Constraint.Parameters, body: *RigidBody, omega_t: f32) !Constraint {
         const joint = try alloc.create(MotorJoint);
-        joint.* = MotorJoint{
-            .body = body,
-            .omega_t = omega_t,
-        };
+        joint.body = body;
+        joint.omega_t = omega_t;
 
         return Constraint{
             .type = Constraints.motor_joint,
@@ -77,25 +75,8 @@ pub const MotorJoint = struct {
         const omega = self.body.props.ang_momentum / self.body.props.inertia;
         const delta = self.omega_t - omega;
 
+        // FIXME: This constraint math is COMPLETELY FUCKED. Redo ts immediately...
         self.body.props.ang_momentum += ctrself.params.beta * delta;
-
-        // const inv_m = 1 / self.body.props.mass;
-        // const inv_i = 1 / self.body.props.inertia;
-        // const w = inv_i + inv_m;
-        //
-        // const omega = self.body.props.ang_momentum / self.body.props.inertia;
-        // // const inv_omega = if (omega < 1e-6) 1 else 1 / omega;
-        //
-        // // const tau = @as(f32, std.math.tau);
-        // var lambda = inv_dt * (self.omega_t - omega) / w;
-        //
-        // lambda = std.math.clamp(lambda, ctrself.params.lower_lambda, ctrself.params.upper_lambda);
-        //
-        // const torque = lambda;
-        //
-        // const p_ang = torque * dt;
-        //
-        // self.body.props.ang_momentum += p_ang;
     }
 };
 
@@ -114,12 +95,10 @@ pub const SingleLinkJoint = struct {
 
     pub fn init(alloc: Allocator, params: Constraint.Parameters, body: *RigidBody, local_r: Vector2, q: Vector2, distance: f32) !Constraint {
         const joint = try alloc.create(SingleLinkJoint);
-        joint.* = SingleLinkJoint{
-            .body = body,
-            .local_r = local_r,
-            .q = q,
-            .distance = distance,
-        };
+        joint.body = body;
+        joint.local_r = local_r;
+        joint.q = q;
+        joint.distance = distance;
 
         return Constraint{
             .type = Constraints.single_link_joint,

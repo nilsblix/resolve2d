@@ -58,7 +58,7 @@ pub fn setupPseudoStatic(solver: *zigics.Solver) !void {
     opt.mass_prop = .{ .mass = 40 };
     opt.pos = Vector2.init(0, 10);
     body = try factory.makeRectangleBody(opt, .{ .width = 2.0, .height = 4.0 });
-    _ = try factory.makeMotorJoint(.{ .beta = 10 }, body, -2.0);
+    // _ = try factory.makeMotorJoint(.{ .beta = 10 }, body, -2.0);
     opt.mu_d = 0.6;
 
     opt.mass_prop = .{ .density = 2.0 };
@@ -66,8 +66,7 @@ pub fn setupPseudoStatic(solver: *zigics.Solver) !void {
     opt.pos = Vector2.init(0, 5);
     body = try factory.makeRectangleBody(opt, .{ .width = 8.0, .height = 0.7 });
 
-    // const params = ctrs.Constraint.Parameters{ .beta = 40, .lower_lambda = -5000, .upper_lambda = 5000 };
-    const params = ctrs.Constraint.Parameters{ .beta = 40 };
+    const params = ctrs.Constraint.Parameters{ .beta = 200 };
     const r1 = Vector2.init(-2, 0);
     const q1 = nmath.addmult2(body.props.pos, r1, 1.01);
     _ = try factory.makeSingleLinkJoint(params, body, r1, q1, 0.0);
@@ -126,9 +125,6 @@ pub fn setupConstraints(solver: *zigics.Solver) !void {
     opt.pos = Vector2.init(1, 5);
     body = try factory.makeRectangleBody(opt, .{ .width = 2.0, .height = 1.0 });
 
-    _ = try factory.makeMotorJoint(.{ .beta = 100 }, body, 1);
-    // _ = try factory.makeSingleLinkJoint(.{ .beta = 100 }, body, .{}, Vector2.init(0, 5.001), 0.0);
-
     opt.pos = Vector2.init(3, 5);
     body = try factory.makeRectangleBody(opt, .{ .width = 2.0, .height = 1.0 });
 
@@ -139,6 +135,9 @@ pub fn setupConstraints(solver: *zigics.Solver) !void {
         opt.pos.y = @as(f32, @floatFromInt(y)) * height + 5.1;
         _ = try factory.makeRectangleBody(opt, .{ .width = width, .height = height });
     }
+
+    _ = try factory.makeMotorJoint(.{ .beta = 100 }, body, 1);
+    _ = try factory.makeSingleLinkJoint(.{ .beta = 100 }, body, .{}, Vector2.init(0, 5.001), 0.0);
 }
 
 pub fn setupStacking(solver: *zigics.Solver) !void {
@@ -198,7 +197,7 @@ pub fn setupStacking(solver: *zigics.Solver) !void {
     width = 0.8;
     height = 1.0;
     opt.pos.x = 15.0;
-    for (0..10) |y| {
+    for (0..30) |y| {
         opt.pos.y = @as(f32, @floatFromInt(y)) * height + 5.1;
         _ = try factory.makeRectangleBody(opt, .{ .width = width, .height = height });
     }
@@ -282,7 +281,7 @@ pub fn setupPrimary(solver: *zigics.Solver) !void {
     _ = try factory.makeRectangleBody(opt, .{ .width = 4.0, .height = 2.0 });
 
     for (0..18) |x| {
-        for (0..50) |y| {
+        for (0..30) |y| {
             const xf = @as(f32, @floatFromInt(x)) + 3;
             const yf = @as(f32, @floatFromInt(y)) + 10;
 
@@ -339,19 +338,13 @@ pub fn setupDominos(solver: *zigics.Solver) !void {
     const height: f32 = 2.5;
     const width: f32 = 0.6;
     opt.pos.y = height / 2 - 0.15;
-    opt.angle = 0.02;
+    opt.angle = 0.0;
     const rect_opt: zigics.EntityFactory.RectangleOptions = .{ .width = width, .height = height };
-    for (1..13) |xi| {
+    for (2..13) |xi| {
         const x_offset: f32 = 2.51 * (@as(f32, @floatFromInt(xi)) - 7);
         opt.pos.x = x_offset;
-        if (xi == 1) {
-            // var saved = opt;
-            // saved.pos.x += 1.5;
-            // var body = try factory.makeRectangleBody(saved, rect_opt);
-            // body.props.angle = -0.9;
-        } else {
-            _ = try factory.makeRectangleBody(opt, rect_opt);
-        }
+        _ = try factory.makeRectangleBody(opt, rect_opt);
+        opt.angle += 0.006;
     }
 }
 
