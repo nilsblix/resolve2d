@@ -11,11 +11,11 @@ const demos = @import("demos.zig");
 const ctr_mod = @import("constraint.zig");
 
 pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    defer _ = gpa.deinit();
-    const alloc = gpa.allocator();
+    // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    // defer _ = gpa.deinit();
+    // const alloc = gpa.allocator();
 
-    // const alloc = std.heap.page_allocator;
+    const alloc = std.heap.page_allocator;
     // const alloc = std.heap.c_allocator;
 
     // const screen_width = 1536;
@@ -39,8 +39,8 @@ pub fn main() !void {
 
     const HZ: i32 = 60;
     const STANDARD_DT: f32 = 1 / @as(f32, HZ);
-    const SUB_STEPS = 4;
-    const COLLISION_ITERS = 4;
+    const SUB_STEPS = 8;
+    const COLLISION_ITERS = 2;
     rl.setTargetFPS(HZ);
 
     var simulating: bool = false;

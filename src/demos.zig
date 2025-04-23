@@ -54,25 +54,26 @@ pub fn setupPseudoStatic(solver: *zigics.Solver) !void {
 
     try factory.makeDownwardsGravity(9.82);
 
-    opt.mu_d = 1.0;
     opt.mass_prop = .{ .mass = 40 };
-    opt.pos = Vector2.init(0, 10);
+    opt.pos = Vector2.init(1, 10);
     body = try factory.makeRectangleBody(opt, .{ .width = 2.0, .height = 4.0 });
     // _ = try factory.makeMotorJoint(.{ .beta = 10 }, body, -2.0);
-    opt.mu_d = 0.6;
 
     opt.mass_prop = .{ .density = 2.0 };
 
-    opt.pos = Vector2.init(0, 5);
+    opt.pos = Vector2.init(1, 5);
     body = try factory.makeRectangleBody(opt, .{ .width = 8.0, .height = 0.7 });
 
     const params = ctrs.Constraint.Parameters{ .beta = 200 };
-    const r1 = Vector2.init(-2, 0);
-    const q1 = nmath.addmult2(body.props.pos, r1, 1.01);
-    _ = try factory.makeSingleLinkJoint(params, body, r1, q1, 0.0);
-    const r2 = Vector2.init(2, 0);
-    const q2 = nmath.addmult2(body.props.pos, r2, 1.01);
-    _ = try factory.makeSingleLinkJoint(params, body, r2, q2, 0.0);
+    // const r1 = Vector2.init(-2, 0);
+    // const q1 = nmath.addmult2(body.props.pos, r1, 1.01);
+    // _ = try factory.makeSingleLinkJoint(params, body, r1, q1, 0.0);
+    // const r2 = Vector2.init(2, 0);
+    // const q2 = nmath.addmult2(body.props.pos, r2, 1.01);
+    // _ = try factory.makeSingleLinkJoint(params, body, r2, q2, 0.0);
+    const r = Vector2.init(0, 0.1);
+    const q = nmath.addmult2(body.props.pos, r, 1.0001);
+    _ = try factory.makeSingleLinkJoint(params, body, r, q, 0.0);
 }
 
 pub fn setupConstraints(solver: *zigics.Solver) !void {
@@ -275,7 +276,7 @@ pub fn setupPrimary(solver: *zigics.Solver) !void {
     body.static = true;
     opt.angle = 0;
 
-    opt.mass_prop = .{ .density = 5.0 };
+    opt.mass_prop = .{ .density = 20.0 };
 
     opt.pos = Vector2.init(-10, 15);
     _ = try factory.makeRectangleBody(opt, .{ .width = 4.0, .height = 2.0 });
@@ -309,7 +310,7 @@ pub fn setupPrimary(solver: *zigics.Solver) !void {
 
     const q = nmath.add2(body.props.pos, Vector2.init(0.01, 0));
     _ = try factory.makeSingleLinkJoint(.{ .beta = 100 }, body, .{}, q, 0.0);
-    _ = try factory.makeMotorJoint(.{ .beta = 50 }, body, -3.1415);
+    _ = try factory.makeMotorJoint(.{ .beta = 100 }, body, -3.1415);
 
     try factory.makeDownwardsGravity(9.82);
 }
@@ -344,7 +345,7 @@ pub fn setupDominos(solver: *zigics.Solver) !void {
         const x_offset: f32 = 2.51 * (@as(f32, @floatFromInt(xi)) - 7);
         opt.pos.x = x_offset;
         _ = try factory.makeRectangleBody(opt, rect_opt);
-        opt.angle += 0.006;
+        opt.angle += 0.003;
     }
 }
 

@@ -2,13 +2,9 @@
 /// the applied impulse goes below this value
 pub const MIN_MANIFOLD_IMPULSE: f32 = 1e-4;
 /// The baumgarte factor applied to collisions
-pub const BAUMGARTE: f32 = 0.03;
+pub const BAUMGARTE: f32 = 0.01;
 /// The baumgarte slop allowed by the collision-solver
 pub const BAUMGARTE_SLOP: f32 = 0.005;
-/// A factor that multiplies the normal impulse (without baumgarte-bias). Made
-/// to sortof _dampen_ oscillations caused by hard impulses at the border of
-/// bodies.
-pub const NORMAL_COLLISION_IMPULSE_FACTOR: f32 = 1;
 /// When calculating best normals in SAT, the new normal has to be the below
 /// value better than the last as to eliminate "false" positives.
 pub const SAT_OVERLAP_THRESHOLD: f32 = 1e-2;
@@ -18,4 +14,4 @@ pub const SAT_OVERLAP_THRESHOLD: f32 = 1e-2;
 pub const NMATH_WARN_DIVIDING_BELOW: f32 = 1e-3;
 /// The padding of intersection that gets applied when checking between aabb
 /// intersection.
-pub const AABB_EPS_OVERLAP: f32 = 0.05;
+pub const AABB_EPS_OVERLAP: f32 = 0.005;

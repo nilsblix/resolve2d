@@ -6,7 +6,6 @@ const rb_mod = @import("rigidbody.zig");
 const RigidBody = rb_mod.RigidBody;
 const fg_mod = @import("force_generator.zig");
 const ForceGenerator = fg_mod.ForceGenerator;
-const rl = @import("raylib");
 const def_rend = @import("default_renderer.zig");
 pub const Units = def_rend.Units;
 const Renderer = def_rend.Renderer;

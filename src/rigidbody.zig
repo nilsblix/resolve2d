@@ -13,20 +13,17 @@ pub const RigidBodies = enum {
 };
 
 pub const Incident = union(enum) {
-    edge: Edge.Points,
+    edge: Edge.Line,
     point: Vector2,
 };
 
 pub const Edge = struct {
-    pub const Points = struct {
-        a: Vector2,
-        b: Vector2,
-    };
+    const Line = collision.Line;
     dir: Vector2,
     // FIXME: better naming for the point att which the normal is applied?? in rect this is
     // the avg between the two lines, used primarily for rendering but may have other uses.
     middle: Vector2,
-    edge: ?Points = null,
+    edge: ?Line = null,
 };
 
 pub const EdgeNormalIterator = struct {
@@ -43,11 +40,6 @@ pub const EdgeNormalIterator = struct {
         self.iter_performed = 0;
         return null;
     }
-
-    pub fn peekNormal(body: RigidBody, other: RigidBody) ?Edge {
-        const ret = body.vtable.getNormal(body.ptr, body.props, other, 0);
-        return ret;
-    }
 };
 
 /// All integraton is handled in the solver ==> basically only geometric properties/functions needs
@@ -61,7 +53,7 @@ pub const RigidBody = struct {
         getNormal: *const fn (ptr: *anyopaque, props: RigidBody.Props, body: RigidBody, iter: usize) ?Edge,
         projectAlongAxis: *const fn (ptr: *anyopaque, props: Props, normal: Vector2) [2]f32,
         identifyCollisionPoints: *const fn (rigidself: *RigidBody, incident: *RigidBody, active_normal_iter: usize) [manifold_max_points]?CollisionPoint,
-        clipAgainstEdge: *const fn (rigidself: *RigidBody, edge: Edge.Points, normal: Vector2) Incident,
+        clipAgainstEdge: *const fn (rigidself: *RigidBody, edge: Edge.Line, normal: Vector2) Incident,
     };
 
     /// Props are kinematic properties
@@ -121,8 +113,8 @@ pub const RigidBody = struct {
         return self.vtable.identifyCollisionPoints(self, incident, active_normal_iter);
     }
 
-    pub fn clipAgainstEdge(self: *Self, edge: Edge.Points, normal: Vector2) Incident {
-        return self.vtable.clipAgainstEdge(self, edge, normal);
+    pub fn clipAgainstEdge(self: *Self, edge: Edge) Incident {
+        return self.vtable.clipAgainstEdge(self, edge.edge.?, edge.dir);
     }
 
     pub fn worldToLocal(self: Self, pos: Vector2) Vector2 {
@@ -262,7 +254,7 @@ pub const DiscBody = struct {
         return ret;
     }
 
-    pub fn clipAgainstEdge(rigidself: *RigidBody, edge: Edge.Points, normal: Vector2) Incident {
+    pub fn clipAgainstEdge(rigidself: *RigidBody, edge: Edge.Line, normal: Vector2) Incident {
         const self: *Self = @ptrCast(@alignCast(rigidself.ptr));
         _ = edge;
 
@@ -439,7 +431,7 @@ pub const RectangleBody = struct {
         }
 
         if (normal) |n| {
-            const incident_edge = incident.clipAgainstEdge(n.edge.?, n.dir);
+            const incident_edge = incident.clipAgainstEdge(n);
             switch (incident_edge) {
                 .edge => {
                     const a = incident_edge.edge.a;
@@ -474,10 +466,10 @@ pub const RectangleBody = struct {
         return ret;
     }
 
-    pub fn clipAgainstEdge(rigidself: *RigidBody, edge: Edge.Points, normal: Vector2) Incident {
+    pub fn clipAgainstEdge(rigidself: *RigidBody, edge: Edge.Line, normal: Vector2) Incident {
         const self: *Self = @ptrCast(@alignCast(rigidself.ptr));
 
-        var best_edge = Edge.Points{ .a = undefined, .b = undefined };
+        var best_edge = Edge.Line{ .a = undefined, .b = undefined };
         var best_dot = std.math.inf(f32);
 
         var curr_world = rigidself.localToWorld(self.local_vertices[0]);
@@ -490,7 +482,7 @@ pub const RectangleBody = struct {
 
             const dot = nmath.dot2(normal, tentative_normal);
             if (dot < best_dot) {
-                best_edge = Edge.Points{ .a = curr_world, .b = next_world };
+                best_edge = Edge.Line{ .a = curr_world, .b = next_world };
                 best_dot = dot;
             }
 

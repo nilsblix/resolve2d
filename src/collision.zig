@@ -5,23 +5,12 @@ const rb_mod = @import("rigidbody.zig");
 const RigidBody = rb_mod.RigidBody;
 const consts = @import("zigics_consts.zig");
 
-pub const Collision = struct {
-    collides: bool,
-    normal: Vector2,
-    penetration: f32,
-    reference_normal_id: usize,
-    key: CollisionKey,
-};
-
 pub const CollisionKey = struct {
     ref_body: *RigidBody,
     inc_body: *RigidBody,
 };
 
 pub const CollisionPoint = struct {
-    pn: f32 = 0.0,
-    pt: f32 = 0.0,
-
     accumulated_pn: f32 = 0.0,
     accumulated_pt: f32 = 0.0,
 
@@ -32,8 +21,6 @@ pub const CollisionPoint = struct {
     depth: f32,
     original_depth: f32,
 
-    dv: Vector2 = .{},
-
     mass_n: f32,
     mass_t: f32,
 
@@ -41,8 +28,6 @@ pub const CollisionPoint = struct {
 
     pub fn init(pos: Vector2, depth: f32, ref: RigidBody, inc: RigidBody) CollisionPoint {
         return CollisionPoint{
-            .pn = 0,
-            .pt = 0,
             .accumulated_pn = 0,
             .accumulated_pt = 0,
             .ref_r = nmath.sub2(pos, ref.props.pos),
@@ -50,7 +35,6 @@ pub const CollisionPoint = struct {
             .pos = pos,
             .depth = depth,
             .original_depth = depth,
-            .dv = .{},
             .mass_n = 0,
             .mass_t = 0,
         };
@@ -81,22 +65,21 @@ pub const CollisionManifold = struct {
         const b2 = key.inc_body;
 
         for (&self.points) |*null_point| {
-            if (null_point.*) |*point| {
-                const r1 = point.ref_r;
-                const r2 = point.inc_r;
+            var point = &(null_point.* orelse continue);
+            const r1 = point.ref_r;
+            const r2 = point.inc_r;
 
-                const r_rot_1 = nmath.rotate2(r1, b1.props.angle - self.prev_angle_1);
-                const r_rot_2 = nmath.rotate2(r2, b2.props.angle - self.prev_angle_2);
+            const r_rot_1 = nmath.rotate2(r1, b1.props.angle - self.prev_angle_1);
+            const r_rot_2 = nmath.rotate2(r2, b2.props.angle - self.prev_angle_2);
 
-                const a1 = nmath.add2(r_rot_1, b1.props.pos);
-                const a2 = nmath.add2(r_rot_2, b2.props.pos);
+            const a1 = nmath.add2(r_rot_1, b1.props.pos);
+            const a2 = nmath.add2(r_rot_2, b2.props.pos);
 
-                const depth = nmath.dot2(self.normal, nmath.sub2(a2, a1));
-                point.depth = depth + point.original_depth;
+            const depth = nmath.dot2(self.normal, nmath.sub2(a2, a1));
+            point.depth = depth + point.original_depth;
 
-                point.ref_r = r_rot_1;
-                point.inc_r = r_rot_2;
-            }
+            point.ref_r = r_rot_1;
+            point.inc_r = r_rot_2;
         }
 
         self.prev_angle_1 = b1.props.angle;
@@ -115,25 +98,24 @@ pub const CollisionManifold = struct {
         const inv_i2 = if (b2.static) 0 else (1 / b2.props.inertia);
 
         self.tangent = nmath.rotate90clockwise(self.normal);
-        // self.friction = @sqrt(b1.props.mu_d * b2.props.mu_d);
-        self.friction = 0.5 * (b1.props.mu_d + b2.props.mu_d);
+        self.friction = @sqrt(b1.props.mu_d * b2.props.mu_d);
+        // self.friction = 0.5 * (b1.props.mu_d + b2.props.mu_d);
 
         for (&self.points) |*null_point| {
-            if (null_point.*) |*point| {
-                const r1 = point.ref_r;
-                const r2 = point.inc_r;
+            var point = &(null_point.* orelse continue);
+            const r1 = point.ref_r;
+            const r2 = point.inc_r;
 
-                const r1n = nmath.cross2(r1, self.normal);
-                const r2n = nmath.cross2(r2, self.normal);
-                const kn = inv_mass + inv_i1 * (r1n * r1n) + inv_i2 * (r2n * r2n);
+            const r1n = nmath.cross2(r1, self.normal);
+            const r2n = nmath.cross2(r2, self.normal);
+            const kn = inv_mass + inv_i1 * (r1n * r1n) + inv_i2 * (r2n * r2n);
 
-                const r1t = nmath.cross2(r1, self.tangent);
-                const r2t = nmath.cross2(r2, self.tangent);
-                const kt = inv_mass + inv_i1 * (r1t * r1t) + inv_i2 * (r2t * r2t);
+            const r1t = nmath.cross2(r1, self.tangent);
+            const r2t = nmath.cross2(r2, self.tangent);
+            const kt = inv_mass + inv_i1 * (r1t * r1t) + inv_i2 * (r2t * r2t);
 
-                point.mass_n = if (kn > 0.0) (1 / kn) else 0.0;
-                point.mass_t = if (kt > 0.0) (1 / kt) else 0.0;
-            }
+            point.mass_n = if (kn > 0.0) (1 / kn) else 0.0;
+            point.mass_t = if (kt > 0.0) (1 / kt) else 0.0;
         }
     }
 
@@ -154,54 +136,59 @@ pub const CollisionManifold = struct {
         const omega2 = b2.props.ang_momentum * inv_i2;
 
         for (&self.points) |*null_point| {
-            if (null_point.*) |*point| {
-                const r1 = point.ref_r;
-                const r2 = point.inc_r;
+            var point = &(null_point.* orelse continue);
 
-                // CALCULATION
-                const vrot_1 = Vector2.init(-r1.y * omega1, r1.x * omega1);
-                const v1 = nmath.add2(vlinear_1, vrot_1);
+            if (point.depth >= 0) {
+                point.accumulated_pn = 0;
+                point.accumulated_pt = 0;
+                continue;
+            }
 
-                const vrot_2 = Vector2.init(-r2.y * omega2, r2.x * omega2);
-                const v2 = nmath.add2(vlinear_2, vrot_2);
+            const r1 = point.ref_r;
+            const r2 = point.inc_r;
 
-                point.dv = nmath.sub2(v1, v2);
+            // CALCULATION
+            const vrot_1 = Vector2.init(-r1.y * omega1, r1.x * omega1);
+            const v1 = nmath.add2(vlinear_1, vrot_1);
 
-                const bias = consts.BAUMGARTE * @max(0, (-point.depth) - consts.BAUMGARTE_SLOP) / dt;
-                const fact = consts.NORMAL_COLLISION_IMPULSE_FACTOR;
-                var num = fact * nmath.dot2(point.dv, self.normal) + bias;
-                point.pn = num * point.mass_n;
+            const vrot_2 = Vector2.init(-r2.y * omega2, r2.x * omega2);
+            const v2 = nmath.add2(vlinear_2, vrot_2);
 
-                if (point.pn < consts.MIN_MANIFOLD_IMPULSE) continue;
+            const dv = nmath.sub2(v1, v2);
 
-                num = nmath.dot2(point.dv, self.tangent);
-                point.pt = num * point.mass_t;
+            const bias = consts.BAUMGARTE * @max(0, (-point.depth) - consts.BAUMGARTE_SLOP) / dt;
+            var num = nmath.dot2(dv, self.normal) + bias;
+            const pn = num * point.mass_n;
 
-                // APPLICATION
-                const new_accumulated_pn = @max(0, point.accumulated_pn + point.pn);
-                const applied_pn = new_accumulated_pn - point.accumulated_pn;
-                point.accumulated_pn = new_accumulated_pn;
+            if (pn < consts.MIN_MANIFOLD_IMPULSE) continue;
 
-                const max_pt = self.friction * @abs(point.accumulated_pn);
+            num = nmath.dot2(dv, self.tangent);
+            const pt = num * point.mass_t;
 
-                const new_accumulated_pt = std.math.clamp(point.accumulated_pt + point.pt, -max_pt, max_pt);
-                const applied_pt = new_accumulated_pt - point.accumulated_pt;
-                point.accumulated_pt = new_accumulated_pt;
+            // APPLICATION
+            const new_accumulated_pn = @max(0, point.accumulated_pn + pn);
+            const applied_pn = new_accumulated_pn - point.accumulated_pn;
+            point.accumulated_pn = new_accumulated_pn;
 
-                const pn_vec = nmath.scale2(self.normal, applied_pn);
-                const pt_vec = nmath.scale2(self.tangent, applied_pt);
+            const max_pt = self.friction * @abs(point.accumulated_pn);
 
-                const dp = nmath.add2(pn_vec, pt_vec);
+            const new_accumulated_pt = std.math.clamp(point.accumulated_pt + pt, -max_pt, max_pt);
+            const applied_pt = new_accumulated_pt - point.accumulated_pt;
+            point.accumulated_pt = new_accumulated_pt;
 
-                if (!b1.static) {
-                    self.applied_linear_p1.sub(dp);
-                    self.applied_rot_p_1 -= nmath.cross2(r1, dp);
-                }
+            const pn_vec = nmath.scale2(self.normal, applied_pn);
+            const pt_vec = nmath.scale2(self.tangent, applied_pt);
 
-                if (!b2.static) {
-                    self.applied_linear_p2.add(dp);
-                    self.applied_rot_p_2 += nmath.cross2(r2, dp);
-                }
+            const dp = nmath.add2(pn_vec, pt_vec);
+
+            if (!b1.static) {
+                self.applied_linear_p1.sub(dp);
+                self.applied_rot_p_1 -= nmath.cross2(r1, dp);
+            }
+
+            if (!b2.static) {
+                self.applied_linear_p2.add(dp);
+                self.applied_rot_p_2 += nmath.cross2(r2, dp);
             }
         }
 
@@ -225,7 +212,7 @@ pub fn normalShouldFlipSAT(normal: Vector2, reference: *RigidBody, incident: *Ri
     return false;
 }
 
-pub fn overlapSAT(ret: *Collision, reference: *RigidBody, incident: *RigidBody) bool {
+pub fn overlapSAT(ret: *SATResult, reference: *RigidBody, incident: *RigidBody) bool {
     const EPS: f32 = consts.SAT_OVERLAP_THRESHOLD;
 
     var iter = reference.normal_iter;
@@ -287,8 +274,16 @@ pub fn overlapSAT(ret: *Collision, reference: *RigidBody, incident: *RigidBody) 
     return true;
 }
 
-pub fn performNarrowSAT(b1: *RigidBody, b2: *RigidBody) Collision {
-    var ret: Collision = undefined;
+pub const SATResult = struct {
+    collides: bool,
+    normal: Vector2,
+    penetration: f32,
+    reference_normal_id: usize,
+    key: CollisionKey,
+};
+
+pub fn performNarrowSAT(b1: *RigidBody, b2: *RigidBody) SATResult {
+    var ret: SATResult = undefined;
     ret.collides = false;
     ret.penetration = std.math.inf(f32);
 
