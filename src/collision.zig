@@ -26,13 +26,14 @@ pub const CollisionPoint = struct {
 
     const Self = @This();
 
-    pub fn init(pos: Vector2, depth: f32, ref: RigidBody, inc: RigidBody) CollisionPoint {
+    pub fn init(pos: Vector2, depth: f32, ref: RigidBody, inc: RigidBody, normal: Vector2) CollisionPoint {
+        const middle = nmath.sub2(pos, nmath.scale2(normal, depth / 2));
         return CollisionPoint{
             .accumulated_pn = 0,
             .accumulated_pt = 0,
             .ref_r = nmath.sub2(pos, ref.props.pos),
             .inc_r = nmath.sub2(pos, inc.props.pos),
-            .pos = pos,
+            .pos = middle,
             .depth = depth,
             .original_depth = depth,
             .mass_n = 0,
@@ -66,6 +67,9 @@ pub const CollisionManifold = struct {
 
         for (&self.points) |*null_point| {
             var point = &(null_point.* orelse continue);
+
+            if (nmath.approxEql(point.depth, point.original_depth, 1e-4)) continue;
+
             const r1 = point.ref_r;
             const r2 = point.inc_r;
 
@@ -215,8 +219,9 @@ pub fn normalShouldFlipSAT(normal: Vector2, reference: *RigidBody, incident: *Ri
 pub fn overlapSAT(ret: *SATResult, reference: *RigidBody, incident: *RigidBody) bool {
     const EPS: f32 = consts.SAT_OVERLAP_THRESHOLD;
 
-    var iter = reference.normal_iter;
-    while (iter.next(reference.*, incident.*)) |edge| {
+    // var iter = reference.normal_iter;
+    var iter = reference.makeNormalIter(incident);
+    while (iter.next()) |edge| {
         var normal = edge.dir;
         var flipped = false;
 

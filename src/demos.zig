@@ -10,6 +10,28 @@ const collision = @import("collision.zig");
 const renderer = @import("default_renderer.zig");
 const ctrs = @import("constraint.zig");
 
+pub fn setupCramming(solver: *zigics.Solver) !void {
+    var factory = solver.entityFactory();
+
+    var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
+    // opt.mu_d = 0.2;
+    // opt.mu_s = 0.3;
+    opt.mu_d = 0.3;
+    opt.mu_s = 0.4;
+    var body: *rigidbody.RigidBody = undefined;
+
+    opt.pos = Vector2.init(-10, 0);
+    body = try factory.makeRectangleBody(opt, .{ .width = 1, .height = 20 });
+
+    opt.pos = Vector2.init(0, 10);
+    _ = try factory.makeRectangleBody(opt, .{ .width = 20, .height = 1 });
+    opt.pos = Vector2.init(10, 0);
+    _ = try factory.makeRectangleBody(opt, .{ .width = 1, .height = 20 });
+    opt.pos = Vector2.init(0, -10);
+    _ = try factory.makeRectangleBody(opt, .{ .width = 20, .height = 1 });
+
+}
+
 pub fn setupPseudoStatic(solver: *zigics.Solver) !void {
     var factory = solver.entityFactory();
 
@@ -198,7 +220,7 @@ pub fn setupStacking(solver: *zigics.Solver) !void {
     width = 0.8;
     height = 1.0;
     opt.pos.x = 15.0;
-    for (0..30) |y| {
+    for (0..50) |y| {
         opt.pos.y = @as(f32, @floatFromInt(y)) * height + 5.1;
         _ = try factory.makeRectangleBody(opt, .{ .width = width, .height = height });
     }
@@ -313,6 +335,7 @@ pub fn setupPrimary(solver: *zigics.Solver) !void {
     _ = try factory.makeMotorJoint(.{ .beta = 100 }, body, -3.1415);
 
     try factory.makeDownwardsGravity(9.82);
+    // _ = try factory.makeDownwardsGravity(0);
 }
 
 pub fn setupDominos(solver: *zigics.Solver) !void {
@@ -334,7 +357,7 @@ pub fn setupDominos(solver: *zigics.Solver) !void {
     ground.static = true;
 
     _ = AREA_HEIGHT;
-    opt.mass_prop = .{ .density = 20.0 };
+    opt.mass_prop = .{ .density = 1.0 };
 
     const height: f32 = 2.5;
     const width: f32 = 0.6;

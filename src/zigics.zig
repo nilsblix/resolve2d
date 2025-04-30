@@ -150,24 +150,8 @@ pub const Solver = struct {
         const sub_dt = dt / f32_sub;
         const inv_sub_dt = 1 / sub_dt;
 
-        // for (self.bodies.items) |*body| {
-        //     if (body.static) continue;
-        //     var props: *RigidBody.Props = &body.props;
-        //
-        //     props.pos.addmult(props.momentum, dt / props.mass);
-        //     props.angle += props.ang_momentum * dt / props.inertia;
-        // }
-
         try self.updateManifolds(alloc);
         var iter = self.manifolds.iterator();
-
-        // for (self.bodies.items) |*body| {
-        //     if (body.static) continue;
-        //     var props: *RigidBody.Props = &body.props;
-        //
-        //     props.pos.submult(props.momentum, dt / props.mass);
-        //     props.angle -= props.ang_momentum * dt / props.inertia;
-        // }
 
         for (0..sub_steps) |_| {
             for (self.force_generators.items) |*gen| {

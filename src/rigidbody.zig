@@ -26,22 +26,6 @@ pub const Edge = struct {
     edge: ?Line = null,
 };
 
-pub const EdgeNormalIterator = struct {
-    num_iters: usize,
-    iter_performed: usize = 0,
-
-    const Self = @This();
-    pub fn next(self: *Self, body: RigidBody, other: RigidBody) ?Edge {
-        if (self.iter_performed < self.num_iters) {
-            const ret = body.vtable.getNormal(body.ptr, body.props, other, self.iter_performed);
-            self.iter_performed += 1;
-            return ret;
-        }
-        self.iter_performed = 0;
-        return null;
-    }
-};
-
 /// All integraton is handled in the solver ==> basically only geometric properties/functions needs
 /// to be implemented by the struct.
 pub const RigidBody = struct {
@@ -54,6 +38,30 @@ pub const RigidBody = struct {
         projectAlongAxis: *const fn (ptr: *anyopaque, props: Props, normal: Vector2) [2]f32,
         identifyCollisionPoints: *const fn (rigidself: *RigidBody, incident: *RigidBody, active_normal_iter: usize) [manifold_max_points]?CollisionPoint,
         clipAgainstEdge: *const fn (rigidself: *RigidBody, edge: Edge.Line, normal: Vector2) Incident,
+    };
+
+    // Use this to iterate over a bodies normals. Used with body.makeNormalIter(...)
+    pub const NormalIter = struct {
+        b1: *RigidBody,
+        b2: *RigidBody,
+
+        num_iters: usize,
+        iter_performed: usize = 0,
+
+        const Iter = @This();
+        pub fn next(self: *Iter) ?Edge {
+            if (self.iter_performed < self.num_iters) {
+                const ret = self.b1.vtable.getNormal(self.b1.ptr, self.b1.props, self.b2.*, self.iter_performed);
+                self.iter_performed += 1;
+                return ret;
+            }
+            self.iter_performed = 0;
+            return null;
+        }
+
+        pub fn reset(self: *Iter) void {
+            self.iter_performed = 0;
+        }
     };
 
     /// Props are kinematic properties
@@ -73,8 +81,8 @@ pub const RigidBody = struct {
     };
 
     aabb: aabb.AABB,
-    normal_iter: EdgeNormalIterator,
     static: bool = false,
+    num_normals: usize,
     type: RigidBodies,
     /// Props are kinematic properties
     props: Props,
@@ -122,6 +130,12 @@ pub const RigidBody = struct {
         const ret = nmath.rotate2(r, -self.props.angle);
         return ret;
     }
+
+    pub fn makeNormalIter(self: *Self, other: *RigidBody) RigidBody.NormalIter {
+        const ret = RigidBody.NormalIter{ .b1 = self, .b2 = other, .num_iters = self.num_normals };
+        return ret;
+    }
+
 };
 
 test "local to world and inverses" {
@@ -173,7 +187,7 @@ pub const DiscBody = struct {
                 .mu_d = mu_d,
             },
             .aabb = undefined,
-            .normal_iter = EdgeNormalIterator{ .num_iters = 1 },
+            .num_normals = 1,
             .type = RigidBodies.disc,
             .ptr = self,
             .vtable = DiscBody.rigidbody_vtable,
@@ -250,7 +264,7 @@ pub const DiscBody = struct {
         for (0..manifold_max_points) |i| {
             ret[i] = null;
         }
-        ret[0] = CollisionPoint.init(pos, depth, rigidself.*, incident.*);
+        ret[0] = CollisionPoint.init(pos, depth, rigidself.*, incident.*, normal);
         return ret;
     }
 
@@ -304,7 +318,7 @@ pub const RectangleBody = struct {
                 .mu_d = mu_d,
             },
             .aabb = undefined,
-            .normal_iter = EdgeNormalIterator{ .num_iters = 4 },
+            .num_normals = 4,
             .type = RigidBodies.rectangle,
             .ptr = self,
             .vtable = RectangleBody.rigidbody_vtable,
@@ -443,20 +457,20 @@ pub const RectangleBody = struct {
                     var dot = nmath.dot2(nmath.sub2(a, n.edge.?.a), n.dir);
                     if (dot < 0.0) {
                         const pos = incident_edge.edge.a;
-                        ret[i] = CollisionPoint.init(pos, dot, rigidself.*, incident.*);
+                        ret[i] = CollisionPoint.init(pos, dot, rigidself.*, incident.*, n.dir);
                         i += 1;
                     }
 
                     dot = nmath.dot2(nmath.sub2(b, n.edge.?.b), n.dir);
                     if (dot < 0.0) {
                         const pos = incident_edge.edge.b;
-                        ret[i] = CollisionPoint.init(pos, dot, rigidself.*, incident.*);
+                        ret[i] = CollisionPoint.init(pos, dot, rigidself.*, incident.*, n.dir);
                     }
                 },
                 .point => {
                     const pos = incident_edge.point;
                     const dot = nmath.dot2(nmath.sub2(pos, n.edge.?.a), n.dir);
-                    ret[0] = CollisionPoint.init(pos, dot, rigidself.*, incident.*);
+                    ret[0] = CollisionPoint.init(pos, dot, rigidself.*, incident.*, n.dir);
                 },
             }
         } else {
