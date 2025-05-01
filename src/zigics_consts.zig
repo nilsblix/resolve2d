@@ -8,10 +8,11 @@ pub const BAUMGARTE_SLOP: f32 = 0.005;
 /// When calculating best normals in SAT, the new normal has to be the below
 /// value better than the last as to eliminate "false" positives.
 pub const SAT_OVERLAP_THRESHOLD: f32 = 1e-4;
+pub const COLLISION_MARGIN: f32 = 0.2;
 /// When nmath is dividing by something, it warns in the console
 /// (std.debug.print) when trying to divide a value smaller than this. This
 /// value is primarily used for debugging purposes.
 pub const NMATH_WARN_DIVIDING_BELOW: f32 = 1e-3;
 /// The padding of intersection that gets applied when checking between aabb
 /// intersection.
-pub const AABB_EPS_OVERLAP: f32 = 0.005;
+pub const AABB_EPS_OVERLAP: f32 = 0.3;

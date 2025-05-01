@@ -357,7 +357,7 @@ pub fn setupDominos(solver: *zigics.Solver) !void {
     ground.static = true;
 
     _ = AREA_HEIGHT;
-    opt.mass_prop = .{ .density = 1.0 };
+    opt.mass_prop = .{ .density = 5.0 };
 
     const height: f32 = 2.5;
     const width: f32 = 0.6;

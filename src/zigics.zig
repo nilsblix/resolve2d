@@ -10,10 +10,14 @@ const def_rend = @import("default_renderer.zig");
 pub const Units = def_rend.Units;
 const Renderer = def_rend.Renderer;
 const clsn = @import("collision.zig");
-const qtree = @import("quadtree.zig");
-const QuadTree = qtree.QuadTree;
 const ctr_mod = @import("constraint.zig");
 const Constraint = ctr_mod.Constraint;
+
+const qtree = @import("quadtree.zig");
+const QuadTree = qtree.QuadTree;
+
+const spat = @import("spatial_hash.zig");
+const SpatialHash = spat.SpatialHash;
 
 pub const EntityFactory = struct {
     pub const BodyOptions = struct {
@@ -201,9 +205,12 @@ pub const Solver = struct {
     }
 
     fn updateManifolds(self: *Self, alloc: Allocator) !void {
-        self.quadtree.clear(alloc);
+        // COMMENT
+        // self.quadtree.clear(alloc);
+        // try self.quadtree.insertValues(alloc, self.bodies.items);
 
-        try self.quadtree.insertValues(alloc, self.bodies.items);
+        var spatial = try SpatialHash.init(alloc, 2.0, 8 * self.bodies.items.len, &self.bodies);
+        defer spatial.deinit();
 
         var queries = std.ArrayList(*RigidBody).init(alloc);
         defer queries.deinit();
@@ -216,7 +223,10 @@ pub const Solver = struct {
                 queries.clearRetainingCapacity();
             }
             // queries.clearAndFree();
-            try self.quadtree.queryAABB(body1.aabb, &queries);
+            // COMMENT
+            // try self.quadtree.queryAABB(body1.aabb, &queries);
+
+            try spatial.query(body1, &queries);
 
             for (queries.items) |body2| {
                 if (body1.static and body2.static) continue;

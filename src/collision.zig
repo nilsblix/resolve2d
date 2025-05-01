@@ -240,7 +240,7 @@ pub fn overlapSAT(ret: *SATResult, reference: *RigidBody, incident: *RigidBody) 
         const d2 = p2[1] - p1[0];
 
         const d = @min(d1, d2);
-        if (d <= -EPS) return false;
+        if (d <= -consts.COLLISION_MARGIN) return false;
 
         if (!flipped and nmath.approxEql2(normal, ret.normal, EPS)) {
             // if they are the same
@@ -294,13 +294,13 @@ pub fn performNarrowSAT(b1: *RigidBody, b2: *RigidBody) SATResult {
 
     // FIXME: Allocators don't align memory the same --> Non deterministic
     // behaviour between allocators.
-    // const num1 = @intFromPtr(b1.ptr);
-    // const num2 = @intFromPtr(b2.ptr);
-    // const o1 = if (num1 < num2) b1 else b2;
-    // const o2 = if (o1 == b1) b2 else b1;
+    const num1 = @intFromPtr(b1.ptr);
+    const num2 = @intFromPtr(b2.ptr);
+    const o1 = if (num1 < num2) b1 else b2;
+    const o2 = if (o1 == b1) b2 else b1;
 
-    const o1 = b1;
-    const o2 = b2;
+    // const o1 = b1;
+    // const o2 = b2;
 
     if (!overlapSAT(&ret, o1, o2)) {
         return ret;

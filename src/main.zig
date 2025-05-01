@@ -1,3 +1,9 @@
+// CLEAN:
+// Use these for making comments/noting code:
+// - FIXME: An issue that needs to be fixed.
+// - POTENTIAL: I have spotted something that I think works, but could be a cause for some weird bug.
+// - CLEAN: Remove something/general cleanup of code.
+
 const std = @import("std");
 const rl = @import("raylib");
 const zigics = @import("zigics.zig");
@@ -11,11 +17,11 @@ const demos = @import("demos.zig");
 const ctr_mod = @import("constraint.zig");
 
 pub fn main() !void {
-    // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    // defer _ = gpa.deinit();
-    // const alloc = gpa.allocator();
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    defer _ = gpa.deinit();
+    const alloc = gpa.allocator();
 
-    const alloc = std.heap.page_allocator;
+    // const alloc = std.heap.page_allocator;
     // const alloc = std.heap.c_allocator;
 
     // const screen_width = 1536;
@@ -39,8 +45,8 @@ pub fn main() !void {
 
     const HZ: i32 = 60;
     const STANDARD_DT: f32 = 1 / @as(f32, HZ);
-    const SUB_STEPS = 2;
-    const COLLISION_ITERS = 4;
+    const SUB_STEPS = 4;
+    const COLLISION_ITERS = 16;
     rl.setTargetFPS(HZ);
 
     var simulating: bool = false;
@@ -225,7 +231,7 @@ const MouseSpring = struct {
                     const r_rotated = nmath.sub2(mouse_pos, body.props.pos);
                     const r = nmath.rotate2(r_rotated, -body.props.angle);
 
-                    const max: f32 = 10;
+                    const max: f32 = 40;
                     const params = ctr_mod.Constraint.Parameters{
                         .beta = 100,
                         .lower_lambda = -max,
