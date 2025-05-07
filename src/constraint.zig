@@ -38,6 +38,52 @@ pub const Constraint = struct {
     }
 };
 
+pub const FixedAngleJoint = struct {
+    id: RigidBody.Id,
+    theta_t: f32,
+
+    const VTable = Constraint.VTable{
+        .deinit = MotorJoint.deinit,
+        .solve = MotorJoint.solve,
+    };
+
+    const Self = @This();
+
+    pub fn init(alloc: Allocator, params: Constraint.Parameters, id: RigidBody.Id, omega_t: f32) !Constraint {
+        const joint = try alloc.create(MotorJoint);
+        joint.id = id;
+        joint.omega_t = omega_t;
+
+        return Constraint{
+            .type = Constraints.motor_joint,
+            .params = params,
+            .ptr = joint,
+            .vtable = MotorJoint.VTable,
+        };
+    }
+
+    pub fn deinit(ctrself: *Constraint, alloc: Allocator) void {
+        const self: *Self = @ptrCast(@alignCast(ctrself.ptr));
+        alloc.destroy(self);
+    }
+
+    pub fn solve(ctrself: *Constraint, bodies: std.AutoArrayHashMap(RigidBody.Id, RigidBody), dt: f32, inv_dt: f32) !void {
+        const self: *Self = @ptrCast(@alignCast(ctrself.ptr));
+        const entry = bodies.getEntry(self.id) orelse return error.InvalidRigidBodyId;
+        var body = entry.value_ptr;
+
+        _ = dt;
+        _ = inv_dt;
+        // const omega = body.props.ang_momentum / body.props.inertia;
+        // const delta = self.omega_t - omega;
+
+        // FIXME: This constraint math is COMPLETELY FUCKED. Redo ts immediately...
+        body.props.angle = self.theta_t;
+        body.props.torque = 0;
+        body.props.ang_momentum = 0;
+    }
+};
+
 pub const MotorJoint = struct {
     id: RigidBody.Id,
     omega_t: f32,
@@ -70,7 +116,7 @@ pub const MotorJoint = struct {
     pub fn solve(ctrself: *Constraint, bodies: std.AutoArrayHashMap(RigidBody.Id, RigidBody), dt: f32, inv_dt: f32) !void {
         const self: *Self = @ptrCast(@alignCast(ctrself.ptr));
         const entry = bodies.getEntry(self.id) orelse return error.InvalidRigidBodyId;
-        var body = entry.key_ptr;
+        var body = entry.value_ptr;
 
         _ = dt;
         _ = inv_dt;

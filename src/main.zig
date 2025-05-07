@@ -183,12 +183,12 @@ const MouseSpring = struct {
 
     const Self = @This();
 
-    pub fn update(self: *Self, alloc: Allocator, units: zigics.Units, physics: *zigics.Solver) !void {
+    pub fn update(self: *Self, alloc: Allocator, units: zigics.Units, solver: *zigics.Solver) !void {
         const rl_pos = rl.getMousePosition();
         const mouse_pos = units.s2w(Vector2.init(rl_pos.x, rl_pos.y));
 
         if (!self.active and rl.isKeyPressed(.v)) {
-            var iter = physics.bodies.iterator();
+            var iter = solver.bodies.iterator();
             while (iter.next()) |*entry| {
                 var body = entry.value_ptr;
                 if (body.static) continue;
@@ -196,14 +196,16 @@ const MouseSpring = struct {
                     const r_rotated = nmath.sub2(mouse_pos, body.props.pos);
                     const r = nmath.rotate2(r_rotated, -body.props.angle);
 
+                    var fac = solver.entityFactory();
+
                     const max: f32 = 40;
                     const params = ctr_mod.Constraint.Parameters{
                         .beta = 100,
                         .lower_lambda = -max,
                         .upper_lambda = max,
                     };
-                    const joint = try ctr_mod.SingleLinkJoint.init(alloc, params, body.id, r, mouse_pos, 0.0);
-                    try physics.constraints.append(joint);
+                    _ = try fac.makeFixedAngleJoint(params, body.id, body.props.angle);
+                    _ = try fac.makeSingleLinkJoint(params, body.id, r, mouse_pos, 0.0);
                     self.active = true;
                     return;
                 }
@@ -211,13 +213,15 @@ const MouseSpring = struct {
         }
 
         if (self.active and rl.isKeyDown(.v)) {
-            const item = physics.constraints.items[physics.constraints.items.len - 1];
+            const item = solver.constraints.items[solver.constraints.items.len - 1];
             const joint: *ctr_mod.SingleLinkJoint = @ptrCast(@alignCast(item.ptr));
             joint.q = mouse_pos;
         }
 
         if (self.active and rl.isKeyReleased(.v)) {
-            var item = physics.constraints.pop();
+            var item = solver.constraints.pop();
+            item.?.deinit(alloc);
+            item = solver.constraints.pop();
             item.?.deinit(alloc);
             self.active = false;
         }

@@ -105,6 +105,14 @@ pub const EntityFactory = struct {
         try self.solver.constraints.append(ctr);
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
     }
+
+    pub fn makeFixedAngleJoint(self: *Self, params: Constraint.Parameters, id: RigidBody.Id, target_angle: f32) !*Constraint {
+        const entry = self.solver.bodies.getEntry(id) orelse return error.NotAValidRigidBodyId;
+        const body = entry.value_ptr;
+        const ctr = try ctr_mod.FixedAngleJoint.init(self.solver.alloc, params, body.id, target_angle);
+        try self.solver.constraints.append(ctr);
+        return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
+    }
 };
 
 pub const Solver = struct {
