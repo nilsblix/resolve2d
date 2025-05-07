@@ -103,7 +103,7 @@ pub const CollisionManifold = struct {
         const inv_i2 = if (b2.static) 0 else (1 / b2.props.inertia);
 
         self.tangent = nmath.rotate90clockwise(self.normal);
-        self.friction = @sqrt(b1.props.mu_d * b2.props.mu_d);
+        self.friction = @sqrt(b1.props.mu * b2.props.mu);
         // self.friction = 0.5 * (b1.props.mu_d + b2.props.mu_d);
 
         for (&self.points) |*null_point| {

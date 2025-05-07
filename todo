@@ -1,2 +1,0 @@
-rigidbody id instead of ptr, will fix seg fault
-global id, inc with each add, NOT dec with each destroy

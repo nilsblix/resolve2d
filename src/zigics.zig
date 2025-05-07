@@ -22,8 +22,7 @@ pub const EntityFactory = struct {
         vel: Vector2 = .{},
         angle: f32 = 0.0,
         omega: f32 = 0.0,
-        mu_s: f32 = 0.5,
-        mu_d: f32 = 0.4,
+        mu: f32 = 0.5,
         mass_prop: union(enum) {
             /// kg / m^2
             density: f32,
@@ -64,7 +63,7 @@ pub const EntityFactory = struct {
         };
 
         const id = self.solver.current_body_id;
-        var body = try rb_mod.DiscBody.init(self.solver.alloc, id, rigid_opt.pos, rigid_opt.angle, mass, rigid_opt.mu_s, rigid_opt.mu_d, geometry_opt.radius);
+        var body = try rb_mod.DiscBody.init(self.solver.alloc, id, rigid_opt.pos, rigid_opt.angle, mass, rigid_opt.mu, geometry_opt.radius);
 
         body.props.momentum = nmath.scale2(rigid_opt.vel, mass);
         body.props.ang_momentum = rigid_opt.omega * body.props.inertia;
@@ -79,7 +78,7 @@ pub const EntityFactory = struct {
         };
 
         const id = self.solver.current_body_id;
-        var body = try rb_mod.RectangleBody.init(self.solver.alloc, id, rigid_opt.pos, rigid_opt.angle, mass, rigid_opt.mu_s, rigid_opt.mu_d, geometry_opt.width, geometry_opt.height);
+        var body = try rb_mod.RectangleBody.init(self.solver.alloc, id, rigid_opt.pos, rigid_opt.angle, mass, rigid_opt.mu, geometry_opt.width, geometry_opt.height);
 
         body.props.momentum = nmath.scale2(rigid_opt.vel, mass);
         body.props.ang_momentum = rigid_opt.omega * body.props.inertia;

@@ -30,7 +30,7 @@ pub const Edge = struct {
 /// All integraton is handled in the solver ==> basically only geometric properties/functions needs
 /// to be implemented by the struct.
 pub const RigidBody = struct {
-    pub const Id = i64;
+    pub const Id = u64;
 
     pub const VTable = struct {
         deinit: *const fn (ptr: *anyopaque, alloc: Allocator) void,
@@ -79,8 +79,7 @@ pub const RigidBody = struct {
         ang_momentum: f32,
         torque: f32,
         inertia: f32,
-        mu_d: f32,
-        mu_s: f32,
+        mu: f32,
     };
 
     id: RigidBody.Id,
@@ -173,7 +172,7 @@ pub const DiscBody = struct {
 
     const Self = @This();
 
-    pub fn init(alloc: Allocator, id: RigidBody.Id, pos: Vector2, angle: f32, mass: f32, mu_s: f32, mu_d: f32, radius: f32) !RigidBody {
+    pub fn init(alloc: Allocator, id: RigidBody.Id, pos: Vector2, angle: f32, mass: f32, mu: f32, radius: f32) !RigidBody {
         var self: *Self = try alloc.create(Self);
         self.radius = radius;
 
@@ -187,8 +186,7 @@ pub const DiscBody = struct {
                 .torque = 0,
                 .mass = mass,
                 .inertia = 0.5 * mass * radius * radius,
-                .mu_s = mu_s,
-                .mu_d = mu_d,
+                .mu = mu,
             },
             .id = id,
             .aabb = undefined,
@@ -300,7 +298,7 @@ pub const RectangleBody = struct {
 
     const Self = @This();
 
-    pub fn init(alloc: Allocator, id: RigidBody.Id, pos: Vector2, angle: f32, mass: f32, mu_s: f32, mu_d: f32, width: f32, height: f32) !RigidBody {
+    pub fn init(alloc: Allocator, id: RigidBody.Id, pos: Vector2, angle: f32, mass: f32, mu: f32, width: f32, height: f32) !RigidBody {
         var self: *Self = try alloc.create(Self);
         self.width = width;
         self.height = height;
@@ -319,8 +317,7 @@ pub const RectangleBody = struct {
                 .torque = 0,
                 .mass = mass,
                 .inertia = mass * (width * width + height * height) / 12,
-                .mu_s = mu_s,
-                .mu_d = mu_d,
+                .mu = mu,
             },
             .id = id,
             .aabb = undefined,

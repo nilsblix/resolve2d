@@ -15,8 +15,7 @@ pub fn setup2(solver: *Solver) !void {
     var fac = solver.entityFactory();
 
     var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
-    opt.mu_d = 0.3;
-    opt.mu_s = 0.4;
+    opt.mu = 0.3;
     var body: *rigidbody.RigidBody = undefined;
 
     try fac.makeDownwardsGravity(9.82);
@@ -29,9 +28,6 @@ pub fn setup2(solver: *Solver) !void {
     opt.pos.y = -5;
     body = try fac.makeRectangleBody(opt, .{ .width = 1000, .height = 10 });
     body.static = true;
-
-    opt.pos = Vector2.init(20, 5);
-    body = try fac.makeRectangleBody(opt, .{ .width = 4.0, .height = 1.0 });
 
     opt.vel.x = 70;
     opt.vel.y = 10;
@@ -46,9 +42,9 @@ pub fn setup2(solver: *Solver) !void {
     opt.pos = Vector2.init(20, 5);
     body = try fac.makeRectangleBody(opt, .{ .width = 4.0, .height = 1.0 });
     
-    // const max: f32 = 20.0;
-    // const params = ctrs.Constraint.Parameters{ .beta = 40, .upper_lambda = max, .lower_lambda = max };
-    const params: ctrs.Constraint.Parameters = .{};
+    const max: f32 = 100.0;
+    const params = ctrs.Constraint.Parameters{ .beta = 100, .upper_lambda = max, .lower_lambda = -max };
+    // const params: ctrs.Constraint.Parameters = .{};
     _ = try fac.makeSingleLinkJoint(params, body.id, .{}, nmath.add2(body.props.pos, Vector2.init(0.001, 0)), 0.0);
 
     for (10..30) |x| {
@@ -73,8 +69,7 @@ pub fn setup1(solver: *Solver) !void {
     var fac = solver.entityFactory();
 
     var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
-    opt.mu_d = 0.3;
-    opt.mu_s = 0.4;
+    opt.mu = 0.3;
     var body: *rigidbody.RigidBody = undefined;
 
     try fac.makeDownwardsGravity(9.82);
