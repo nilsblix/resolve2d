@@ -7,7 +7,6 @@ const fg_mod = @import("force_generator.zig");
 const rb_mod = @import("rigidbody.zig");
 const rl = @import("raylib");
 const RigidBody = rb_mod.RigidBody;
-const QuadTree = @import("quadtree.zig").QuadTree;
 const ctr_mod = @import("constraint.zig");
 const Constraint = ctr_mod.Constraint;
 
@@ -222,23 +221,15 @@ pub const Renderer = struct {
         self.units.adjustCameraPos(delta);
     }
 
-    pub fn render(self: *Self, solver: Solver, show_collisions: bool, show_qtree: bool, show_aabbs: bool) void {
-        if (show_qtree) {
-            self.quadtree(solver.quadtree);
-        }
-
+    pub fn render(self: *Self, solver: Solver, show_collisions: bool, show_aabbs: bool) void {
         for (solver.force_generators.items) |*gen| {
             switch (gen.type) {
                 .downwards_gravity => continue,
-                .point_gravity => continue,
-                .static_spring => {
-                    const g: *fg_mod.StaticSpring = @ptrCast(@alignCast(gen.ptr));
-                    const start = nmath.add2(g.body.props.pos, nmath.rotate2(g.r, g.body.props.angle));
-                    self.spring(g.pos, start);
-                },
             }
         }
-        for (solver.bodies.items) |*body| {
+        var body_iter = solver.bodies.iterator();
+        while (body_iter.next()) |*entry| {
+            const body = entry.value_ptr;
             const nmath_screen_pos = self.units.w2s(body.props.pos);
             const screen_pos = rl.Vector2.init(nmath_screen_pos.x, nmath_screen_pos.y);
 
@@ -263,15 +254,6 @@ pub const Renderer = struct {
             var iter = solver.manifolds.iterator();
             while (iter.next()) |entry| {
                 const manifold = entry.value_ptr;
-                const key = entry.key_ptr;
-
-                var ref_id: isize = -1;
-                for (solver.bodies.items, 0..) |*body, i| {
-                    if (body == key.ref_body) {
-                        ref_id = @intCast(i);
-                        break;
-                    }
-                }
 
                 const normal = manifold.normal;
                 for (manifold.points) |point| {
@@ -325,39 +307,6 @@ pub const Renderer = struct {
                 .motor_joint => {},
             }
         }
-    }
-
-    fn quadtree(self: Self, qtree: QuadTree) void {
-        const T = struct {
-            pub fn renderNode(rend: Renderer, node: QuadTree.Node) void {
-                const sf = rend;
-                if (node.children[0] == null) {
-                    const a = node.aabb;
-                    const mult = sf.units.mult.w2s * 2;
-
-                    const dims = Vector2.init(a.half_width, a.half_height);
-                    const scr = Vector2.init(a.pos.x - dims.x, a.pos.y + dims.y);
-                    var rls = rlv2(sf.units.w2s(scr));
-                    rl.drawRectangleV(rls, rl.Vector2.init(dims.x * mult, dims.y * mult), rl.Color.sky_blue);
-
-                    // dims.add(Vector2.init(-0.02, -0.02));
-                    // scr = Vector2.init(a.pos.x - dims.x, a.pos.y + dims.y);
-                    const off = 1;
-                    rls = rlv2(sf.units.w2s(scr));
-                    rls.x += off;
-                    rls.y += off;
-                    rl.drawRectangleV(rls, rl.Vector2.init(dims.x * mult - 2 * off, dims.y * mult - 2 * off), rl.Color.black);
-                } else {
-                    for (node.children) |child| {
-                        if (child) |kid| {
-                            renderNode(sf, kid.*);
-                        }
-                    }
-                }
-            }
-        };
-
-        T.renderNode(self, qtree.root);
     }
 
     fn spring(self: Self, start_pos: Vector2, end_pos: Vector2) void {

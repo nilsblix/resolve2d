@@ -31,7 +31,7 @@ pub fn main() !void {
     // const screen_width = 1920;
     // const screen_height = 1080;
 
-    var world = try zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true, 4, 20, 2.0);
+    var world = try zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true);
     defer world.deinit();
 
     // try demos.setupScene(&world.solver);
@@ -45,13 +45,12 @@ pub fn main() !void {
 
     const HZ: i32 = 60;
     const STANDARD_DT: f32 = 1 / @as(f32, HZ);
-    const SUB_STEPS = 4;
-    const COLLISION_ITERS = 16;
+    const SUB_STEPS = 2;
+    const COLLISION_ITERS = 6;
     rl.setTargetFPS(HZ);
 
     var simulating: bool = false;
     var show_collisions: bool = true;
-    var show_qtree: bool = false;
     var show_aabbs: bool = false;
     var slow_motion = false;
     var high_speed = false;
@@ -110,10 +109,6 @@ pub fn main() !void {
 
         if (rl.isKeyPressed(.f)) {
             high_speed = !high_speed;
-        }
-
-        if (rl.isKeyPressed(.t)) {
-            show_qtree = !show_qtree;
         }
 
         if (rl.isKeyPressed(.a)) {
@@ -197,17 +192,15 @@ pub fn main() !void {
 
         rl.clearBackground(.{ .r = 18, .g = 18, .b = 18, .a = 1 });
         const start = std.time.nanoTimestamp();
-        world.render(show_collisions, show_qtree, show_aabbs);
+        world.render(show_collisions, show_aabbs);
         const end = std.time.nanoTimestamp();
         render_dt = @floatFromInt(end - start);
 
         const font_size = 16;
 
-        rl.drawText(rl.textFormat("mouse pos = %.3f, %.3f", .{ mouse_pos.x, mouse_pos.y }), 5, screen_height - 5 * font_size, font_size, rl.Color.white);
+        rl.drawText(rl.textFormat("mouse pos = %.3f, %.3f", .{ mouse_pos.x, mouse_pos.y }), 5, screen_height - 4 * font_size, font_size, rl.Color.white);
 
-        rl.drawText(rl.textFormat("num qtree nodes = %d", .{world.solver.quadtree.calculateNumNodes()}), 5, screen_height - 4 * font_size, font_size, rl.Color.white);
-
-        rl.drawText(rl.textFormat("bodies = %d : manifolds = %d", .{ world.solver.bodies.items.len, world.solver.manifolds.count() }), 5, screen_height - 3 * font_size, font_size, rl.Color.white);
+        rl.drawText(rl.textFormat("bodies = %d : manifolds = %d", .{ world.solver.bodies.count(), world.solver.manifolds.count() }), 5, screen_height - 3 * font_size, font_size, rl.Color.white);
 
         rl.drawText(rl.textFormat("sr = %.3f ms : render = %.3f ms", .{ sim_dt / 1e6, render_dt / 1e6 }), 5, screen_height - 2 * font_size, font_size, rl.Color.white);
 
@@ -225,7 +218,9 @@ const MouseSpring = struct {
         const mouse_pos = units.s2w(Vector2.init(rl_pos.x, rl_pos.y));
 
         if (!self.active and rl.isKeyPressed(.v)) {
-            for (physics.bodies.items) |*body| {
+            var iter = physics.bodies.iterator();
+            while (iter.next()) |*entry| {
+                var body = entry.value_ptr;
                 if (body.static) continue;
                 if (body.isInside(mouse_pos)) {
                     const r_rotated = nmath.sub2(mouse_pos, body.props.pos);

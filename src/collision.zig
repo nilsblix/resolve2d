@@ -31,8 +31,8 @@ pub const CollisionPoint = struct {
         return CollisionPoint{
             .accumulated_pn = 0,
             .accumulated_pt = 0,
-            .ref_r = nmath.sub2(pos, ref.props.pos),
-            .inc_r = nmath.sub2(pos, inc.props.pos),
+            .ref_r = nmath.sub2(middle, ref.props.pos),
+            .inc_r = nmath.sub2(middle, inc.props.pos),
             .pos = middle,
             .depth = depth,
             .original_depth = depth,

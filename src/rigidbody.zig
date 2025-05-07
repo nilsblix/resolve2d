@@ -6,6 +6,7 @@ const collision = @import("collision.zig");
 const manifold_max_points = collision.CollisionManifold.MAX_POINTS;
 const CollisionPoint = collision.CollisionPoint;
 const aabb = @import("aabb.zig");
+const consts = @import("zigics_consts.zig");
 
 pub const RigidBodies = enum {
     disc,
@@ -29,6 +30,8 @@ pub const Edge = struct {
 /// All integraton is handled in the solver ==> basically only geometric properties/functions needs
 /// to be implemented by the struct.
 pub const RigidBody = struct {
+    pub const Id = i64;
+
     pub const VTable = struct {
         deinit: *const fn (ptr: *anyopaque, alloc: Allocator) void,
         updateAABB: *const fn (rigidself: *RigidBody) void,
@@ -80,6 +83,7 @@ pub const RigidBody = struct {
         mu_s: f32,
     };
 
+    id: RigidBody.Id,
     aabb: aabb.AABB,
     static: bool = false,
     num_normals: usize,
@@ -169,7 +173,7 @@ pub const DiscBody = struct {
 
     const Self = @This();
 
-    pub fn init(alloc: Allocator, pos: Vector2, angle: f32, mass: f32, mu_s: f32, mu_d: f32, radius: f32) !RigidBody {
+    pub fn init(alloc: Allocator, id: RigidBody.Id, pos: Vector2, angle: f32, mass: f32, mu_s: f32, mu_d: f32, radius: f32) !RigidBody {
         var self: *Self = try alloc.create(Self);
         self.radius = radius;
 
@@ -186,6 +190,7 @@ pub const DiscBody = struct {
                 .mu_s = mu_s,
                 .mu_d = mu_d,
             },
+            .id = id,
             .aabb = undefined,
             .num_normals = 1,
             .type = RigidBodies.disc,
@@ -295,7 +300,7 @@ pub const RectangleBody = struct {
 
     const Self = @This();
 
-    pub fn init(alloc: Allocator, pos: Vector2, angle: f32, mass: f32, mu_s: f32, mu_d: f32, width: f32, height: f32) !RigidBody {
+    pub fn init(alloc: Allocator, id: RigidBody.Id, pos: Vector2, angle: f32, mass: f32, mu_s: f32, mu_d: f32, width: f32, height: f32) !RigidBody {
         var self: *Self = try alloc.create(Self);
         self.width = width;
         self.height = height;
@@ -317,6 +322,7 @@ pub const RectangleBody = struct {
                 .mu_s = mu_s,
                 .mu_d = mu_d,
             },
+            .id = id,
             .aabb = undefined,
             .num_normals = 4,
             .type = RigidBodies.rectangle,
@@ -455,14 +461,14 @@ pub const RectangleBody = struct {
 
                     // check for positive penetration (non valid collision-point)
                     var dot = nmath.dot2(nmath.sub2(a, n.edge.?.a), n.dir);
-                    if (dot < 0.0) {
+                    if (dot < consts.COLLISION_MARGIN) {
                         const pos = incident_edge.edge.a;
                         ret[i] = CollisionPoint.init(pos, dot, rigidself.*, incident.*, n.dir);
                         i += 1;
                     }
 
                     dot = nmath.dot2(nmath.sub2(b, n.edge.?.b), n.dir);
-                    if (dot < 0.0) {
+                    if (dot < consts.COLLISION_MARGIN) {
                         const pos = incident_edge.edge.b;
                         ret[i] = CollisionPoint.init(pos, dot, rigidself.*, incident.*, n.dir);
                     }

@@ -13,13 +13,13 @@ const AABB = @import("aabb.zig").AABB;
 
 // This is a dense implementation of spatial-hashing.
 pub const SpatialHash = struct {
-    table: std.ArrayList(usize),
-    body_indices: std.ArrayList(*RigidBody),
+    table: std.ArrayList(usize), 
+    body_indices: std.ArrayList(*RigidBody), 
     table_size: usize,
     cell_size: f32,
 
     const Self = @This();
-    pub fn init(alloc: Allocator, cell_size: f32, table_size: usize, bodies: *std.ArrayList(RigidBody)) !SpatialHash {
+    pub fn init(alloc: Allocator, cell_size: f32, table_size: usize, bodies: *std.AutoArrayHashMap(RigidBody.Id, RigidBody)) !SpatialHash {
         var self = SpatialHash{
             .table = try std.ArrayList(usize).initCapacity(alloc, table_size + 1),
             .body_indices = std.ArrayList(*RigidBody).init(alloc),
@@ -43,8 +43,11 @@ pub const SpatialHash = struct {
             }
         };
 
+        var body_iter = bodies.iterator();
+
         // Increment each id by 1.
-        for (bodies.items) |*body_ptr| {
+        while (body_iter.next()) |*entry| {
+            const body_ptr = entry.value_ptr;
             self.iterateAABBHashes(body_ptr, T.inc);
         }
 
@@ -61,14 +64,11 @@ pub const SpatialHash = struct {
         // seg-fault as the memory has not been written yet.
         try self.body_indices.ensureTotalCapacity(start);
         self.body_indices.appendNTimesAssumeCapacity(undefined, start);
-        for (bodies.items) |*body_ptr| {
+        body_iter.reset();
+        while (body_iter.next()) |*entry| {
+            const body_ptr = entry.value_ptr;
             self.iterateAABBHashes(body_ptr, T.putIntoIndices);
         }
-
-        // CLEAN: remove this for cleanup
-        // std.debug.print("lengths:\n", .{});
-        // std.debug.print("   table = {}\n", .{self.table.items.len});
-        // std.debug.print("   indic = {}\n", .{self.body_indices.items.len});
 
         return self;
     }
@@ -83,7 +83,6 @@ pub const SpatialHash = struct {
         return h % table_size;
     }
 
-    /// Returns the table-id.
     fn iterateAABBHashes(self: *Self, body_ptr: *RigidBody, onCell: *const fn (spat: *Self, id: usize, body_ptr: *RigidBody) void) void {
         const aabb = body_ptr.aabb;
         const verts = aabb.getVertices();
