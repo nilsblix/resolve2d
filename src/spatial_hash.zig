@@ -81,7 +81,7 @@ pub const SpatialHash = struct {
 
     pub fn hash(table_size: usize, xi: i64, yi: i64) usize {
         const h = @as(u64, @bitCast(xi * 92837111 ^ yi * 689287499));
-        return h % table_size;
+        return @intCast(h % table_size);
     }
 
     fn iterateAABBHashes(self: *Self, body_ptr: *RigidBody, onCell: *const fn (spat: *Self, id: usize, body_ptr: *RigidBody) void) void {
