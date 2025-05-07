@@ -34,8 +34,7 @@ pub fn main() !void {
     var world = try zigics.World.init(alloc, .{ .width = screen_width, .height = screen_height }, 10, true);
     defer world.deinit();
 
-    // try demos.setupScene(&world.solver);
-    try demos.setupPrimary(&world.solver);
+    try demos.setup1(&world.solver);
 
     var mouse_spring = MouseSpring{};
 
@@ -118,44 +117,15 @@ pub fn main() !void {
         if (rl.isKeyPressed(.one)) {
             try world.solver.clear(alloc);
             steps = 0;
-            try demos.setupScene(&world.solver);
+            try demos.setup1(&world.solver);
         }
 
         if (rl.isKeyPressed(.two)) {
-            steps = 0;
             try world.solver.clear(alloc);
-            try demos.setupDominos(&world.solver);
+            steps = 0;
+            try demos.setup2(&world.solver);
         }
 
-        if (rl.isKeyPressed(.three)) {
-            steps = 0;
-            try world.solver.clear(alloc);
-            try demos.setupCollisionPointTestScene(&world.solver);
-        }
-
-        if (rl.isKeyPressed(.four)) {
-            steps = 0;
-            try world.solver.clear(alloc);
-            try demos.setupPrimary(&world.solver);
-        }
-
-        if (rl.isKeyPressed(.five)) {
-            steps = 0;
-            try world.solver.clear(alloc);
-            try demos.setupStacking(&world.solver);
-        }
-
-        if (rl.isKeyPressed(.six)) {
-            steps = 0;
-            try world.solver.clear(alloc);
-            try demos.setupConstraints(&world.solver);
-        }
-
-        if (rl.isKeyPressed(.seven)) {
-            steps = 0;
-            try world.solver.clear(alloc);
-            try demos.setupPseudoStatic(&world.solver);
-        }
 
         tried_steps += 1;
         if (simulating) {
@@ -192,7 +162,7 @@ pub fn main() !void {
 
         rl.clearBackground(.{ .r = 18, .g = 18, .b = 18, .a = 1 });
         const start = std.time.nanoTimestamp();
-        world.render(show_collisions, show_aabbs);
+        try world.render(show_collisions, show_aabbs);
         const end = std.time.nanoTimestamp();
         render_dt = @floatFromInt(end - start);
 
@@ -232,7 +202,7 @@ const MouseSpring = struct {
                         .lower_lambda = -max,
                         .upper_lambda = max,
                     };
-                    const joint = try ctr_mod.SingleLinkJoint.init(alloc, params, body, r, mouse_pos, 0.0);
+                    const joint = try ctr_mod.SingleLinkJoint.init(alloc, params, body.id, r, mouse_pos, 0.0);
                     try physics.constraints.append(joint);
                     self.active = true;
                     return;

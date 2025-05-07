@@ -91,14 +91,18 @@ pub const EntityFactory = struct {
         try self.solver.force_generators.append(try fg_mod.DownwardsGravity.init(self.solver.alloc, g));
     }
 
-    pub fn makeSingleLinkJoint(self: *Self, params: Constraint.Parameters, body: *RigidBody, r: Vector2, q: Vector2, dist: f32) !*Constraint {
-        const ctr = try ctr_mod.SingleLinkJoint.init(self.solver.alloc, params, body, r, q, dist);
+    pub fn makeSingleLinkJoint(self: *Self, params: Constraint.Parameters, id: RigidBody.Id, r: Vector2, q: Vector2, dist: f32) !*Constraint {
+        const entry = self.solver.bodies.getEntry(id) orelse return error.NotAValidRigidBodyId;
+        const body = entry.value_ptr;
+        const ctr = try ctr_mod.SingleLinkJoint.init(self.solver.alloc, params, body.id, r, q, dist);
         try self.solver.constraints.append(ctr);
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
     }
 
-    pub fn makeMotorJoint(self: *Self, params: Constraint.Parameters, body: *RigidBody, target_omega: f32) !*Constraint {
-        const ctr = try ctr_mod.MotorJoint.init(self.solver.alloc, params, body, target_omega);
+    pub fn makeMotorJoint(self: *Self, params: Constraint.Parameters, id: RigidBody.Id, target_omega: f32) !*Constraint {
+        const entry = self.solver.bodies.getEntry(id) orelse return error.NotAValidRigidBodyId;
+        const body = entry.value_ptr;
+        const ctr = try ctr_mod.MotorJoint.init(self.solver.alloc, params, body.id, target_omega);
         try self.solver.constraints.append(ctr);
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
     }
@@ -195,7 +199,7 @@ pub const Solver = struct {
 
             for (0..collision_iters) |_| {
                 for (self.constraints.items) |*constraint| {
-                    constraint.solve(sub_dt, inv_sub_dt);
+                    try constraint.solve(self.bodies, sub_dt, inv_sub_dt);
                 }
                 man_iter.reset();
                 while (man_iter.next()) |entry| {
@@ -221,7 +225,7 @@ pub const Solver = struct {
     }
 
     fn updateManifolds(self: *Self, alloc: Allocator) !void {
-        var spatial = try SpatialHash.init(alloc, 2.0, 2 * self.bodies.count(), &self.bodies);
+        var spatial = try SpatialHash.init(alloc, 4.0, 2 * self.bodies.count(), &self.bodies);
         defer spatial.deinit();
 
         var queries = std.ArrayList(*RigidBody).init(alloc);
@@ -386,9 +390,9 @@ pub const World = struct {
         self.solver.deinit();
     }
 
-    pub fn render(self: *Self, show_collisions: bool, show_aabbs: bool) void {
+    pub fn render(self: *Self, show_collisions: bool, show_aabbs: bool) !void {
         if (self.renderer) |*rend| {
-            rend.render(self.solver, show_collisions, show_aabbs);
+            try rend.render(self.solver, show_collisions, show_aabbs);
         }
     }
 };

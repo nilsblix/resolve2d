@@ -14,6 +14,7 @@ const AABB = @import("aabb.zig").AABB;
 // This is a dense implementation of spatial-hashing.
 pub const SpatialHash = struct {
     table: std.ArrayList(usize), 
+    // As said in collision.zig, when things aren't persistent, this "unsafe" ptr business is okay.
     body_indices: std.ArrayList(*RigidBody), 
     table_size: usize,
     cell_size: f32,

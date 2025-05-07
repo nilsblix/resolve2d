@@ -13,11 +13,11 @@ pub const Constraints = enum {
 pub const Constraint = struct {
     const VTable = struct {
         deinit: *const fn (ctrself: *Constraint, alloc: Allocator) void,
-        solve: *const fn (ctrself: *Constraint, dt: f32, inv_dt: f32) void,
+        solve: *const fn (ctrself: *Constraint, bodies: std.AutoArrayHashMap(RigidBody.Id, RigidBody), dt: f32, inv_dt: f32) anyerror!void,
     };
 
     pub const Parameters = struct {
-        beta: f32 = 0.01,
+        beta: f32 = 10,
         upper_lambda: f32 = std.math.inf(f32),
         lower_lambda: f32 = -std.math.inf(f32),
     };
@@ -33,13 +33,13 @@ pub const Constraint = struct {
         self.vtable.deinit(self, alloc);
     }
 
-    pub fn solve(self: *Self, dt: f32, inv_dt: f32) void {
-        self.vtable.solve(self, dt, inv_dt);
+    pub fn solve(self: *Self, bodies: std.AutoArrayHashMap(RigidBody.Id, RigidBody), dt: f32, inv_dt: f32) !void {
+        try self.vtable.solve(self, bodies, dt, inv_dt);
     }
 };
 
 pub const MotorJoint = struct {
-    body: *RigidBody,
+    id: RigidBody.Id,
     omega_t: f32,
 
     const VTable = Constraint.VTable{
@@ -49,9 +49,9 @@ pub const MotorJoint = struct {
 
     const Self = @This();
 
-    pub fn init(alloc: Allocator, params: Constraint.Parameters, body: *RigidBody, omega_t: f32) !Constraint {
+    pub fn init(alloc: Allocator, params: Constraint.Parameters, id: RigidBody.Id, omega_t: f32) !Constraint {
         const joint = try alloc.create(MotorJoint);
-        joint.body = body;
+        joint.id = id;
         joint.omega_t = omega_t;
 
         return Constraint{
@@ -67,21 +67,23 @@ pub const MotorJoint = struct {
         alloc.destroy(self);
     }
 
-    pub fn solve(ctrself: *Constraint, dt: f32, inv_dt: f32) void {
+    pub fn solve(ctrself: *Constraint, bodies: std.AutoArrayHashMap(RigidBody.Id, RigidBody), dt: f32, inv_dt: f32) !void {
         const self: *Self = @ptrCast(@alignCast(ctrself.ptr));
+        const entry = bodies.getEntry(self.id) orelse return error.InvalidRigidBodyId;
+        var body = entry.key_ptr;
 
         _ = dt;
         _ = inv_dt;
-        const omega = self.body.props.ang_momentum / self.body.props.inertia;
+        const omega = body.props.ang_momentum / body.props.inertia;
         const delta = self.omega_t - omega;
 
         // FIXME: This constraint math is COMPLETELY FUCKED. Redo ts immediately...
-        self.body.props.ang_momentum += ctrself.params.beta * delta;
+        body.props.ang_momentum += ctrself.params.beta * delta;
     }
 };
 
 pub const SingleLinkJoint = struct {
-    body: *RigidBody,
+    id: RigidBody.Id,
     local_r: Vector2,
     q: Vector2,
     distance: f32,
@@ -93,9 +95,9 @@ pub const SingleLinkJoint = struct {
 
     const Self = @This();
 
-    pub fn init(alloc: Allocator, params: Constraint.Parameters, body: *RigidBody, local_r: Vector2, q: Vector2, distance: f32) !Constraint {
+    pub fn init(alloc: Allocator, params: Constraint.Parameters, id: RigidBody.Id, local_r: Vector2, q: Vector2, distance: f32) !Constraint {
         const joint = try alloc.create(SingleLinkJoint);
-        joint.body = body;
+        joint.id = id;
         joint.local_r = local_r;
         joint.q = q;
         joint.distance = distance;
@@ -113,27 +115,29 @@ pub const SingleLinkJoint = struct {
         alloc.destroy(self);
     }
 
-    pub fn solve(ctrself: *Constraint, dt: f32, inv_dt: f32) void {
+    pub fn solve(ctrself: *Constraint, bodies: std.AutoArrayHashMap(RigidBody.Id, RigidBody), dt: f32, inv_dt: f32) anyerror!void {
         const self: *Self = @ptrCast(@alignCast(ctrself.ptr));
+        const entry = bodies.getEntry(self.id) orelse return error.InvalidRigidBodyId;
+        var body = entry.value_ptr;
 
-        const r = nmath.rotate2(self.local_r, self.body.props.angle);
-        const k = nmath.sub2(nmath.add2(self.body.props.pos, r), self.q);
+        const r = nmath.rotate2(self.local_r, body.props.angle);
+        const k = nmath.sub2(nmath.add2(body.props.pos, r), self.q);
         const c = 0.5 * (nmath.dot2(k, k) - self.distance * self.distance);
 
-        const inv_m = 1 / self.body.props.mass;
+        const inv_m = 1 / body.props.mass;
         var inv_i: f32 = undefined;
         const k_len = nmath.length2(k);
         if (k_len < 1e-2) {
-            inv_i = 1 / self.body.props.inertia;
+            inv_i = 1 / body.props.inertia;
         } else {
             const n = nmath.scale2(k, 1 / k_len);
             const rn = nmath.cross2(r, n);
-            inv_i = rn * rn / self.body.props.inertia;
+            inv_i = rn * rn / body.props.inertia;
         }
         const w = inv_i + inv_m;
 
-        const v = nmath.scale2(self.body.props.momentum, inv_m);
-        const omega = self.body.props.ang_momentum / self.body.props.inertia;
+        const v = nmath.scale2(body.props.momentum, inv_m);
+        const omega = body.props.ang_momentum / body.props.inertia;
 
         const r_prime = nmath.rotate90counterclockwise(r);
         const r_prime_k = nmath.dot2(r_prime, k);
@@ -150,7 +154,7 @@ pub const SingleLinkJoint = struct {
         const p = nmath.scale2(fext, dt);
         const p_ang = torque * dt;
 
-        self.body.props.momentum.add(p);
-        self.body.props.ang_momentum += p_ang;
+        body.props.momentum.add(p);
+        body.props.ang_momentum += p_ang;
     }
 };

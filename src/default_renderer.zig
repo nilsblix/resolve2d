@@ -221,7 +221,7 @@ pub const Renderer = struct {
         self.units.adjustCameraPos(delta);
     }
 
-    pub fn render(self: *Self, solver: Solver, show_collisions: bool, show_aabbs: bool) void {
+    pub fn render(self: *Self, solver: Solver, show_collisions: bool, show_aabbs: bool) !void {
         for (solver.force_generators.items) |*gen| {
             switch (gen.type) {
                 .downwards_gravity => continue,
@@ -300,8 +300,10 @@ pub const Renderer = struct {
             switch (constraint.type) {
                 .single_link_joint => {
                     const joint: *ctr_mod.SingleLinkJoint = @ptrCast(@alignCast(constraint.ptr));
-                    const r = nmath.rotate2(joint.local_r, joint.body.props.angle);
-                    const a = nmath.add2(joint.body.props.pos, r);
+                    const entry = solver.bodies.getEntry(joint.id) orelse return error.InvalidRigidBodyId;
+                    const body = entry.value_ptr;
+                    const r = nmath.rotate2(joint.local_r, body.props.angle);
+                    const a = nmath.add2(body.props.pos, r);
                     self.spring(a, joint.q);
                 },
                 .motor_joint => {},
