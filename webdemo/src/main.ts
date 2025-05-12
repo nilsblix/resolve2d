@@ -1,5 +1,20 @@
 import * as bridge from "./wasm_bridge.ts";
 
+function sleepMicroseconds(microseconds: number): Promise<void> {
+    return new Promise((resolve) => {
+        const start = performance.now();
+        const end = start + microseconds / 1000; // Convert to milliseconds
+        const check = () => {
+            if (performance.now() >= end) {
+                resolve();
+            } else {
+                queueMicrotask(check); // Minimal delay mechanism
+            }
+        };
+        check();
+    });
+}
+
 export interface WasmModule {
     instance: WebAssembly.Instance | undefined;
     init: (obj: WebAssembly.WebAssemblyInstantiatedSource) => void;
@@ -25,44 +40,49 @@ async function bootstrap(): Promise<void> {
 
         const fns = wasm.instance.exports as any;
 
-        console.log("Hello after wasm.init!");
-
         fns.solverInit();
         fns.setupDemo1();
-
-        // const ptr = fns.getRigidBodyPtrFromId(2n);
-        // const x0 = fns.getRigidBodyPosX(ptr);
-
-        const state1 = new bridge.RigidBody(wasm, 2n);
-
-        const STEPS = 100;
-        const DT = 1 / 60;
-        const total = STEPS * DT;
-
-        let totalComptime = 0;
-
-        for (let i = 0; i < STEPS; i++) {
-            const startTime = performance.now();
-            if (!fns.solverProcess(DT, 2, 4)) {
-                console.error("Error: solverProcess failed.");
-            }
-            const endTime = performance.now();
-            totalComptime += endTime - startTime;
-        }
-
-        const state2 = new bridge.RigidBody(wasm, 2n);
-        // const x1 = fns.getRigidBodyPosX(ptr);
-
-        console.log(`Total time = ${total}, Time spent calc = ${1e-3 * totalComptime}`);
-        console.log("0 =>",  state1);
-        console.log("1 =>", state2);
-
-        fns.solverDeinit();
-
-        console.log("Hello after init and deinit");
     } catch (error) {
         console.error("Failed to bootstrap WebAssembly module:", error);
     }
 }
 
-bootstrap();
+const TARGET_FPS = 60;
+const DT = 1 / TARGET_FPS;
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+function updateLoop(update: () => void) {
+    let outer_dt = 0;
+
+    const loop = async () => {
+        const st = performance.now();
+        update();
+        const et = performance.now();
+
+        outer_dt = et - st;
+
+        const left = 1e3 * DT - outer_dt;
+        if (left > 0) {
+            await sleep(left);
+        } else {
+            console.log("EXCEEDED TIME = " + outer_dt + " TARGET DT = " + DT);
+        }
+        const e = performance.now();
+        console.log("measured dt = " + (e - st));
+        requestAnimationFrame(loop);
+    }
+    loop();
+}
+
+await bootstrap();
+updateLoop(() => {
+    if (wasm.instance == undefined) {
+        console.error("Error: BAD! `wasm.instance` is undefined");
+        return;
+    }
+
+    const fns = wasm.instance.exports as any;
+    fns.solverProcess(DT, 2, 4);
+
+    console.log(new bridge.RigidBody(wasm, 10n));
+});
