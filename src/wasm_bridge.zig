@@ -91,7 +91,7 @@ pub export fn getRigidBodyType(ptr: usize) usize {
     return @intFromEnum(body.type);
 }
 
-pub export fn getRigidImplementation(ptr: usize) u32 {
+pub export fn getRigidBodyImplementation(ptr: usize) u32 {
     const body: *RigidBody = @ptrFromInt(ptr);
     return @intFromPtr(body.ptr);
 }
@@ -128,12 +128,12 @@ pub export fn getRigidBodyPosY(ptr: usize) f32 {
     return body.props.pos.y;
 }
 
-pub export fn getRigidBodyMomemtumX(ptr: usize) f32 {
+pub export fn getRigidBodyMomentumX(ptr: usize) f32 {
     const body: *RigidBody = @ptrFromInt(ptr);
     return body.props.momentum.x;
 }
 
-pub export fn getRigidBodyMomemtumY(ptr: usize) f32 {
+pub export fn getRigidBodyMomentumY(ptr: usize) f32 {
     const body: *RigidBody = @ptrFromInt(ptr);
     return body.props.momentum.y;
 }

@@ -1,6 +1,6 @@
-import * as nmath from "./nmath.ts";
+// import * as nmath from "./nmath.ts";
+import { Vector2 } from "./nmath.ts";
 import { WasmModule } from "./main.ts";
-type Vector2 = nmath.Vector2;
 
 export const enum RigidBodies {
     disc,
@@ -42,7 +42,7 @@ export class RigidBody {
     zig: (typeof RigidBody.ZigTranslation) | null;
 
     constructor(wasm: WasmModule, id: bigint) {
-        const fns = wasm.instance.exports;
+        const fns = (wasm.instance as WebAssembly.Instance).exports as any;
 
         const ptr = fns.getRigidBodyPtrFromId(id);
 
@@ -54,12 +54,12 @@ export class RigidBody {
                     fns.getRigidBodyAABBPosX(ptr),
                     fns.getRigidBodyAABBPosY(ptr)
                 ),
-                half_width: fns.getRigidBodyHalfWidth(ptr),
-                half_height: fns.getRigidBodyHalfHeight(ptr),
+                half_width: fns.getRigidBodyAABBHalfWidth(ptr),
+                half_height: fns.getRigidBodyAABBHalfHeight(ptr),
             },
             static: fns.isRigidBodyStatic(ptr),
             num_normals: fns.getRigidBodyNumNormals(ptr),
-            type: RigidBodies[fns.getRigidBodyType(ptr)],
+            type: fns.getRigidBodyType(ptr) as RigidBodies,
             props: {
                 pos: new Vector2(
                     fns.getRigidBodyPosX(ptr),
@@ -80,6 +80,7 @@ export class RigidBody {
                 inertia: fns.getRigidBodyInertia(ptr),
                 mu: fns.getRigidBodyFrictionCoeff(ptr),
             },
+            ptr: fns.getRigidBodyImplementation(ptr),
         }
     }
 }

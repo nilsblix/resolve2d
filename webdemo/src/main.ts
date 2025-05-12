@@ -1,4 +1,4 @@
-console.log("hello world");
+import * as bridge from "./wasm_bridge.ts";
 
 export interface WasmModule {
     instance: WebAssembly.Instance | undefined;
@@ -23,15 +23,17 @@ async function bootstrap(): Promise<void> {
             return;
         }
 
-        const fns = wasm.instance.exports;
+        const fns = wasm.instance.exports as any;
 
         console.log("Hello after wasm.init!");
 
         fns.solverInit();
         fns.setupDemo1();
 
-        const ptr = fns.getRigidBodyPtrFromId(2n);
-        const x0 = fns.getRigidBodyPosX(ptr);
+        // const ptr = fns.getRigidBodyPtrFromId(2n);
+        // const x0 = fns.getRigidBodyPosX(ptr);
+
+        const state1 = new bridge.RigidBody(wasm, 2n);
 
         const STEPS = 100;
         const DT = 1 / 60;
@@ -48,11 +50,12 @@ async function bootstrap(): Promise<void> {
             totalComptime += endTime - startTime;
         }
 
-        const x1 = fns.getRigidBodyPosX(ptr);
+        const state2 = new bridge.RigidBody(wasm, 2n);
+        // const x1 = fns.getRigidBodyPosX(ptr);
 
         console.log(`Total time = ${total}, Time spent calc = ${1e-3 * totalComptime}`);
-        console.log(`x0 => ${x0}`);
-        console.log(`x1 => ${x1}`);
+        console.log("0 =>",  state1);
+        console.log("1 =>", state2);
 
         fns.solverDeinit();
 
