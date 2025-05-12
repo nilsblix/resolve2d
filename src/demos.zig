@@ -40,7 +40,6 @@ pub fn setup2(solver: *Solver) !void {
 
     const max: f32 = 100.0;
     const params = ctrs.Constraint.Parameters{ .beta = 100, .upper_lambda = max, .lower_lambda = -max };
-    // const params: ctrs.Constraint.Parameters = .{};
     _ = try fac.makeSingleLinkJoint(params, body.id, .{}, nmath.add2(body.props.pos, Vector2.init(0.001, 0)), 0.0);
 
     for (10..30) |x| {

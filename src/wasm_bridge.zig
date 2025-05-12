@@ -70,77 +70,89 @@ pub export fn getRigidBodyPtrFromId(id: u64) usize {
     return @intFromPtr(entry.?.value_ptr);
 }
 
+pub export fn getRigidBodyIdFromPtr(ptr: usize) u64 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.id;
+}
+
+pub export fn isRigidBodyStatic(ptr: usize) bool {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.static;
+}
+
+pub export fn getRigidBodyNumNormals(ptr: usize) usize {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.num_normals;
+}
+
+/// Returns the integer version of the enum.
+pub export fn getRigidBodyType(ptr: usize) usize {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return @intFromEnum(body.type);
+}
+
+pub export fn getRigidImplementation(ptr: usize) u32 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return @intFromPtr(body.ptr);
+}
+
+// === RigidBody Kinematic Properties (used as body.props...) === 
 pub export fn getRigidBodyPosX(ptr: usize) f32 {
     const body: *RigidBody = @ptrFromInt(ptr);
     return body.props.pos.x;
 }
 
-// pub export fn getRigidBodyId(ptr: *RigidBody) u64 {
-//     return ptr.id;
-// }
-//
-// pub export fn isRigidBodyStatic(ptr: *RigidBody) bool {
-//     return ptr.static;
-// }
-//
-// pub export fn getRigidBodyNumNormals(ptr: *RigidBody) usize {
-//     return ptr.num_normals;
-// }
+pub export fn getRigidBodyPosY(ptr: usize) f32 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.props.pos.y;
+}
 
-// === RigidBody Dynamic Accessors ===
-// pub export fn getRigidBodyPosX(ptr: *RigidBody) f32 {
-//     return ptr.props.pos.x;
-// }
+pub export fn getRigidBodyMomemtumX(ptr: usize) f32 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.props.momentum.x;
+}
 
-// pub export fn getRigidBodyPosY(ptr: *RigidBody) f32 {
-//     return ptr.props.pos.y;
-// }
-//
-// pub export fn getRigidBodyMomentumX(ptr: *RigidBody) f32 {
-//     return ptr.props.momentum.x;
-// }
-//
-// pub export fn getRigidBodyMomentumY(ptr: *RigidBody) f32 {
-//     return ptr.props.momentum.y;
-// }
-//
-// pub export fn getRigidBodyForceX(ptr: *RigidBody) f32 {
-//     return ptr.props.force.x;
-// }
-//
-// pub export fn getRigidBodyForceY(ptr: *RigidBody) f32 {
-//     return ptr.props.force.y;
-// }
-//
-// pub export fn getRigidBodyMass(ptr: *RigidBody) f32 {
-//     return ptr.props.mass;
-// }
-//
-// pub export fn getRigidBodyAngle(ptr: *RigidBody) f32 {
-//     return ptr.props.angle;
-// }
-//
-// pub export fn getRigidBodyAngularMomentum(ptr: *RigidBody) f32 {
-//     return ptr.props.ang_momentum;
-// }
-//
-// pub export fn getRigidBodyTorque(ptr: *RigidBody) f32 {
-//     return ptr.props.torque;
-// }
-//
-// pub export fn getRigidBodyInertia(ptr: *RigidBody) f32 {
-//     return ptr.props.inertia;
-// }
-//
-// pub export fn getRigidBodyMu(ptr: *RigidBody) f32 {
-//     return ptr.props.mu;
-// }
-//
-// // === RigidBody Other Properties ===
-// pub export fn getRigidBodyType(ptr: *RigidBody) i32 {
-//     return @intFromEnum(ptr.type);
-// }
-//
-// pub export fn getRigidBodyImplementation(ptr: *RigidBody) *anyopaque {
-//     return ptr.ptr;
-// }
+pub export fn getRigidBodyMomemtumY(ptr: usize) f32 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.props.momentum.y;
+}
+
+pub export fn getRigidBodyForceX(ptr: usize) f32 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.props.force.x;
+}
+
+pub export fn getRigidBodyForceY(ptr: usize) f32 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.props.force.y;
+}
+
+pub export fn getRigidBodyMass(ptr: usize) f32 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.props.mass;
+}
+
+pub export fn getRigidBodyAngle(ptr: usize) f32 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.props.angle;
+}
+
+pub export fn getRigidBodyAngularMomentum(ptr: usize) f32 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.props.ang_momentum;
+}
+
+pub export fn getRigidBodyTorque(ptr: usize) f32 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.props.torque;
+}
+
+pub export fn getRigidBodyInertia(ptr: usize) f32 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.props.inertia;
+}
+
+pub export fn getRigidBodyFrictionCoeff(ptr: usize) f32 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.props.mu;
+}
