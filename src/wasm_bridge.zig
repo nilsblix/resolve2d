@@ -49,6 +49,15 @@ pub export fn solverGetRigidbodyPtrById(id: u64) *RigidBody {
     return entry.value_ptr;
 }
 
+pub export fn solverGetNumBodies() usize {
+    return solver.?.bodies.count();
+}
+
+pub export fn solverGetBodyIdBasedOnIter(iter_idx: usize) u64 {
+    const keys = solver.?.bodies.keys();
+    return keys[iter_idx];
+}
+
 // === Setup demos ===
 
 pub export fn setupDemo1() bool {

@@ -75,7 +75,9 @@ function updateLoop(update: () => void) {
 }
 
 await bootstrap();
+
 updateLoop(() => {
+// (() => {
     if (wasm.instance == undefined) {
         console.error("Error: BAD! `wasm.instance` is undefined");
         return;
@@ -84,5 +86,13 @@ updateLoop(() => {
     const fns = wasm.instance.exports as any;
     fns.solverProcess(DT, 2, 4);
 
-    console.log(new bridge.RigidBody(wasm, 10n));
+    // const num = fns.solverGetNumBodies();
+    // console.log("num = " + num);
+    // for (let i = 0; i < num; i++) {
+    //     const id = fns.solverGetBodyIdBasedOnIter(i);
+    //     console.log(new bridge.RigidBody(wasm, id).zig.props.pos);
+    // }
+
+    // console.log(new bridge.RigidBody(wasm, 10n));
+// })();
 });
