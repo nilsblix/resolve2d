@@ -1,6 +1,6 @@
 console.log("hello world");
 
-interface WasmModule {
+export interface WasmModule {
     instance: WebAssembly.Instance | undefined;
     init: (obj: WebAssembly.WebAssemblyInstantiatedSource) => void;
 }

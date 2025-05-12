@@ -90,18 +90,18 @@ pub fn setup1(solver: *Solver) !void {
     opt.omega = 0;
     opt.mass_prop = .{ .density = 5 };
 
-    // for (10..30) |x| {
-    //     const xf = 2.0 * @as(f32, @floatFromInt(x));
-    //     for (1..36) |y| {
-    //         const yf = @as(f32, @floatFromInt(y));
-    //
-    //         opt.pos = Vector2.init(xf, yf);
-    //
-    //         if (@mod(y, 2) == 0) {
-    //             _ = try fac.makeRectangleBody(opt, .{ .width = 1.0, .height = 1.0 });
-    //         } else {
-    //             _ = try fac.makeDiscBody(opt, .{ .radius = 0.5 });
-    //         }
-    //     }
-    // }
+    for (10..30) |x| {
+        const xf = 2.0 * @as(f32, @floatFromInt(x));
+        for (1..36) |y| {
+            const yf = @as(f32, @floatFromInt(y));
+
+            opt.pos = Vector2.init(xf, yf);
+
+            if (@mod(y, 2) == 0) {
+                _ = try fac.makeRectangleBody(opt, .{ .width = 1.0, .height = 1.0 });
+            } else {
+                _ = try fac.makeDiscBody(opt, .{ .radius = 0.5 });
+            }
+        }
+    }
 }

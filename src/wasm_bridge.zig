@@ -96,6 +96,27 @@ pub export fn getRigidImplementation(ptr: usize) u32 {
     return @intFromPtr(body.ptr);
 }
 
+// === RigidBody AABB things ===
+pub export fn getRigidBodyAABBPosX(ptr: usize) f32 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.aabb.pos.x;
+}
+
+pub export fn getRigidBodyAABBPosY(ptr: usize) f32 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.aabb.pos.y;
+}
+
+pub export fn getRigidBodyAABBHalfWidth(ptr: usize) f32 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.aabb.half_width;
+}
+
+pub export fn getRigidBodyAABBHalfHeight(ptr: usize) f32 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.aabb.half_height;
+}
+
 // === RigidBody Kinematic Properties (used as body.props...) === 
 pub export fn getRigidBodyPosX(ptr: usize) f32 {
     const body: *RigidBody = @ptrFromInt(ptr);
