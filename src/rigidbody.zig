@@ -477,7 +477,8 @@ pub const RectangleBody = struct {
                 },
             }
         } else {
-            std.debug.print("In rect identifyCollisionPoints a non-valid active_normal_id has been used. i.e. a null normal has been detected.", .{});
+            // DEBUG FOR WASM:
+            // std.debug.print("In rect identifyCollisionPoints a non-valid active_normal_id has been used. i.e. a null normal has been detected.", .{});
         }
 
         return ret;

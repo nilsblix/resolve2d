@@ -65,6 +65,7 @@ pub const EntityFactory = struct {
         body.props.momentum = nmath.scale2(rigid_opt.vel, mass);
         body.props.ang_momentum = rigid_opt.omega * body.props.inertia;
 
+        // return &body;
         return try self.pushBody(body);
     }
 

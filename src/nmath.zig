@@ -89,7 +89,8 @@ pub fn length2(a: Vector2) f32 {
 pub fn normalize2(a: Vector2) Vector2 {
     const len = length2(a);
     if (len < consts.NMATH_WARN_DIVIDING_BELOW) {
-        std.debug.print("nmath.normalize2 has calculated a low len = {}\n", .{len});
+        // DEBUG FOR WASM:
+        // std.debug.print("nmath.normalize2 has calculated a low len = {}\n", .{len});
         return Vector2{};
     }
     return scale2(a, 1 / len);
