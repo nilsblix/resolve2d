@@ -21,33 +21,56 @@ export class Units {
     camera: Camera;
     mult: TransformMult;
     // In custom unit space.
-    default_world_size: Size;
+    start_world_size: Size;
+    desired_aspect: number;
     // Pixels in this case.
     screen_size: Size;
 
-    constructor(screen_size: Size, default_world_width: number) {
-        const aspect_ratio = screen_size.height / screen_size.width;
+    constructor(c: CanvasRenderingContext2D, desired_aspect: number, start_world_width: number) {
+        const screen_size: Size = {
+            width: c.canvas.width,
+            height: c.canvas.height,
+        };
 
-        const def_world_size: Size = {
-            width: default_world_width,
-            height: default_world_width * aspect_ratio
+        const mult: TransformMult = {
+            w2s: c.canvas.width / start_world_width,
+            s2w: start_world_width / c.canvas.width,
         };
 
         const camera: Camera = {
             pos: new Vector2(),
             zoom: 1.0,
-            viewport: def_world_size
-        };
-
-        const mult: TransformMult = {
-            w2s: screen_size.width / default_world_width,
-            s2w: default_world_width / screen_size.width,
+            viewport: {
+                width: start_world_width,
+                height: start_world_width / desired_aspect,
+            },
         };
 
         this.camera = camera;
         this.mult = mult;
-        this.default_world_size = def_world_size;
+        this.start_world_size = {
+            width: start_world_width,
+            height: start_world_width / desired_aspect,
+        };
+        this.desired_aspect = desired_aspect;
         this.screen_size = screen_size;
+    }
+
+    update(c: CanvasRenderingContext2D): void {
+        const window_ratio = window.innerWidth / window.innerHeight;
+        if (window_ratio > this.desired_aspect) {
+            c.canvas.height = window.innerHeight;
+            c.canvas.width = c.canvas.height * this.desired_aspect;
+        } else {
+            c.canvas.width = window.innerWidth;
+            c.canvas.height = c.canvas.width / this.desired_aspect;
+        }
+
+        this.screen_size.width = c.canvas.width;
+        this.screen_size.height = c.canvas.height;
+
+        this.mult.s2w = (this.start_world_size.width / this.screen_size.width) / this.camera.zoom;
+        this.mult.w2s = (this.screen_size.width / this.start_world_size.width) * this.camera.zoom;
     }
 
     updateViewPort(): void {

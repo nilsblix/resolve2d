@@ -41,9 +41,7 @@ export class RigidBody {
     ptr: number;
     zig: (typeof RigidBody.ZigTranslation) | null;
 
-    constructor(wasm: WasmModule, id: bigint) {
-        const fns = (wasm.instance as WebAssembly.Instance).exports as any;
-
+    constructor(fns: any, id: bigint) {
         const ptr = fns.getRigidBodyPtrFromId(id);
 
         this.ptr = ptr;

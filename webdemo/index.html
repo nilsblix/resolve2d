@@ -5,7 +5,22 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>nvbzigics | wasm demo</title>
   </head>
+  <style>
+    body {
+        background-color: #181818;
+        overflow: hidden;
+    }
+
+    #demo {
+        position: absolute;
+        top: 50%;
+        left: 0px;
+        transform: translateY(-50%);
+        border: 2px solid red;
+    }
+  </style>
   <body>
+    <canvas id="demo"></canvas>
     <script type="module" src="./src/main.ts"></script>
   </body>
 </html>

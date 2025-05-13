@@ -1,19 +1,6 @@
 import * as bridge from "./wasm_bridge.ts";
-
-function sleepMicroseconds(microseconds: number): Promise<void> {
-    return new Promise((resolve) => {
-        const start = performance.now();
-        const end = start + microseconds / 1000; // Convert to milliseconds
-        const check = () => {
-            if (performance.now() >= end) {
-                resolve();
-            } else {
-                queueMicrotask(check); // Minimal delay mechanism
-            }
-        };
-        check();
-    });
-}
+import * as rendmod from "./renderer.ts";
+import * as unitmod from "./units.ts";
 
 export interface WasmModule {
     instance: WebAssembly.Instance | undefined;
@@ -30,7 +17,7 @@ const wasm: WasmModule = {
 
 async function bootstrap(): Promise<void> {
     try {
-        const wasmModule = await WebAssembly.instantiateStreaming(fetch("../public/zig-out/bin/zigics.wasm"));
+        const wasmModule = await WebAssembly.instantiateStreaming(fetch("/zig-out/bin/zigics.wasm"));
         wasm.init(wasmModule);
 
         if (wasm.instance == undefined) {
@@ -42,10 +29,37 @@ async function bootstrap(): Promise<void> {
 
         fns.solverInit();
         fns.setupDemo1();
+
     } catch (error) {
         console.error("Failed to bootstrap WebAssembly module:", error);
     }
 }
+
+await bootstrap();
+
+const app = (() => {
+    const canvas = document.getElementById("demo") as HTMLCanvasElement;
+    const context = canvas.getContext("2d") as CanvasRenderingContext2D;
+
+    const renderer = new rendmod.Renderer(context, 16 / 9, 10);
+
+    if (wasm.instance == undefined) {
+        console.error("Error: BAD! `wasm.instance` is undefined");
+        return;
+    }
+
+    const fns = wasm.instance.exports as any;
+    const num = fns.solverGetNumBodies();
+
+    for (let i = 0n; i < num; i++) {
+        renderer.addStandardRigidBodyTex(i % 2n == 0n ? rendmod.IMAGE_PATHS.wheel : rendmod.IMAGE_PATHS.red_truck, i);
+    }
+
+    return {
+        c: context,
+        renderer: renderer
+    };
+})();
 
 const TARGET_FPS = 60;
 const DT = 1 / TARGET_FPS;
@@ -60,6 +74,7 @@ function updateLoop(update: () => void) {
         const et = performance.now();
 
         outer_dt = et - st;
+        console.log("\nUpdate time = " + outer_dt);
 
         const left = 1e3 * DT - outer_dt;
         if (left > 0) {
@@ -74,8 +89,6 @@ function updateLoop(update: () => void) {
     loop();
 }
 
-await bootstrap();
-
 updateLoop(() => {
 // (() => {
     if (wasm.instance == undefined) {
@@ -86,13 +99,13 @@ updateLoop(() => {
     const fns = wasm.instance.exports as any;
     fns.solverProcess(DT, 2, 4);
 
+    app?.renderer.render(fns, app.c);
+
     // const num = fns.solverGetNumBodies();
     // console.log("num = " + num);
     // for (let i = 0; i < num; i++) {
     //     const id = fns.solverGetBodyIdBasedOnIter(i);
     //     console.log(new bridge.RigidBody(wasm, id).zig.props.pos);
     // }
-
-    // console.log(new bridge.RigidBody(wasm, 10n));
 // })();
 });
