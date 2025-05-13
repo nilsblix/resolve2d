@@ -6,7 +6,7 @@ import * as nmath from "./nmath.ts";
 import { Vector2 } from "./nmath.ts";
 const wasm = wasmmod.wasm;
 
-setTimeout(() => {}, 100);
+setTimeout(() => { }, 100);
 
 await wasmmod.bootstrap();
 
@@ -22,16 +22,11 @@ const app = (() => {
         return;
     }
 
-    const fns = wasm.instance.exports as any;
-    const num = fns.solverGetNumBodies();
-
-    for (let i = 0n; i < num; i++) {
-        renderer.addStandardRigidBodyTex(i % 2n == 0n ? rendmod.IMAGE_PATHS.wheel : rendmod.IMAGE_PATHS.red_truck, i);
-    }
-
     return {
         c: context,
-        renderer: renderer
+        renderer: renderer,
+        simulating: false,
+        steps: 0,
     };
 })();
 
@@ -47,11 +42,11 @@ function init() {
     fns.solverInit(2, 4);
     fns.setupDemo1();
 
-    const num = fns.solverGetNumBodies();
-    for (let i = 0n; i < num; i++) {
-        const path = i % 2n == 0n ? "/red_truck.png" : "/wheel.png";
-        app?.renderer.addStandardRigidBodyTex(path, i);
-    }
+    // const num = fns.solverGetNumBodies();
+    // for (let i = 0n; i < num; i++) {
+    //     const path = i % 2n == 0n ? "/red_truck.png" : "/wheel.png";
+    //     app?.renderer.addStandardRigidBodyTex(path, i);
+    // }
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -64,17 +59,14 @@ function updateLoop(update: () => void) {
         const et = performance.now();
 
         outer_dt = et - st;
-        console.log("\nUpdate time = " + outer_dt);
         comp_dt = outer_dt;
 
-        const left = 1e3 * DT - outer_dt;
+        const left = 1e3 / TARGET_FPS - outer_dt;
         if (left > 0) {
             await sleep(left);
         } else {
             console.log("EXCEEDED TIME = " + outer_dt + " TARGET DT = " + DT);
         }
-        const e = performance.now();
-        console.log("measured dt = " + (e - st));
         requestAnimationFrame(loop);
     }
     loop();
@@ -82,6 +74,8 @@ function updateLoop(update: () => void) {
 
 enum Action {
     true,
+    toggle_sim,
+    process_sim,
 }
 
 init();
@@ -103,22 +97,56 @@ updateLoop(() => {
         { title: "nvb-zigics | wasm demo", x: 0, y: 0, width: 600, height: 290 },
     );
 
-    win.makeLabel(gui.c, null, "Hello world");
-    win.makeLabel(gui.c, null, "Comptime = " + Math.floor(10 * comp_dt) / 10 + "ms");
-
     const fns = wasm.instance.exports as any;
-    fns.solverProcess(DT, 4, 8);
 
-    const b10 = new bridge.RigidBody(fns, 61n);
-    if (b10.zig == undefined) return;
-    const view = new Vector2(app.renderer.units.camera.viewport.width, app.renderer.units.camera.viewport.height);
-    app.renderer.units.camera.pos = nmath.sub2(b10.zig.props.pos, nmath.scale2(view, 0.5));
+    win.makeLabel(gui.c, null, "=== DEBUGS ===");
+    win.setMode("two columns");
+
+    win.makeLabel(gui.c, null, "Comptime: ");
+    win.makeLabel(gui.c, null, Math.floor(10 * comp_dt) / 10 + " ms");
+
+    win.makeLabel(gui.c, null, "Step: ");
+    win.makeLabel(gui.c, null, "" + app.steps);
+
+    win.makeLabel(gui.c, null, "Num bodies: ");
+    win.makeLabel(gui.c, null, "" + fns.solverGetNumBodies());
+
+    win.setMode("normal");
+    win.makeLabel(gui.c, null, "");
+    win.makeLabel(gui.c, null, "=== SIMULATION ===");
+    win.setMode("two columns");
+
+    win.makeLabel(gui.c, null, "Toggle simulating:");
+    win.makeButton(gui.c, Action.toggle_sim, "" + app.simulating);
+
+    win.makeLabel(gui.c, null, "Process:");
+    win.makeButton(gui.c, Action.process_sim, "Process");
+
+    // const b10 = new bridge.RigidBody(fns, 61n);
+    // if (b10.zig == undefined) return;
+    // const view = new Vector2(app.renderer.units.camera.viewport.width, app.renderer.units.camera.viewport.height);
+    // app.renderer.units.camera.pos = nmath.sub2(b10.zig.props.pos, nmath.scale2(view, 0.5));
 
     const req = stack.requestAction(gui.input_state);
     const action = req.action;
 
+    switch (action) {
+        case Action.toggle_sim:
+            app.simulating = !app.simulating;
+            break;
+        case Action.process_sim:
+            fns.solverProcess(DT, 4, 8);
+            app.steps += 1;
+            break;
+    }
+
+    if (app.simulating) {
+        fns.solverProcess(DT, 4, 8);
+        app.steps += 1;
+    }
+    app?.renderer.render(fns, app.c);
+
     gui.c.clearRect(0, 0, gui.canvas.width, gui.canvas.height);
     stack.stack_render(gui.c, gui.input_state);
     gui.input_state.end();
-    app?.renderer.render(fns, app.c);
 });

@@ -7,14 +7,22 @@ const collision = @import("collision.zig");
 const ctrs = @import("constraint.zig");
 const Solver = zigics.Solver;
 
+// pub fn setupCarsScene(solver: *Solver) !void {
+//     var fac = solver.entityFactory();
+//
+//     var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
+//     opt.mu = 0.3;
+//     var body: *rigidbody.RigidBody = undefined;
+//
+//     try fac.makeDownwardsGravity(9.82);
+// }
+
 pub fn setup2(solver: *Solver) !void {
     var fac = solver.entityFactory();
 
     var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
     opt.mu = 0.3;
     var body: *rigidbody.RigidBody = undefined;
-
-    try fac.makeDownwardsGravity(9.82);
 
     try fac.makeDownwardsGravity(9.82);
 

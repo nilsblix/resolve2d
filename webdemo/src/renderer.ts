@@ -3,6 +3,7 @@ import { Vector2 } from "./nmath.ts";
 import * as unitsmod from "./units.ts";
 import { Units } from "./units.ts";
 import * as bridge from "./wasm_bridge.ts";
+import * as gui from "./nvb-imgui/src/gui/gui.ts";
 
 export const IMAGE_PATHS = {
     wheel: "/wheel.png",
@@ -32,8 +33,28 @@ export class Renderer {
 
         this.units.update(c);
 
+        var screen_pos = new Vector2(gui.input_state.mouse_position.x, gui.input_state.mouse_position.y);
+        const rect = c.canvas.getBoundingClientRect();
+        screen_pos.sub(new Vector2(rect.left, rect.top));
+        const world_pos = this.units.s2w(screen_pos);
+        const mouse_pos = this.units.w2s(world_pos);
+
+        c.beginPath();
+        c.fillStyle = "#1481FF";
+        c.arc(mouse_pos.x, mouse_pos.y, 5.0, 0, 2 * Math.PI);
+        c.fill();
+        c.closePath();
+        if (gui.input_state.delta_mouse_scroll.y != 0) {
+            this.units.adjustCameraZoom(Math.exp(-gui.input_state.delta_mouse_scroll.y / 500), screen_pos);
+        }
+
+        if (gui.input_state.mouse_down && !gui.input_state.moving_window) {
+            const dpx = new Vector2(gui.input_state.mouse_delta_pos.x, -gui.input_state.mouse_delta_pos.y);
+            const dworld = nmath.scale2(dpx, this.units.mult.s2w);
+            this.units.camera.pos.sub(dworld);
+        }
+
         const num = fns.solverGetNumBodies();;
-        console.log("num = " + num);
         for (let i = 0; i < num; i++) {
             const id = fns.solverGetBodyIdBasedOnIter(i);
             // FIXME: uncomment

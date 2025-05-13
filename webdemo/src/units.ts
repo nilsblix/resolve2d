@@ -69,8 +69,8 @@ export class Units {
         this.screen_size.width = c.canvas.width;
         this.screen_size.height = c.canvas.height;
 
-        this.mult.s2w = (this.start_world_size.width / this.screen_size.width) / this.camera.zoom;
-        this.mult.w2s = (this.screen_size.width / this.start_world_size.width) * this.camera.zoom;
+        this.mult.s2w = (this.start_world_size.width / this.screen_size.width) * this.camera.zoom;
+        this.mult.w2s = (this.screen_size.width / this.start_world_size.width) / this.camera.zoom;
     }
 
     updateViewPort(): void {
@@ -86,8 +86,8 @@ export class Units {
         const old_wpos = this.s2w(screen_pos);
         this.camera.zoom /= factor;
 
-        this.mult.w2s = (this.screen_size.width / this.default_world_size.width) / this.camera.zoom;
-        this.mult.s2w = (this.default_world_size.width / this.screen_size.width) * this.camera.zoom;
+        this.mult.w2s = (this.screen_size.width / this.start_world_size.width) / this.camera.zoom;
+        this.mult.s2w = (this.start_world_size.width / this.screen_size.width) * this.camera.zoom;
 
         const new_wpos = this.s2w(screen_pos);
         const delta_world = nmath.sub2(new_wpos, old_wpos);
