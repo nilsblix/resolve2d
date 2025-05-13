@@ -100,7 +100,7 @@ pub fn setup1(solver: *Solver) !void {
 
     for (10..30) |x| {
         const xf = 2.0 * @as(f32, @floatFromInt(x));
-        for (1..36) |y| {
+        for (1..76) |y| {
             const yf = @as(f32, @floatFromInt(y));
 
             opt.pos = Vector2.init(xf, yf);

@@ -27,6 +27,9 @@ const app = (() => {
         renderer: renderer,
         simulating: false,
         steps: 0,
+        process_dt: 0,
+        snap_to_body: false,
+        span_to_body_id: 0n,
     };
 })();
 
@@ -76,6 +79,8 @@ enum Action {
     true,
     toggle_sim,
     process_sim,
+    toggle_snap_to_body,
+    change_snap_to_body_id,
 }
 
 init();
@@ -94,7 +99,7 @@ updateLoop(() => {
         // window is if win is moveable, header is if win is closeable and the rest are self explanatory.
         // Here we see the difference between Action.true and null.
         { window: Action.true, header: Action.true, resizeable: Action.true, close_btn: null, },
-        { title: "nvb-zigics | wasm demo", x: 0, y: 0, width: 600, height: 290 },
+        { title: "nvb-zigics | wasm demo", x: 0, y: 0, width: 500, height: 400 },
     );
 
     const fns = wasm.instance.exports as any;
@@ -105,11 +110,22 @@ updateLoop(() => {
     win.makeLabel(gui.c, null, "Comptime: ");
     win.makeLabel(gui.c, null, Math.floor(10 * comp_dt) / 10 + " ms");
 
+    win.makeLabel(gui.c, null, "Process dt: ");
+    win.makeLabel(gui.c, null, Math.floor(10 * app.process_dt) / 10 + " ms");
+
     win.makeLabel(gui.c, null, "Step: ");
     win.makeLabel(gui.c, null, "" + app.steps);
 
     win.makeLabel(gui.c, null, "Num bodies: ");
     win.makeLabel(gui.c, null, "" + fns.solverGetNumBodies());
+
+    win.makeLabel(gui.c, null, "Mouse world pos: ");
+    var mpw = new Vector2(gui.input_state.mouse_position.x, gui.input_state.mouse_position.y);
+    const rect = app.c.canvas.getBoundingClientRect();
+    mpw.x -= rect.left;
+    mpw.y -= rect.top;
+    mpw = app.renderer.units.s2w(mpw);
+    win.makeLabel(gui.c, null, "(" + mpw.x + ", " + mpw.y + ")");
 
     win.setMode("normal");
     win.makeLabel(gui.c, null, "");
@@ -119,13 +135,29 @@ updateLoop(() => {
     win.makeLabel(gui.c, null, "Toggle simulating:");
     win.makeButton(gui.c, Action.toggle_sim, "" + app.simulating);
 
-    win.makeLabel(gui.c, null, "Process:");
+    win.makeLabel(gui.c, null, "Process once:");
     win.makeButton(gui.c, Action.process_sim, "Process");
 
-    // const b10 = new bridge.RigidBody(fns, 61n);
-    // if (b10.zig == undefined) return;
-    // const view = new Vector2(app.renderer.units.camera.viewport.width, app.renderer.units.camera.viewport.height);
-    // app.renderer.units.camera.pos = nmath.sub2(b10.zig.props.pos, nmath.scale2(view, 0.5));
+    win.makeLabel(gui.c, null, "Process while held:");
+    win.makeDraggable(gui.c, Action.process_sim, "Process");
+
+    win.setMode("normal");
+    win.makeLabel(gui.c, null, "");
+    win.makeLabel(gui.c, null, "=== RENDER ===");
+    win.setMode("two columns");
+
+    win.makeLabel(gui.c, null, "Toggle focus camera pos to body: ");
+    win.makeButton(gui.c, Action.toggle_snap_to_body, "" + app.snap_to_body);
+
+    win.makeLabel(gui.c, null, "Change focused body id: ");
+    win.makeDraggable(gui.c, Action.change_snap_to_body_id, "Id: " + app.span_to_body_id);
+
+    if (app.snap_to_body) {
+        const body = new bridge.RigidBody(fns, app.span_to_body_id);
+        if (body.zig == undefined) return;
+        const view = new Vector2(app.renderer.units.camera.viewport.width, app.renderer.units.camera.viewport.height);
+        app.renderer.units.camera.pos = nmath.sub2(body.zig.props.pos, nmath.scale2(view, 0.5));
+    }
 
     const req = stack.requestAction(gui.input_state);
     const action = req.action;
@@ -138,12 +170,23 @@ updateLoop(() => {
             fns.solverProcess(DT, 4, 8);
             app.steps += 1;
             break;
+        case Action.toggle_snap_to_body:
+            app.snap_to_body = !app.snap_to_body;
+            break;
+        case Action.change_snap_to_body_id:
+            const num = fns.solverGetNumBodies();
+            app.span_to_body_id = BigInt(gui.updateDraggableValue(Number(app.span_to_body_id), gui.input_state, 2, { min: 0, max: num - 1 }));
+            break;
     }
 
+    const st = performance.now();
     if (app.simulating) {
         fns.solverProcess(DT, 4, 8);
         app.steps += 1;
     }
+    const et = performance.now();
+    app.process_dt = et - st;
+
     app?.renderer.render(fns, app.c);
 
     gui.c.clearRect(0, 0, gui.canvas.width, gui.canvas.height);
