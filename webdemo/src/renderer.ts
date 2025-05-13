@@ -32,7 +32,7 @@ export class Renderer {
 
         this.units.update(c);
 
-        const num = fns.solverGetNumBodies();
+        const num = fns.solverGetNumBodies();;
         console.log("num = " + num);
         for (let i = 0; i < num; i++) {
             const id = fns.solverGetBodyIdBasedOnIter(i);
@@ -128,12 +128,12 @@ export class Renderer {
 
                 const aspect = tex.image.height / tex.image.width;
 
-                const scaledWidth = m * 0.8;
-                const scaledHeight = m * 0.8 * aspect;
+                const scaledWidth = m;
+                const scaledHeight = m * aspect;
 
                 c.save();
                 c.translate(screen_pos.x, screen_pos.y);
-                c.rotate(zig.props.angle);
+                c.rotate(-zig.props.angle);
 
                 c.drawImage(tex.image, -scaledWidth / 2, -scaledHeight / 2, scaledWidth, scaledHeight);
                 c.restore();

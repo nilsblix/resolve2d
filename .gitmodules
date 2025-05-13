@@ -1,0 +1,3 @@
+[submodule "wemdemo/src/nvb-imgui"]
+	path = wemdemo/src/nvb-imgui
+	url = https://github.com/nilsblix/nvb-imgui.git
