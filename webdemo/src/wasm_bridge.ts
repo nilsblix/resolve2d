@@ -34,7 +34,7 @@ export class RigidBody {
         type: RigidBodies;
         props: Props;
         // The implementation of the zig-interface.
-        ptr: number;
+        implementation_ptr: number;
     };
 
     // The ptr to the rigidbody in wasm-memory.
@@ -78,7 +78,42 @@ export class RigidBody {
                 inertia: fns.getRigidBodyInertia(ptr),
                 mu: fns.getRigidBodyFrictionCoeff(ptr),
             },
-            ptr: fns.getRigidBodyImplementation(ptr),
+            implementation_ptr: fns.getRigidBodyImplementation(ptr),
+        }
+    }
+
+    getImplementationDiscBody(fns: any): DiscBodyImplementation {
+        return {
+            radius: fns.getDiscBodyRadiusAssumeType(this.zig?.implementation_ptr),
+        };
+    }
+
+    getImplementationRectangleBody(fns: any): RectangleBodyImplementation {
+        return {
+            width: fns.getRectangleBodyWidthAssumeType(this.zig?.implementation_ptr),
+            height: fns.getRectangleBodyHeightAssumeType(this.zig?.implementation_ptr),
+        };
+    }
+
+    getImplementation(fns: any): Implementation {
+        switch (this.zig?.type) {
+            case RigidBodies.disc:
+                return this.getImplementationDiscBody(fns);
+            case RigidBodies.rectangle:
+                return this.getImplementationRectangleBody(fns);
+            default:
+                throw new Error("Undefined type. Could not return implementation");
         }
     }
 }
+
+type Implementation = DiscBodyImplementation | RectangleBodyImplementation;
+
+export type DiscBodyImplementation = {
+    radius: number,
+};
+
+export type RectangleBodyImplementation = {
+    width: number,
+    height: number,
+};

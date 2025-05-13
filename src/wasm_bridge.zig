@@ -8,7 +8,7 @@ const zigics = @import("zigics.zig");
 const Solver = zigics.Solver; // What should I do with this?
 const demos = @import("demos.zig");
 
-// Yeppers it seems like GPA is not wasm-compatible due to threading?..
+// Most allocators seem to work. They have to be posix and thread independant though.
 // var gpa = std.heap.GeneralPurposeAllocator(.{}){};
 // const alloc = gpa.allocator();
 const alloc = std.heap.wasm_allocator;
@@ -20,7 +20,7 @@ pub export fn solverInit() bool {
     if (solver != null) return true;
 
     const solver_ptr = alloc.create(Solver) catch return false;
-    solver_ptr.* = Solver.init(alloc) catch {
+    solver_ptr.* = Solver.init(alloc, 2.0, 2.0) catch {
         alloc.destroy(solver_ptr);
         return false;
     };
@@ -56,6 +56,11 @@ pub export fn solverGetNumBodies() usize {
 pub export fn solverGetBodyIdBasedOnIter(iter_idx: usize) u64 {
     const keys = solver.?.bodies.keys();
     return keys[iter_idx];
+}
+
+pub export fn solverRemoveBodyById(id: u64) bool {
+    solver.?.removeRigidBody(id) catch return false;
+    return true;
 }
 
 // === Setup demos ===
@@ -185,4 +190,21 @@ pub export fn getRigidBodyInertia(ptr: usize) f32 {
 pub export fn getRigidBodyFrictionCoeff(ptr: usize) f32 {
     const body: *RigidBody = @ptrFromInt(ptr);
     return body.props.mu;
+}
+
+// === DiscBody specific properties ===
+pub export fn getDiscBodyRadiusAssumeType(implementation_ptr: usize) f32 {
+    const disc: *rb_mod.DiscBody = @ptrFromInt(implementation_ptr);
+    return disc.radius;
+}
+
+// === RectangleBody specific properties ===
+pub export fn getRectangleBodyWidthAssumeType(implementation_ptr: usize) f32 {
+    const rect: *rb_mod.RectangleBody = @ptrFromInt(implementation_ptr);
+    return rect.width;
+}
+
+pub export fn getRectangleBodyHeightAssumeType(implementation_ptr: usize) f32 {
+    const rect: *rb_mod.RectangleBody = @ptrFromInt(implementation_ptr);
+    return rect.height;
 }

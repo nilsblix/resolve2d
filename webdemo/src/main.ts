@@ -41,19 +41,20 @@ const app = (() => {
     const canvas = document.getElementById("demo") as HTMLCanvasElement;
     const context = canvas.getContext("2d") as CanvasRenderingContext2D;
 
-    const renderer = new rendmod.Renderer(context, 16 / 9, 10);
+    const renderer = new rendmod.Renderer(context, 16 / 9, 100);
+    renderer.units.camera.pos.x = -10;
 
     if (wasm.instance == undefined) {
         console.error("Error: BAD! `wasm.instance` is undefined");
         return;
     }
 
-    const fns = wasm.instance.exports as any;
-    const num = fns.solverGetNumBodies();
-
-    for (let i = 0n; i < num; i++) {
-        renderer.addStandardRigidBodyTex(i % 2n == 0n ? rendmod.IMAGE_PATHS.wheel : rendmod.IMAGE_PATHS.red_truck, i);
-    }
+    // const fns = wasm.instance.exports as any;
+    // const num = fns.solverGetNumBodies();
+    //
+    // for (let i = 0n; i < num; i++) {
+    //     renderer.addStandardRigidBodyTex(i % 2n == 0n ? rendmod.IMAGE_PATHS.wheel : rendmod.IMAGE_PATHS.red_truck, i);
+    // }
 
     return {
         c: context,

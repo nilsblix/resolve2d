@@ -121,8 +121,11 @@ pub const Solver = struct {
     manifolds: std.AutoArrayHashMap(clsn.CollisionKey, clsn.CollisionManifold),
     constraints: std.ArrayList(Constraint),
 
+    spatialhash_cell_width: f32,
+    spatialhash_table_size_mult: usize,
+
     const Self = @This();
-    pub fn init(alloc: Allocator) !Self {
+    pub fn init(alloc: Allocator, spatialhash_cell_width: f32, spatialhash_table_size_mult: usize) !Self {
         return .{
             .alloc = alloc,
             .current_body_id = 0,
@@ -130,6 +133,8 @@ pub const Solver = struct {
             .force_generators = std.ArrayList(ForceGenerator).init(alloc),
             .manifolds = std.AutoArrayHashMap(clsn.CollisionKey, clsn.CollisionManifold).init(alloc),
             .constraints = std.ArrayList(Constraint).init(alloc),
+            .spatialhash_cell_width = spatialhash_cell_width,
+            .spatialhash_table_size_mult = spatialhash_table_size_mult,
         };
     }
 
@@ -269,6 +274,10 @@ pub const Solver = struct {
                 }
             }
         }
+    }
+
+    pub fn removeRigidBody(self: *Self, id: RigidBody.Id) !void {
+        if (!self.bodies.swapRemove(id)) return error.NoSuchIdExists;
     }
 
     pub fn entityFactory(self: *Self) EntityFactory {
