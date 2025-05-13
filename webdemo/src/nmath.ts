@@ -51,7 +51,7 @@ export function sub2(a: Vector2, b: Vector2): Vector2 {
 }
 
 export function scale2(a: Vector2, s: number): Vector2 {
-    return new Vector2(a.x * s, a.x * s);
+    return new Vector2(a.x * s, a.y * s);
 }
 
 export function multelem2(a: Vector2, b: Vector2): Vector2 {

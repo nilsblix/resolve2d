@@ -16,11 +16,11 @@ const alloc = std.heap.wasm_allocator;
 var solver: ?*Solver = null;
 
 // === Solver functions ===
-pub export fn solverInit() bool {
+pub export fn solverInit(spatialhash_cell_width: f32, spatialhash_table_size_mult: usize) bool {
     if (solver != null) return true;
 
     const solver_ptr = alloc.create(Solver) catch return false;
-    solver_ptr.* = Solver.init(alloc, 2.0, 2.0) catch {
+    solver_ptr.* = Solver.init(alloc, spatialhash_cell_width, spatialhash_table_size_mult) catch {
         alloc.destroy(solver_ptr);
         return false;
     };

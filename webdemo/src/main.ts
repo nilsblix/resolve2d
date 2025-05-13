@@ -1,7 +1,12 @@
 import * as rendmod from "./renderer.ts";
 import * as wasmmod from "./wasm_module.ts";
 import * as gui from "./nvb-imgui/src/gui/gui.ts";
+import * as bridge from "./wasm_bridge.ts";
+import * as nmath from "./nmath.ts";
+import { Vector2 } from "./nmath.ts";
 const wasm = wasmmod.wasm;
+
+setTimeout(() => {}, 100);
 
 await wasmmod.bootstrap();
 
@@ -9,7 +14,7 @@ const app = (() => {
     const canvas = document.getElementById("demo") as HTMLCanvasElement;
     const context = canvas.getContext("2d") as CanvasRenderingContext2D;
 
-    const renderer = new rendmod.Renderer(context, 16 / 9, 25);
+    const renderer = new rendmod.Renderer(context, 16 / 9, 30);
     renderer.units.camera.pos.x = 5;
 
     if (wasm.instance == undefined) {
@@ -34,6 +39,20 @@ const TARGET_FPS = 60;
 const DT = 1 / TARGET_FPS;
 
 var comp_dt = 0;
+
+function init() {
+    if (wasm.instance == undefined) return;
+    const fns = wasm.instance.exports as any;
+
+    fns.solverInit(2, 4);
+    fns.setupDemo1();
+
+    const num = fns.solverGetNumBodies();
+    for (let i = 0n; i < num; i++) {
+        const path = i % 2n == 0n ? "/red_truck.png" : "/wheel.png";
+        app?.renderer.addStandardRigidBodyTex(path, i);
+    }
+}
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function updateLoop(update: () => void) {
@@ -65,11 +84,15 @@ enum Action {
     true,
 }
 
+init();
+
 updateLoop(() => {
     if (wasm.instance == undefined) {
         console.error("Error: BAD! `wasm.instance` is undefined");
         return;
     }
+
+    if (app == undefined) return;
 
     gui.updateCanvasSizing();
     const stack = new gui.Stack<gui.N<Action>>();
@@ -77,14 +100,19 @@ updateLoop(() => {
         // window is if win is moveable, header is if win is closeable and the rest are self explanatory.
         // Here we see the difference between Action.true and null.
         { window: Action.true, header: Action.true, resizeable: Action.true, close_btn: null, },
-        { title: "Window 1", x: 0, y: 0, width: 600, height: 290 },
+        { title: "nvb-zigics | wasm demo", x: 0, y: 0, width: 600, height: 290 },
     );
 
     win.makeLabel(gui.c, null, "Hello world");
     win.makeLabel(gui.c, null, "Comptime = " + Math.floor(10 * comp_dt) / 10 + "ms");
 
     const fns = wasm.instance.exports as any;
-    fns.solverProcess(DT, 2, 4);
+    fns.solverProcess(DT, 4, 8);
+
+    const b10 = new bridge.RigidBody(fns, 61n);
+    if (b10.zig == undefined) return;
+    const view = new Vector2(app.renderer.units.camera.viewport.width, app.renderer.units.camera.viewport.height);
+    app.renderer.units.camera.pos = nmath.sub2(b10.zig.props.pos, nmath.scale2(view, 0.5));
 
     const req = stack.requestAction(gui.input_state);
     const action = req.action;

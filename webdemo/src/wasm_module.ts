@@ -21,11 +21,6 @@ export async function bootstrap(): Promise<void> {
             return;
         }
 
-        const fns = wasm.instance.exports as any;
-
-        fns.solverInit();
-        fns.setupDemo1();
-
     } catch (error) {
         console.error("Failed to bootstrap WebAssembly module:", error);
     }
