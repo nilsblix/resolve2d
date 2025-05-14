@@ -31,12 +31,15 @@ pub fn setupCarScene(solver: *Solver) !void {
 
     // CAR
     opt.pos = Vector2.init(5, 10);
-    _ = try fac.makeRectangleBody(opt, .{ .width = 3, .height = 1.2 });
+    body = try fac.makeRectangleBody(opt, .{ .width = 3, .height = 1.2 });
     const rad: f32 = 0.55;
     opt.pos = Vector2.init(4.1, 9.8 - rad);
-    _ = try fac.makeDiscBody(opt, .{ .radius = rad });
+    const wheel_l = try fac.makeDiscBody(opt, .{ .radius = rad });
     opt.pos.x = 5.9;
-    _ = try fac.makeDiscBody(opt, .{ .radius = rad });
+    const wheel_r = try fac.makeDiscBody(opt, .{ .radius = rad });
+
+    try fac.excludeCollisionPair(body.id, wheel_l.id);
+    try fac.excludeCollisionPair(body.id, wheel_r.id);
 
     // Obstacles
     opt.pos = Vector2.init(-15, 8);
@@ -221,53 +224,53 @@ pub fn setupCarScene(solver: *Solver) !void {
     opt.angle = 0;
 
     rect_opt = zigics.EntityFactory.RectangleOptions {
-        .width = 0.6,
+        .width = 0.9,
         .height = 0.4,
     };
     opt.mu = 0.7;
     x = 65;
+    opt.pos = Vector2.init(x, 9);
+    _ = try fac.makeRectangleBody(opt, rect_opt);
+    opt.pos = Vector2.init(x, 10);
+    _ = try fac.makeRectangleBody(opt, rect_opt);
+    opt.pos = Vector2.init(x, 11);
+    _ = try fac.makeRectangleBody(opt, rect_opt);
+    opt.pos = Vector2.init(x, 12);
+    _ = try fac.makeRectangleBody(opt, rect_opt);
     opt.pos = Vector2.init(x, 13);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 14);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 15);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 16);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 17);
     _ = try fac.makeRectangleBody(opt, rect_opt);
     x = 66;
+    opt.pos = Vector2.init(x, 9);
+    _ = try fac.makeRectangleBody(opt, rect_opt);
+    opt.pos = Vector2.init(x, 10);
+    _ = try fac.makeRectangleBody(opt, rect_opt);
+    opt.pos = Vector2.init(x, 11);
+    _ = try fac.makeRectangleBody(opt, rect_opt);
+    opt.pos = Vector2.init(x, 12);
+    _ = try fac.makeRectangleBody(opt, rect_opt);
     opt.pos = Vector2.init(x, 13);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 14);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 15);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 16);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 17);
     _ = try fac.makeRectangleBody(opt, rect_opt);
     x = 67;
+    opt.pos = Vector2.init(x, 9);
+    _ = try fac.makeRectangleBody(opt, rect_opt);
+    opt.pos = Vector2.init(x, 10);
+    _ = try fac.makeRectangleBody(opt, rect_opt);
+    opt.pos = Vector2.init(x, 11);
+    _ = try fac.makeRectangleBody(opt, rect_opt);
+    opt.pos = Vector2.init(x, 12);
+    _ = try fac.makeRectangleBody(opt, rect_opt);
     opt.pos = Vector2.init(x, 13);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 14);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 15);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 16);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 17);
     _ = try fac.makeRectangleBody(opt, rect_opt);
     x = 68;
+    opt.pos = Vector2.init(x, 9);
+    _ = try fac.makeRectangleBody(opt, rect_opt);
+    opt.pos = Vector2.init(x, 10);
+    _ = try fac.makeRectangleBody(opt, rect_opt);
+    opt.pos = Vector2.init(x, 11);
+    _ = try fac.makeRectangleBody(opt, rect_opt);
+    opt.pos = Vector2.init(x, 12);
+    _ = try fac.makeRectangleBody(opt, rect_opt);
     opt.pos = Vector2.init(x, 13);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 14);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 15);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 16);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 17);
     _ = try fac.makeRectangleBody(opt, rect_opt);
     opt.mu = 0.5;
 

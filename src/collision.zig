@@ -11,6 +11,11 @@ pub const CollisionKey = struct {
     inc_body: *RigidBody,
 };
 
+pub const CollisionKeyIds = struct {
+    id1: RigidBody.Id,
+    id2: RigidBody.Id,
+};
+
 pub const CollisionPoint = struct {
     accumulated_pn: f32 = 0.0,
     accumulated_pt: f32 = 0.0,

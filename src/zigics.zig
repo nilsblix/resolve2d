@@ -9,6 +9,7 @@ const ForceGenerator = fg_mod.ForceGenerator;
 const clsn = @import("collision.zig");
 const ctr_mod = @import("constraint.zig");
 const Constraint = ctr_mod.Constraint;
+const IdKey = clsn.CollisionKeyIds;
 
 const spat = @import("spatial_hash.zig");
 const SpatialHash = spat.SpatialHash;
@@ -111,6 +112,13 @@ pub const EntityFactory = struct {
         try self.solver.constraints.append(ctr);
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
     }
+
+    pub fn excludeCollisionPair(self: *Self, id1: RigidBody.Id, id2: RigidBody.Id) !void {
+        const pair1 = clsn.CollisionKeyIds{ .id1 = id1, .id2 = id2 };
+        const pair2 = clsn.CollisionKeyIds{ .id1 = id1, .id2 = id1 };
+        try self.solver.exclude_collision_pairs.put(pair1, pair2);
+        try self.solver.exclude_collision_pairs.put(pair2, pair1);
+    }
 };
 
 pub const Solver = struct {
@@ -119,6 +127,7 @@ pub const Solver = struct {
     bodies: std.AutoArrayHashMap(RigidBody.Id, RigidBody),
     force_generators: std.ArrayList(ForceGenerator),
     manifolds: std.AutoArrayHashMap(clsn.CollisionKey, clsn.CollisionManifold),
+    exclude_collision_pairs: std.AutoHashMap(IdKey, IdKey),
     constraints: std.ArrayList(Constraint),
 
     spatialhash_cell_width: f32,
@@ -132,6 +141,7 @@ pub const Solver = struct {
             .bodies = std.AutoArrayHashMap(RigidBody.Id, RigidBody).init(alloc),
             .force_generators = std.ArrayList(ForceGenerator).init(alloc),
             .manifolds = std.AutoArrayHashMap(clsn.CollisionKey, clsn.CollisionManifold).init(alloc),
+            .exclude_collision_pairs = std.AutoHashMap(IdKey, IdKey).init(alloc),
             .constraints = std.ArrayList(Constraint).init(alloc),
             .spatialhash_cell_width = spatialhash_cell_width,
             .spatialhash_table_size_mult = spatialhash_table_size_mult,
@@ -140,6 +150,7 @@ pub const Solver = struct {
 
     pub fn deinit(self: *Self) void {
         self.manifolds.deinit();
+        self.exclude_collision_pairs.deinit();
 
         var iter = self.bodies.iterator();
         while (iter.next()) |*entry| {
@@ -252,6 +263,8 @@ pub const Solver = struct {
             for (queries.items) |body2| {
                 if (body1.static and body2.static) continue;
                 if (body1.ptr == body2.ptr) continue;
+                if (self.exclude_collision_pairs.contains(.{ .id1 = body1.id, .id2 = body2.id })) continue;
+                if (self.exclude_collision_pairs.contains(.{ .id1 = body2.id, .id2 = body1.id })) continue;
 
                 var tmp = clsn.CollisionKey{ .ref_body = body1, .inc_body = body2 };
                 if (!self.manifolds.contains(tmp)) {
