@@ -9,9 +9,9 @@ const Solver = zigics.Solver; // What should I do with this?
 const demos = @import("demos.zig");
 
 // Most allocators seem to work. They have to be posix and thread independant though.
-// var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-// const alloc = gpa.allocator();
-const alloc = std.heap.wasm_allocator;
+var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+const alloc = gpa.allocator();
+// const alloc = std.heap.wasm_allocator;
 
 var solver: ?*Solver = null;
 
@@ -64,6 +64,11 @@ pub export fn solverRemoveBodyById(id: u64) bool {
 }
 
 // === Setup demos ===
+
+pub export fn setupCarScene() bool {
+    demos.setupCarScene(solver.?) catch return false;
+    return true;
+}
 
 pub export fn setupDemo1() bool {
     const solv = solver orelse return false;

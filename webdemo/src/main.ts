@@ -14,8 +14,8 @@ const app = (() => {
     const canvas = document.getElementById("demo") as HTMLCanvasElement;
     const context = canvas.getContext("2d") as CanvasRenderingContext2D;
 
-    const renderer = new rendmod.Renderer(context, 16 / 9, 30);
-    renderer.units.camera.pos.x = 5;
+    const renderer = new rendmod.Renderer(context, 16 / 9, 70);
+    renderer.units.camera.pos = new Vector2(-25, -10);
 
     if (wasm.instance == undefined) {
         console.error("Error: BAD! `wasm.instance` is undefined");
@@ -43,7 +43,11 @@ function init() {
     const fns = wasm.instance.exports as any;
 
     fns.solverInit(2, 4);
-    fns.setupDemo1();
+    fns.setupCarScene();
+    // fns.setupDemo1();
+
+    // app?.renderer.addStandardRigidBodyTex("/red_truck.png", 10n);
+    // app?.renderer.addStandardRigidBodyTex("/wheel.png", 11n);
 
     // const num = fns.solverGetNumBodies();
     // for (let i = 0n; i < num; i++) {
@@ -78,6 +82,7 @@ function updateLoop(update: () => void) {
 enum Action {
     true,
     toggle_sim,
+    reset_sim,
     process_sim,
     toggle_snap_to_body,
     change_snap_to_body_id,
@@ -132,14 +137,17 @@ updateLoop(() => {
     win.makeLabel(gui.c, null, "=== SIMULATION ===");
     win.setMode("two columns");
 
+    win.makeLabel(gui.c, null, "Reset simulation (init())");
+    win.makeButton(gui.c, Action.reset_sim, "Reset");
+
     win.makeLabel(gui.c, null, "Toggle simulating:");
     win.makeButton(gui.c, Action.toggle_sim, "" + app.simulating);
 
     win.makeLabel(gui.c, null, "Process once:");
-    win.makeButton(gui.c, Action.process_sim, "Process");
+    win.makeButton(gui.c, Action.process_sim, "Once");
 
     win.makeLabel(gui.c, null, "Process while held:");
-    win.makeDraggable(gui.c, Action.process_sim, "Process");
+    win.makeDraggable(gui.c, Action.process_sim, "Hold");
 
     win.setMode("normal");
     win.makeLabel(gui.c, null, "");
@@ -163,6 +171,11 @@ updateLoop(() => {
     const action = req.action;
 
     switch (action) {
+        case Action.reset_sim:
+            fns.solverDeinit();
+            init();
+            app.steps = 0;
+            break;
         case Action.toggle_sim:
             app.simulating = !app.simulating;
             break;
