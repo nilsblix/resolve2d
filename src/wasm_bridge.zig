@@ -162,9 +162,19 @@ pub export fn getRigidBodyForceX(ptr: usize) f32 {
     return body.props.force.x;
 }
 
+pub export fn setRigidBodyForceX(ptr: usize, value: f32) void {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    body.props.force.x = value;
+}
+
 pub export fn getRigidBodyForceY(ptr: usize) f32 {
     const body: *RigidBody = @ptrFromInt(ptr);
     return body.props.force.y;
+}
+
+pub export fn setRigidBodyForceY(ptr: usize, value: f32) void {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    body.props.force.y = value;
 }
 
 pub export fn getRigidBodyMass(ptr: usize) f32 {
@@ -180,6 +190,11 @@ pub export fn getRigidBodyAngle(ptr: usize) f32 {
 pub export fn getRigidBodyAngularMomentum(ptr: usize) f32 {
     const body: *RigidBody = @ptrFromInt(ptr);
     return body.props.ang_momentum;
+}
+
+pub export fn setRigidBodyAngularMomentum(ptr: usize, value: f32) void {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    body.props.ang_momentum = value;
 }
 
 pub export fn getRigidBodyTorque(ptr: usize) f32 {

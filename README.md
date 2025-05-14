@@ -12,6 +12,9 @@ with zig being annoying with `array[last_id]`.
 WASM:
 Wow. This is incredible. Just do `zig build` and run web/index.html via an http server. Wasm is amazing.
 
+TODO:
+add setters in wasm_bridge.zig. set force is very important.
+
 Roadmap:
 Composite bodies:
 * Another list/map/array in the base of solver. 

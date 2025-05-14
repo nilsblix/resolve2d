@@ -31,17 +31,23 @@ pub fn setupCarScene(solver: *Solver) !void {
 
     // CAR
     opt.pos = Vector2.init(5, 10);
-    body = try fac.makeRectangleBody(opt, .{ .width = 3, .height = 1.2 });
+    body = try fac.makeRectangleBody(opt, .{ .width = 1, .height = 1.2 });
+    opt.mu = 1.0;
     const rad: f32 = 0.55;
     opt.pos = Vector2.init(4.1, 9.8 - rad);
     const wheel_l = try fac.makeDiscBody(opt, .{ .radius = rad });
     opt.pos.x = 5.9;
     const wheel_r = try fac.makeDiscBody(opt, .{ .radius = rad });
+    opt.mu = 0.5;
+
+    const dist = nmath.dist2(body.props.pos, wheel_l.props.pos);
 
     _ = try fac.makeDistanceJoint(.{}, wheel_l.id, wheel_r.id, 1.8);
+    _ = try fac.makeDistanceJoint(.{}, wheel_l.id, body.id, dist);
+    _ = try fac.makeDistanceJoint(.{}, wheel_r.id, body.id, dist);
 
-    // try fac.excludeCollisionPair(body.id, wheel_l.id);
-    // try fac.excludeCollisionPair(body.id, wheel_r.id);
+    try fac.excludeCollisionPair(body.id, wheel_l.id);
+    try fac.excludeCollisionPair(body.id, wheel_r.id);
 
     // Obstacles
     opt.pos = Vector2.init(-15, 8);
@@ -163,7 +169,7 @@ pub fn setupCarScene(solver: *Solver) !void {
     body = try fac.makeRectangleBody(opt, .{ .width = 15, .height = 1 });
     body.static = true;
 
-    opt.mass_prop = .{ .mass = 100 };
+    opt.mass_prop = .{ .mass = 10 };
     opt.pos = Vector2.init(52, 12);
     _ = try fac.makeRectangleBody(opt, .{ .width = 3, .height = 3 });
     opt.mass_prop = .{ .density = 1 };

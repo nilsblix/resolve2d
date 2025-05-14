@@ -44,10 +44,13 @@ function init() {
 
     fns.solverInit(2, 4);
     fns.setupCarScene();
+    // main = 3
+    // L = 4
+    // R = 5
     // fns.setupDemo1();
 
-    // app?.renderer.addStandardRigidBodyTex("/red_truck.png", 10n);
-    // app?.renderer.addStandardRigidBodyTex("/wheel.png", 11n);
+    app?.renderer.addStandardRigidBodyTex("/wheel.png", 4n);
+    app?.renderer.addStandardRigidBodyTex("/wheel.png", 5n);
 
     // const num = fns.solverGetNumBodies();
     // for (let i = 0n; i < num; i++) {
@@ -55,6 +58,34 @@ function init() {
     //     app?.renderer.addStandardRigidBodyTex(path, i);
     // }
 }
+
+window.addEventListener("keydown", (e) => {
+    if (wasm.instance == undefined) return;
+    const fns = wasm.instance.exports as any;
+
+    const ang = 10;
+    const linear = 70;
+
+    if (e.key == "d") {
+        const wheel_left = fns.solverGetRigidbodyPtrById(4n);
+        const wheel_right = fns.solverGetRigidbodyPtrById(5n);
+        fns.setRigidBodyForceX(wheel_left, linear);
+        fns.setRigidBodyForceX(wheel_right, linear);
+
+        fns.setRigidBodyAngularMomentum(wheel_left, -ang);
+        fns.setRigidBodyAngularMomentum(wheel_right, -ang);
+    }
+
+    if (e.key == "a") {
+        const wheel_left = fns.solverGetRigidbodyPtrById(4n);
+        const wheel_right = fns.solverGetRigidbodyPtrById(5n);
+        fns.setRigidBodyForceX(wheel_left, -linear);
+        fns.setRigidBodyForceX(wheel_right, -linear);
+
+        fns.setRigidBodyAngularMomentum(wheel_left, ang);
+        fns.setRigidBodyAngularMomentum(wheel_right, ang);
+    }
+});
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function updateLoop(update: () => void) {
