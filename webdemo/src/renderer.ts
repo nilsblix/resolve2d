@@ -30,6 +30,8 @@ export class Renderer {
     */
     render(fns: any, c: CanvasRenderingContext2D): void {
         c.clearRect(0, 0, c.canvas.width, c.canvas.height);
+        // c.fillStyle = "#151c14";
+        // c.fillRect(0, 0, c.canvas.width, c.canvas.height);
 
         this.units.update(c);
 

@@ -129,6 +129,10 @@ pub fn rotate2(a: Vector2, angle: f32) Vector2 {
     };
 }
 
+pub fn dist2(a: Vector2, b: Vector2) f32 {
+    return length2(sub2(a, b));
+}
+
 pub fn rotate90clockwise(a: Vector2) Vector2 {
     return Vector2.init(a.y, -a.x);
 }

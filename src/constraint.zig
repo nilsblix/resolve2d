@@ -204,3 +204,61 @@ pub const SingleLinkJoint = struct {
         body.props.ang_momentum += p_ang;
     }
 };
+
+pub const DistanceJoint = struct {
+    id1: RigidBody.Id,    
+    id2: RigidBody.Id,    
+    d: f32,
+
+    const VTable = Constraint.VTable{
+        .deinit = DistanceJoint.deinit,
+        .solve = DistanceJoint.solve,
+    };
+
+    const Self = @This();
+
+    pub fn init(alloc: Allocator, params: Constraint.Parameters, id1: RigidBody.Id, id2: RigidBody.Id, target_distance: f32) !Constraint {
+        const joint = try alloc.create(DistanceJoint);
+        joint.id1 = id1;
+        joint.id2 = id2;
+        joint.d = target_distance;
+
+        return Constraint{
+            .type = Constraints.single_link_joint,
+            .params = params,
+            .ptr = joint,
+            .vtable = DistanceJoint.VTable,
+        };
+    }
+
+    pub fn deinit(ctrself: *Constraint, alloc: Allocator) void {
+        const self: *Self = @ptrCast(@alignCast(ctrself.ptr));
+        alloc.destroy(self);
+    }
+
+    pub fn solve(ctrself: *Constraint, bodies: std.AutoArrayHashMap(RigidBody.Id, RigidBody), _: f32, _: f32) anyerror!void {
+        const self: *Self = @ptrCast(@alignCast(ctrself.ptr));
+        const entry1 = bodies.getEntry(self.id1) orelse return error.InvalidRigidBodyId;
+        const b1 = entry1.value_ptr;
+        const entry2 = bodies.getEntry(self.id2) orelse return error.InvalidRigidBodyId;
+        const b2 = entry2.value_ptr;
+
+        const E = 0.5;
+
+        const w1 = 1 / b1.props.mass;
+        const w2 = 1 / b2.props.mass;
+
+        const v1 = nmath.scale2(b1.props.momentum, w1);
+        const v2 = nmath.scale2(b2.props.momentum, w2);
+        const relative_v = nmath.sub2(v2, v1);
+
+        const normal = nmath.normalize2(nmath.sub2(b2.props.pos, b1.props.pos));
+
+        const J = - (1 + E) * (nmath.dot2(relative_v, normal)) / (w1 + w2);
+
+        const dp = nmath.scale2(normal, J);
+        b1.props.momentum.sub(dp);
+        b2.props.momentum.add(dp);
+
+    }
+};

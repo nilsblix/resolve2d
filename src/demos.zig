@@ -38,8 +38,10 @@ pub fn setupCarScene(solver: *Solver) !void {
     opt.pos.x = 5.9;
     const wheel_r = try fac.makeDiscBody(opt, .{ .radius = rad });
 
-    try fac.excludeCollisionPair(body.id, wheel_l.id);
-    try fac.excludeCollisionPair(body.id, wheel_r.id);
+    _ = try fac.makeDistanceJoint(.{}, wheel_l.id, wheel_r.id, 1.8);
+
+    // try fac.excludeCollisionPair(body.id, wheel_l.id);
+    // try fac.excludeCollisionPair(body.id, wheel_r.id);
 
     // Obstacles
     opt.pos = Vector2.init(-15, 8);
@@ -99,7 +101,7 @@ pub fn setupCarScene(solver: *Solver) !void {
     body = try fac.makeRectangleBody(opt, rect_opt);
     body.static = true;
 
-    opt.pos = Vector2.init(-3, 5);
+    opt.pos = Vector2.init(4.1, 5);
     opt.angle = 3.0;
     rect_opt = .{ .width = 0.8, .height = 0.7 };
     body = try fac.makeRectangleBody(opt, rect_opt);
@@ -111,7 +113,7 @@ pub fn setupCarScene(solver: *Solver) !void {
     body = try fac.makeRectangleBody(opt, rect_opt);
     body.static = true;
 
-    opt.pos = Vector2.init(5, 5);
+    opt.pos = Vector2.init(15, 5);
     opt.angle = 3.0;
     rect_opt = .{ .width = 0.3, .height = 0.4 };
     body = try fac.makeRectangleBody(opt, rect_opt);

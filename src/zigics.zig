@@ -90,9 +90,17 @@ pub const EntityFactory = struct {
     }
 
     pub fn makeSingleLinkJoint(self: *Self, params: Constraint.Parameters, id: RigidBody.Id, r: Vector2, q: Vector2, dist: f32) !*Constraint {
-        const entry = self.solver.bodies.getEntry(id) orelse return error.NotAValidRigidBodyId;
-        const body = entry.value_ptr;
-        const ctr = try ctr_mod.SingleLinkJoint.init(self.solver.alloc, params, body.id, r, q, dist);
+        const ctr = try ctr_mod.SingleLinkJoint.init(self.solver.alloc, params, id, r, q, dist);
+        try self.solver.constraints.append(ctr);
+        return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
+    }
+
+    pub fn makeDistanceJoint(self: *Self, params: Constraint.Parameters, id1: RigidBody.Id, id2: RigidBody.Id, target_distance: f32) !*Constraint {
+        // const entry1 = self.solver.bodies.getEntry(id1) orelse return error.NotAValidRigidBodyId;
+        // const entry2 = self.solver.bodies.getEntry(id2) orelse return error.NotAValidRigidBodyId;
+        // const b1 = entry1.value_ptr;
+        // const b2 = entry2.value_ptr;
+        const ctr = try ctr_mod.DistanceJoint.init(self.solver.alloc, params, id1, id2, target_distance);
         try self.solver.constraints.append(ctr);
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
     }
