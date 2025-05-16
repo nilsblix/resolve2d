@@ -32,8 +32,8 @@ pub fn setupCarScene(solver: *Solver) !void {
     // CAR
     opt.pos = Vector2.init(5, 10);
     body = try fac.makeRectangleBody(opt, .{ .width = 5, .height = 0.9 });
-    opt.mu = 0.89;
-    const rad: f32 = 1.2;
+    opt.mu = 1.5;
+    const rad: f32 = 1.0;
     opt.pos = Vector2.init(3.5, 9.8 - rad);
     const wheel_l = try fac.makeDiscBody(opt, .{ .radius = rad });
     opt.pos.x = 6.5;
@@ -185,7 +185,6 @@ pub fn setupCarScene(solver: *Solver) !void {
     opt.pos = Vector2.init(38, 19);
     _ = try fac.makeDiscBody(opt, .{ .radius = 1.0 });
 
-    // === PLATFORM 2 ===
     opt.pos = Vector2.init(48, 9.5);
     body = try fac.makeRectangleBody(opt, .{ .width = 15, .height = 1 });
     body.static = true;

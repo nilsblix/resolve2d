@@ -50,8 +50,10 @@ function init() {
     // fns.setupDemo1();
 
     app?.renderer.addStandardRigidBodyTex("/red_truck.png", 3n, 6.0);
-    app?.renderer.addStandardRigidBodyTex("/wheel.png", 4n, 2.45);
-    app?.renderer.addStandardRigidBodyTex("/wheel.png", 5n, 2.45);
+    // app?.renderer.addStandardRigidBodyTex("/wheel.png", 4n, 2.45);
+    // app?.renderer.addStandardRigidBodyTex("/wheel.png", 5n, 2.45);
+    app?.renderer.addStandardRigidBodyTex("/wheel.png", 4n, 2.05);
+    app?.renderer.addStandardRigidBodyTex("/wheel.png", 5n, 2.05);
     app?.renderer.textures.set(6n, null);
 }
 
