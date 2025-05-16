@@ -50,8 +50,8 @@ function init() {
     // fns.setupDemo1();
 
     app?.renderer.addStandardRigidBodyTex("/red_truck.png", 3n, 6.0);
-    app?.renderer.addStandardRigidBodyTex("/wheel.png", 4n, 1.95);
-    app?.renderer.addStandardRigidBodyTex("/wheel.png", 5n, 1.95);
+    app?.renderer.addStandardRigidBodyTex("/wheel.png", 4n, 2.45);
+    app?.renderer.addStandardRigidBodyTex("/wheel.png", 5n, 2.45);
     app?.renderer.textures.set(6n, null);
 }
 
@@ -64,7 +64,7 @@ window.addEventListener("keydown", (e) => {
     const wr = fns.getRigidBodyPtrFromId(5n);
 
     const w_ang = 30;
-    const b_ang = 260;
+    const b_ang = 390;
 
     if (e.key == "d") {
         fns.setRigidBodyAngularMomentum(wl, -w_ang);
@@ -77,6 +77,13 @@ window.addEventListener("keydown", (e) => {
         fns.setRigidBodyAngularMomentum(wr, w_ang);
         fns.setRigidBodyTorque(body, -b_ang);
     }
+
+    const val = 10;
+
+    if (e.key == "ArrowUp") { fns.setRigidBodyMomentumY(body, val); }
+    if (e.key == "ArrowLeft") { fns.setRigidBodyMomentumX(body, -val); }
+    if (e.key == "ArrowDown") { fns.setRigidBodyMomentumY(body, -val); }
+    if (e.key == "ArrowRight") { fns.setRigidBodyMomentumX(body, val); }
 
 
     if (e.key == " ") {
@@ -242,7 +249,7 @@ updateLoop(() => {
             app.simulating = !app.simulating;
             break;
         case Action.process_sim:
-            fns.solverProcess(DT, 4, 8);
+            fns.solverProcess(DT, 8, 16);
             app.steps += 1;
             break;
         case Action.toggle_snap_to_body:

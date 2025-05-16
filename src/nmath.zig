@@ -141,6 +141,13 @@ pub fn rotate90counterclockwise(a: Vector2) Vector2 {
     return Vector2.init(-a.y, a.x);
 }
 
+pub fn clamp2(a: Vector2, min: Vector2, max: Vector2) Vector2 {
+    return Vector2.init(
+        std.math.clamp(a.x, min.x, max.x),
+        std.math.clamp(a.y, min.y, max.y),
+    );
+}
+
 test "vector2" {
     const a = Vector2.init(2, 3);
     const b = Vector2.init(4, 5);

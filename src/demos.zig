@@ -32,8 +32,8 @@ pub fn setupCarScene(solver: *Solver) !void {
     // CAR
     opt.pos = Vector2.init(5, 10);
     body = try fac.makeRectangleBody(opt, .{ .width = 5, .height = 0.9 });
-    opt.mu = 0.8;
-    const rad: f32 = 0.95;
+    opt.mu = 0.89;
+    const rad: f32 = 1.2;
     opt.pos = Vector2.init(3.5, 9.8 - rad);
     const wheel_l = try fac.makeDiscBody(opt, .{ .radius = rad });
     opt.pos.x = 6.5;
@@ -45,13 +45,13 @@ pub fn setupCarScene(solver: *Solver) !void {
     opt.pos = Vector2.init(5.25, 10.8);
     const body2 = try fac.makeRectangleBody(opt, .{ .width = 1.2, .height = 0.5 });
 
-    // const lambda = 0.4;
-    // const params = ctrs.Constraint.Parameters {
-    //     .beta = 20,
-    //     .upper_lambda = lambda,
-    //     .lower_lambda = -lambda,
-    // };
-    const params: ctrs.Constraint.Parameters = .{};
+    const power_limit = 0.8;
+    const params = ctrs.Constraint.Parameters {
+        .beta = 10,
+        .power_min = -power_limit,
+        .power_max = power_limit,
+    };
+    // const params: ctrs.Constraint.Parameters = .{};
 
     _ = try fac.makeOffsetDistanceJoint(params, wheel_l.id, body.id, .{}, Vector2.init(-1.5, 0), rad + 0.2);
     _ = try fac.makeOffsetDistanceJoint(params, wheel_r.id, body.id, .{}, Vector2.init(1.5, 0), rad + 0.2);
@@ -180,8 +180,7 @@ pub fn setupCarScene(solver: *Solver) !void {
     // Rotating thing
     opt.pos = Vector2.init(35, 13);
     body = try fac.makeRectangleBody(opt, .{ .width = 10.5, .height = 0.5 });
-    var q = nmath.add2(body.props.pos, Vector2.init(0, 0.01));
-    _ = try fac.makeSingleLinkJoint(.{}, body.id, .{}, q, 0.0);
+    _ = try fac.makeFixedPositionJoint(.{}, body.id, body.props.pos);
 
     opt.pos = Vector2.init(38, 19);
     _ = try fac.makeDiscBody(opt, .{ .radius = 1.0 });
@@ -314,115 +313,126 @@ pub fn setupCarScene(solver: *Solver) !void {
     body.static = true;
 
     opt.pos = Vector2.init(100, 5);
-    body = try fac.makeRectangleBody(opt, .{ .width = 13, .height = 0.5 });
-    q = nmath.add2(body.props.pos, Vector2.init(0, 0.01));
-    _ = try fac.makeSingleLinkJoint(.{}, body.id, .{}, q, 0);
-    _ = try fac.makeMotorJoint(.{}, body.id, 3.14);
+    body = try fac.makeRectangleBody(opt, .{ .width = 12.9, .height = 0.5 });
+    // const q = nmath.add2(body.props.pos, Vector2.init(0, 0.01));
+    _ = try fac.makeFixedPositionJoint(.{}, body.id, body.props.pos);
+    const pow = 100;
+    const m2 = ctrs.Constraint.Parameters{
+        .beta = 100,
+        .power_max = pow,
+        .power_min = -pow,
+    };
+    _ = try fac.makeMotorJoint(m2, body.id, 3.14);
+
+    opt.pos = Vector2.init(104, 8);
+    _ = try fac.makeDiscBody(opt, .{ .radius = 2.0 });
 }
 
 pub fn setup2(solver: *Solver) !void {
-    var fac = solver.entityFactory();
-
-    var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
-    opt.mu = 0.3;
-    var body: *rigidbody.RigidBody = undefined;
-
-    try fac.makeDownwardsGravity(9.82);
-
-    const MID = Vector2.init(20, 0);
-
-    opt.pos = MID;
-    opt.pos.y = -5;
-    body = try fac.makeRectangleBody(opt, .{ .width = 1000, .height = 10 });
-    body.static = true;
-
-    opt.vel.x = 70;
-    opt.vel.y = 10;
-    opt.omega = -6;
-    opt.mass_prop = .{ .mass = 100 };
-    opt.pos = Vector2.init(-40, 10);
-    _ = try fac.makeRectangleBody(opt, .{ .width = 8.0, .height = 8.0 });
-    opt.vel = .{};
-    opt.omega = 0;
-    opt.mass_prop = .{ .density = 5 };
-
-    opt.pos = Vector2.init(20, 5);
-    body = try fac.makeRectangleBody(opt, .{ .width = 4.0, .height = 1.0 });
-
-    const max: f32 = 100.0;
-    const params = ctrs.Constraint.Parameters{ .beta = 100, .upper_lambda = max, .lower_lambda = -max };
-    _ = try fac.makeSingleLinkJoint(params, body.id, .{}, nmath.add2(body.props.pos, Vector2.init(0.001, 0)), 0.0);
-
-    for (10..30) |x| {
-        const xf = 2.0 * @as(f32, @floatFromInt(x));
-        for (10..36) |y| {
-            const yf = @as(f32, @floatFromInt(y));
-            opt.pos = Vector2.init(xf, yf);
-
-            if (@mod(y, 2) == 0) {
-                body = try fac.makeRectangleBody(opt, .{ .width = 1.0, .height = 1.0 });
-                if (@mod(x, 2) == 0) {
-                    _ = try fac.makeSingleLinkJoint(params, body.id, .{}, nmath.add2(body.props.pos, Vector2.init(0.001, 0)), 0.0);
-                }
-            } else {
-                _ = try fac.makeDiscBody(opt, .{ .radius = 0.5 });
-            }
-        }
-    }
+    _ = solver;
+//     var fac = solver.entityFactory();
+//
+//     var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
+//     opt.mu = 0.3;
+//     var body: *rigidbody.RigidBody = undefined;
+//
+//     try fac.makeDownwardsGravity(9.82);
+//
+//     const MID = Vector2.init(20, 0);
+//
+//     opt.pos = MID;
+//     opt.pos.y = -5;
+//     body = try fac.makeRectangleBody(opt, .{ .width = 1000, .height = 10 });
+//     body.static = true;
+//
+//     opt.vel.x = 70;
+//     opt.vel.y = 10;
+//     opt.omega = -6;
+//     opt.mass_prop = .{ .mass = 100 };
+//     opt.pos = Vector2.init(-40, 10);
+//     _ = try fac.makeRectangleBody(opt, .{ .width = 8.0, .height = 8.0 });
+//     opt.vel = .{};
+//     opt.omega = 0;
+//     opt.mass_prop = .{ .density = 5 };
+//
+//     opt.pos = Vector2.init(20, 5);
+//     body = try fac.makeRectangleBody(opt, .{ .width = 4.0, .height = 1.0 });
+//
+//     const max: f32 = 100.0;
+//     const params = ctrs.Constraint.Parameters{ .beta = 100, .upper_lambda = max, .lower_lambda = -max };
+//     _ = try fac.makeSingleLinkJoint(params, body.id, .{}, nmath.add2(body.props.pos, Vector2.init(0.001, 0)), 0.0);
+//
+//     for (10..30) |x| {
+//         const xf = 2.0 * @as(f32, @floatFromInt(x));
+//         for (10..36) |y| {
+//             const yf = @as(f32, @floatFromInt(y));
+//             opt.pos = Vector2.init(xf, yf);
+//
+//             if (@mod(y, 2) == 0) {
+//                 body = try fac.makeRectangleBody(opt, .{ .width = 1.0, .height = 1.0 });
+//                 if (@mod(x, 2) == 0) {
+//                     _ = try fac.makeSingleLinkJoint(params, body.id, .{}, nmath.add2(body.props.pos, Vector2.init(0.001, 0)), 0.0);
+//                 }
+//             } else {
+//                 _ = try fac.makeDiscBody(opt, .{ .radius = 0.5 });
+//             }
+//         }
+//     }
 }
 
 pub fn setup1(solver: *Solver) !void {
-    var fac = solver.entityFactory();
-
-    var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
-    opt.mu = 0.3;
-    var body: *rigidbody.RigidBody = undefined;
-
-    try fac.makeDownwardsGravity(9.82);
-
-    const MID = Vector2.init(20, 0);
-
-    opt.pos = MID;
-    opt.pos.y = -5;
-    body = try fac.makeRectangleBody(opt, .{ .width = 1000, .height = 10 });
-    body.static = true;
-
-    opt.pos = Vector2.init(80, 20);
-    body = try fac.makeRectangleBody(opt, .{ .width = 3.0, .height  = 60 });
-    body.static = true;
-
-    opt.vel.x = 70;
-    opt.vel.y = 30;
-    opt.omega = -6;
-    opt.mass_prop = .{ .mass = 800 };
-    opt.pos = Vector2.init(-70, 10);
-    _ = try fac.makeRectangleBody(opt, .{ .width = 8.0, .height = 8.0 });
-    opt.vel = .{};
-    opt.omega = 0;
-    opt.mass_prop = .{ .density = 5 };
-    //
-    // opt.vel.x = 70;
-    // opt.vel.y = 10;
-    // opt.omega = -6;
-    // opt.mass_prop = .{ .mass = 800 };
-    // opt.pos = Vector2.init(-40, 10);
-    // _ = try fac.makeRectangleBody(opt, .{ .width = 8.0, .height = 8.0 });
-    // opt.vel = .{};
-    // opt.omega = 0;
-    // opt.mass_prop = .{ .density = 5 };
-
-    for (10..30) |x| {
-        const xf = 2.0 * @as(f32, @floatFromInt(x));
-        for (1..96) |y| {
-            const yf = @as(f32, @floatFromInt(y));
-
-            opt.pos = Vector2.init(xf, yf);
-
-            if (@mod(y, 2) == 0) {
-                _ = try fac.makeRectangleBody(opt, .{ .width = 1.0, .height = 1.0 });
-            } else {
-                _ = try fac.makeDiscBody(opt, .{ .radius = 0.5 });
-            }
-        }
-    }
+    _ = solver;
+//     var fac = solver.entityFactory();
+//
+//     var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 5 } };
+//     opt.mu = 0.3;
+//     var body: *rigidbody.RigidBody = undefined;
+//
+//     try fac.makeDownwardsGravity(9.82);
+//
+//     const MID = Vector2.init(20, 0);
+//
+//     opt.pos = MID;
+//     opt.pos.y = -5;
+//     body = try fac.makeRectangleBody(opt, .{ .width = 1000, .height = 10 });
+//     body.static = true;
+//
+//     opt.pos = Vector2.init(80, 20);
+//     body = try fac.makeRectangleBody(opt, .{ .width = 3.0, .height  = 60 });
+//     body.static = true;
+//
+//     opt.vel.x = 70;
+//     opt.vel.y = 30;
+//     opt.omega = -6;
+//     opt.mass_prop = .{ .mass = 800 };
+//     opt.pos = Vector2.init(-70, 10);
+//     _ = try fac.makeRectangleBody(opt, .{ .width = 8.0, .height = 8.0 });
+//     opt.vel = .{};
+//     opt.omega = 0;
+//     opt.mass_prop = .{ .density = 5 };
+//     //
+//     // opt.vel.x = 70;
+//     // opt.vel.y = 10;
+//     // opt.omega = -6;
+//     // opt.mass_prop = .{ .mass = 800 };
+//     // opt.pos = Vector2.init(-40, 10);
+//     // _ = try fac.makeRectangleBody(opt, .{ .width = 8.0, .height = 8.0 });
+//     // opt.vel = .{};
+//     // opt.omega = 0;
+//     // opt.mass_prop = .{ .density = 5 };
+//
+//     for (10..30) |x| {
+//         const xf = 2.0 * @as(f32, @floatFromInt(x));
+//         for (1..96) |y| {
+//             const yf = @as(f32, @floatFromInt(y));
+//
+//             opt.pos = Vector2.init(xf, yf);
+//
+//             if (@mod(y, 2) == 0) {
+//                 _ = try fac.makeRectangleBody(opt, .{ .width = 1.0, .height = 1.0 });
+//             } else {
+//                 _ = try fac.makeDiscBody(opt, .{ .radius = 0.5 });
+//             }
+//         }
+//     }
 }

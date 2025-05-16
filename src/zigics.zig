@@ -66,7 +66,6 @@ pub const EntityFactory = struct {
         body.props.momentum = nmath.scale2(rigid_opt.vel, mass);
         body.props.ang_momentum = rigid_opt.omega * body.props.inertia;
 
-        // return &body;
         return try self.pushBody(body);
     }
 
@@ -89,12 +88,6 @@ pub const EntityFactory = struct {
         try self.solver.force_generators.append(try fg_mod.DownwardsGravity.init(self.solver.alloc, g));
     }
 
-    pub fn makeSingleLinkJoint(self: *Self, params: Constraint.Parameters, id: RigidBody.Id, r: Vector2, q: Vector2, dist: f32) !*Constraint {
-        const ctr = try ctr_mod.SingleLinkJoint.init(self.solver.alloc, params, id, r, q, dist);
-        try self.solver.constraints.append(ctr);
-        return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
-    }
-
     pub fn makeOffsetDistanceJoint(self: *Self, params: Constraint.Parameters, id1: RigidBody.Id, id2: RigidBody.Id, r1: Vector2, r2: Vector2, target_distance: f32) !*Constraint {
     const ctr = try ctr_mod.OffsetDistanceJoint.init(self.solver.alloc, params, id1, id2, r1, r2, target_distance);
         try self.solver.constraints.append(ctr);
@@ -107,18 +100,14 @@ pub const EntityFactory = struct {
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
     }
 
-    pub fn makeMotorJoint(self: *Self, params: Constraint.Parameters, id: RigidBody.Id, target_omega: f32) !*Constraint {
-        const entry = self.solver.bodies.getEntry(id) orelse return error.NotAValidRigidBodyId;
-        const body = entry.value_ptr;
-        const ctr = try ctr_mod.MotorJoint.init(self.solver.alloc, params, body.id, target_omega);
+    pub fn makeFixedPositionJoint(self: *Self, params: Constraint.Parameters, id: RigidBody.Id, target_position: Vector2) !*Constraint {
+        const ctr = try ctr_mod.FixedPositionJoint.init(self.solver.alloc, params, id, target_position);
         try self.solver.constraints.append(ctr);
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
     }
 
-    pub fn makeFixedAngleJoint(self: *Self, params: Constraint.Parameters, id: RigidBody.Id, target_angle: f32) !*Constraint {
-        const entry = self.solver.bodies.getEntry(id) orelse return error.NotAValidRigidBodyId;
-        const body = entry.value_ptr;
-        const ctr = try ctr_mod.FixedAngleJoint.init(self.solver.alloc, params, body.id, target_angle);
+    pub fn makeMotorJoint(self: *Self, params: Constraint.Parameters, id: RigidBody.Id, target_omega: f32) !*Constraint {
+        const ctr = try ctr_mod.MotorJoint.init(self.solver.alloc, params, id, target_omega);
         try self.solver.constraints.append(ctr);
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
     }

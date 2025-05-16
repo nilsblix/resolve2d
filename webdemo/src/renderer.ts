@@ -60,7 +60,7 @@ export class Renderer {
         const num = fns.solverGetNumBodies();;
         for (let i = 0; i < num; i++) {
             const id = fns.solverGetBodyIdBasedOnIter(i);
-            // if (this.textures.has(id)) continue;
+            if (this.textures.has(id)) continue;
             const body = new bridge.RigidBody(fns, id);
             const imp = body.getImplementation(fns);
 

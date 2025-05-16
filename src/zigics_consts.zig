@@ -16,5 +16,7 @@ pub const NMATH_WARN_DIVIDING_BELOW: f32 = 1e-3;
 /// The padding of intersection that gets applied when checking between aabb
 /// intersection.consts
 pub const AABB_EPS_OVERLAP: f32 = 0.01;
-/// Position correction constant with constraints. Similar to baumgarte in collisions.
-pub const CONSTRAINT_POSITION_CORRECTION: f32 = 0.04;
+/// During solve in constraints, what should the minimum allowed divsion be? Div by zero is not allowed...
+pub const CONSTRAINT_GRADIENT_DIVISION_LIMIT: f32 = 1e-4;
+/// What should the maximum allowed constraint-value be?
+pub const ALLOWED_CONSTRAINT_VALUE: f32 = 1e-6;
