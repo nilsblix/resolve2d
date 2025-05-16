@@ -31,23 +31,45 @@ pub fn setupCarScene(solver: *Solver) !void {
 
     // CAR
     opt.pos = Vector2.init(5, 10);
-    body = try fac.makeRectangleBody(opt, .{ .width = 1, .height = 1.2 });
-    opt.mu = 1.0;
-    const rad: f32 = 0.55;
-    opt.pos = Vector2.init(4.1, 9.8 - rad);
+    body = try fac.makeRectangleBody(opt, .{ .width = 5, .height = 0.9 });
+    opt.mu = 0.8;
+    const rad: f32 = 0.95;
+    opt.pos = Vector2.init(3.5, 9.8 - rad);
     const wheel_l = try fac.makeDiscBody(opt, .{ .radius = rad });
-    opt.pos.x = 5.9;
+    opt.pos.x = 6.5;
     const wheel_r = try fac.makeDiscBody(opt, .{ .radius = rad });
     opt.mu = 0.5;
 
     const dist = nmath.dist2(body.props.pos, wheel_l.props.pos);
 
-    _ = try fac.makeDistanceJoint(.{}, wheel_l.id, wheel_r.id, 1.8);
-    _ = try fac.makeDistanceJoint(.{}, wheel_l.id, body.id, dist);
-    _ = try fac.makeDistanceJoint(.{}, wheel_r.id, body.id, dist);
+    opt.pos = Vector2.init(5.25, 10.8);
+    const body2 = try fac.makeRectangleBody(opt, .{ .width = 1.2, .height = 0.5 });
+
+    // const lambda = 0.4;
+    // const params = ctrs.Constraint.Parameters {
+    //     .beta = 20,
+    //     .upper_lambda = lambda,
+    //     .lower_lambda = -lambda,
+    // };
+    const params: ctrs.Constraint.Parameters = .{};
+
+    _ = try fac.makeOffsetDistanceJoint(params, wheel_l.id, body.id, .{}, Vector2.init(-1.5, 0), rad + 0.2);
+    _ = try fac.makeOffsetDistanceJoint(params, wheel_r.id, body.id, .{}, Vector2.init(1.5, 0), rad + 0.2);
+    _ = try fac.makeDistanceJoint(params, wheel_l.id, wheel_r.id, 3);
+    
+    _ = try fac.makeDistanceJoint(params, wheel_l.id, body.id, dist);
+    _ = try fac.makeDistanceJoint(params, wheel_r.id, body.id, dist);
 
     try fac.excludeCollisionPair(body.id, wheel_l.id);
     try fac.excludeCollisionPair(body.id, wheel_r.id);
+    try fac.excludeCollisionPair(body.id, body2.id);
+
+    const dist21 = nmath.dist2(nmath.add2(body.props.pos, Vector2.init(0.25, 0)), nmath.add2(body2.props.pos, Vector2.init(-1, 1)));
+    const dist22 = nmath.dist2(nmath.add2(body.props.pos, Vector2.init(0.25, 0)), nmath.add2(body2.props.pos, Vector2.init(1, 1)));
+    _ = try fac.makeOffsetDistanceJoint(.{}, body.id, body2.id, Vector2.init(0.25, 0), Vector2.init(-1, 1), dist21);
+    _ = try fac.makeOffsetDistanceJoint(.{}, body.id, body2.id, Vector2.init(0.25, 0), Vector2.init(1, 1), dist22);
+    const dist23 = nmath.dist2(body.props.pos, body2.props.pos);
+    _ = try fac.makeDistanceJoint(.{}, body.id, body2.id, dist23);
 
     // Obstacles
     opt.pos = Vector2.init(-15, 8);
@@ -174,54 +196,54 @@ pub fn setupCarScene(solver: *Solver) !void {
     _ = try fac.makeRectangleBody(opt, .{ .width = 3, .height = 3 });
     opt.mass_prop = .{ .density = 1 };
 
-    rect_opt = zigics.EntityFactory.RectangleOptions {
-        .width = 0.6,
-        .height = 0.4,
-    };
-    x = 45;
-    opt.pos = Vector2.init(x, 13);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 14);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 15);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 16);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 17);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    x = 46;
-    opt.pos = Vector2.init(x, 13);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 14);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 15);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 16);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 17);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    x = 47;
-    opt.pos = Vector2.init(x, 13);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 14);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 15);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 16);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 17);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    x = 48;
-    opt.pos = Vector2.init(x, 13);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 14);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 15);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 16);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 17);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
+    // rect_opt = zigics.EntityFactory.RectangleOptions {
+    //     .width = 0.6,
+    //     .height = 0.4,
+    // };
+    // x = 45;
+    // opt.pos = Vector2.init(x, 13);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // opt.pos = Vector2.init(x, 14);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // opt.pos = Vector2.init(x, 15);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // opt.pos = Vector2.init(x, 16);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // opt.pos = Vector2.init(x, 17);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // x = 46;
+    // opt.pos = Vector2.init(x, 13);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // opt.pos = Vector2.init(x, 14);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // opt.pos = Vector2.init(x, 15);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // opt.pos = Vector2.init(x, 16);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // opt.pos = Vector2.init(x, 17);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // x = 47;
+    // opt.pos = Vector2.init(x, 13);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // opt.pos = Vector2.init(x, 14);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // opt.pos = Vector2.init(x, 15);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // opt.pos = Vector2.init(x, 16);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // opt.pos = Vector2.init(x, 17);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // x = 48;
+    // opt.pos = Vector2.init(x, 13);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // opt.pos = Vector2.init(x, 14);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // opt.pos = Vector2.init(x, 15);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // opt.pos = Vector2.init(x, 16);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
+    // opt.pos = Vector2.init(x, 17);
+    // _ = try fac.makeRectangleBody(opt, rect_opt);
 
     // === CONNECTING THING 2 ===
 

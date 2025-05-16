@@ -14,7 +14,7 @@ const app = (() => {
     const canvas = document.getElementById("demo") as HTMLCanvasElement;
     const context = canvas.getContext("2d") as CanvasRenderingContext2D;
 
-    const renderer = new rendmod.Renderer(context, 16 / 9, 70);
+    const renderer = new rendmod.Renderer(context, 16 / 9, 40);
     renderer.units.camera.pos = new Vector2(-25, -10);
 
     if (wasm.instance == undefined) {
@@ -28,8 +28,8 @@ const app = (() => {
         simulating: false,
         steps: 0,
         process_dt: 0,
-        snap_to_body: false,
-        span_to_body_id: 0n,
+        snap_to_body: true,
+        span_to_body_id: 3n,
     };
 })();
 
@@ -49,43 +49,74 @@ function init() {
     // R = 5
     // fns.setupDemo1();
 
-    app?.renderer.addStandardRigidBodyTex("/wheel.png", 4n);
-    app?.renderer.addStandardRigidBodyTex("/wheel.png", 5n);
-
-    // const num = fns.solverGetNumBodies();
-    // for (let i = 0n; i < num; i++) {
-    //     const path = i % 2n == 0n ? "/red_truck.png" : "/wheel.png";
-    //     app?.renderer.addStandardRigidBodyTex(path, i);
-    // }
+    app?.renderer.addStandardRigidBodyTex("/red_truck.png", 3n, 6.0);
+    app?.renderer.addStandardRigidBodyTex("/wheel.png", 4n, 1.95);
+    app?.renderer.addStandardRigidBodyTex("/wheel.png", 5n, 1.95);
+    app?.renderer.textures.set(6n, null);
 }
 
 window.addEventListener("keydown", (e) => {
     if (wasm.instance == undefined) return;
     const fns = wasm.instance.exports as any;
 
-    const ang = 10;
-    const linear = 70;
+    const body = fns.getRigidBodyPtrFromId(3n);
+    const wl = fns.getRigidBodyPtrFromId(4n);
+    const wr = fns.getRigidBodyPtrFromId(5n);
+
+    const w_ang = 30;
+    const b_ang = 260;
 
     if (e.key == "d") {
-        const wheel_left = fns.solverGetRigidbodyPtrById(4n);
-        const wheel_right = fns.solverGetRigidbodyPtrById(5n);
-        fns.setRigidBodyForceX(wheel_left, linear);
-        fns.setRigidBodyForceX(wheel_right, linear);
-
-        fns.setRigidBodyAngularMomentum(wheel_left, -ang);
-        fns.setRigidBodyAngularMomentum(wheel_right, -ang);
+        fns.setRigidBodyAngularMomentum(wl, -w_ang);
+        fns.setRigidBodyAngularMomentum(wr, -w_ang);
+        fns.setRigidBodyTorque(body, b_ang);
     }
 
     if (e.key == "a") {
-        const wheel_left = fns.solverGetRigidbodyPtrById(4n);
-        const wheel_right = fns.solverGetRigidbodyPtrById(5n);
-        fns.setRigidBodyForceX(wheel_left, -linear);
-        fns.setRigidBodyForceX(wheel_right, -linear);
+        fns.setRigidBodyAngularMomentum(wl, w_ang);
+        fns.setRigidBodyAngularMomentum(wr, w_ang);
+        fns.setRigidBodyTorque(body, -b_ang);
+    }
 
-        fns.setRigidBodyAngularMomentum(wheel_left, ang);
-        fns.setRigidBodyAngularMomentum(wheel_right, ang);
+
+    if (e.key == " ") {
+        if (app == undefined) return;
+        app.simulating = !app?.simulating;
     }
 });
+
+// window.addEventListener("keydown", (e) => {
+//     if (wasm.instance == undefined) return;
+//     const fns = wasm.instance.exports as any;
+//
+//     const ang = 10;
+//     const linear = 70;
+//
+//     if (e.key == "d") {
+//         const wheel_left = fns.solverGetRigidbodyPtrById(4n);
+//         const wheel_right = fns.solverGetRigidbodyPtrById(5n);
+//         fns.setRigidBodyForceX(wheel_left, linear);
+//         fns.setRigidBodyForceX(wheel_right, linear);
+//
+//         fns.setRigidBodyAngularMomentum(wheel_left, -ang);
+//         fns.setRigidBodyAngularMomentum(wheel_right, -ang);
+//     }
+//
+//     if (e.key == "a") {
+//         const wheel_left = fns.solverGetRigidbodyPtrById(4n);
+//         const wheel_right = fns.solverGetRigidbodyPtrById(5n);
+//         fns.setRigidBodyForceX(wheel_left, -linear);
+//         fns.setRigidBodyForceX(wheel_right, -linear);
+//
+//         fns.setRigidBodyAngularMomentum(wheel_left, ang);
+//         fns.setRigidBodyAngularMomentum(wheel_right, ang);
+//     }
+//
+//     if (e.key == " ") {
+//         if (app == undefined) return;
+//         app.simulating = !app?.simulating;
+//     }
+// });
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function updateLoop(update: () => void) {

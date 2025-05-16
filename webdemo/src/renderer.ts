@@ -12,13 +12,14 @@ export const IMAGE_PATHS = {
 
 export type RigidBodyTex = {
     image: HTMLImageElement;
+    scale: number;
     id: bigint;
     render: (c: CanvasRenderingContext2D, body: bridge.RigidBody) => void;
 };
 
 export class Renderer {
     units: Units;
-    textures: Map<bigint, RigidBodyTex>;
+    textures: Map<bigint, RigidBodyTex | null>;
 
     constructor(c: CanvasRenderingContext2D, desired_aspect: number, start_world_width: number) {
         this.units = new Units(c, desired_aspect, start_world_width);
@@ -59,7 +60,6 @@ export class Renderer {
         const num = fns.solverGetNumBodies();;
         for (let i = 0; i < num; i++) {
             const id = fns.solverGetBodyIdBasedOnIter(i);
-            // FIXME: uncomment
             // if (this.textures.has(id)) continue;
             const body = new bridge.RigidBody(fns, id);
             const imp = body.getImplementation(fns);
@@ -130,16 +130,19 @@ export class Renderer {
         }
 
         this.textures.forEach((value, _1, _2) => {
-            const body = new bridge.RigidBody(fns, value.id);
-            value.render(c, body);
+            if (value != null) {
+                const body = new bridge.RigidBody(fns, value.id);
+                value.render(c, body);
+            }
         });
     }
 
-    addStandardRigidBodyTex(path: string, id: bigint): void {
+    addStandardRigidBodyTex(path: string, id: bigint, scale: number): void {
         const self = this;
 
         const tex: RigidBodyTex = {
             image: new Image(),
+            scale: scale,
             id: id,
             render: function(c: CanvasRenderingContext2D, body: bridge.RigidBody): void {
                 const zig = body.zig;
@@ -151,8 +154,8 @@ export class Renderer {
 
                 const aspect = tex.image.height / tex.image.width;
 
-                const scaledWidth = m;
-                const scaledHeight = m * aspect;
+                const scaledWidth = m * scale;
+                const scaledHeight = m * aspect * scale;
 
                 c.save();
                 c.translate(screen_pos.x, screen_pos.y);

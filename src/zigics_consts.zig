@@ -16,3 +16,5 @@ pub const NMATH_WARN_DIVIDING_BELOW: f32 = 1e-3;
 /// The padding of intersection that gets applied when checking between aabb
 /// intersection.consts
 pub const AABB_EPS_OVERLAP: f32 = 0.01;
+/// Position correction constant with constraints. Similar to baumgarte in collisions.
+pub const CONSTRAINT_POSITION_CORRECTION: f32 = 0.04;

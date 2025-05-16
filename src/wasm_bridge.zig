@@ -157,6 +157,11 @@ pub export fn getRigidBodyMomentumY(ptr: usize) f32 {
     return body.props.momentum.y;
 }
 
+pub export fn getRigidBodyAngularVelocity(ptr: usize) f32 {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    return body.props.ang_momentum / body.props.inertia;
+}
+
 pub export fn getRigidBodyForceX(ptr: usize) f32 {
     const body: *RigidBody = @ptrFromInt(ptr);
     return body.props.force.x;
@@ -200,6 +205,11 @@ pub export fn setRigidBodyAngularMomentum(ptr: usize, value: f32) void {
 pub export fn getRigidBodyTorque(ptr: usize) f32 {
     const body: *RigidBody = @ptrFromInt(ptr);
     return body.props.torque;
+}
+
+pub export fn setRigidBodyTorque(ptr: usize, value: f32) void {
+    const body: *RigidBody = @ptrFromInt(ptr);
+    body.props.torque = value;
 }
 
 pub export fn getRigidBodyInertia(ptr: usize) f32 {
