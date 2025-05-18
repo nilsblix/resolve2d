@@ -10,5 +10,7 @@ in
 pkgs.mkShell {
     nativeBuildInputs = [
         unstable.zig_0_14
+        pkgs.zls
+        pkgs.typescript-language-server
     ];
 }
