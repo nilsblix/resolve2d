@@ -45,6 +45,10 @@ function initBridgeScene() {
     fns.solverInit(2, 4);
     fns.setupBridgeStressTestScene();
     app?.renderer.textures.clear();
+    app?.renderer.addStandardRigidBodyTex("/red_truck.png", 3n, 6.0);
+    app?.renderer.addStandardRigidBodyTex("/wheel.png", 4n, 2.05);
+    app?.renderer.addStandardRigidBodyTex("/wheel.png", 5n, 2.05);
+    app?.renderer.textures.set(6n, null);
 }
 
 function initCarScene() {
@@ -180,9 +184,6 @@ updateLoop(() => {
     win.makeLabel(gui.c, null, "");
     win.makeLabel(gui.c, null, "=== SIMULATION ===");
     win.setMode("two columns");
-
-    win.makeLabel(gui.c, null, "Reset simulation (init())");
-    win.makeButton(gui.c, Action.reset_sim, "Reset");
 
     win.makeLabel(gui.c, null, "Toggle simulating:");
     win.makeButton(gui.c, Action.toggle_sim, "" + app.simulating);

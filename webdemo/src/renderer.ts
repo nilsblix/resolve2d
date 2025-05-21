@@ -1,6 +1,5 @@
 import * as nmath from "./nmath.ts";
 import { Vector2 } from "./nmath.ts";
-import * as unitsmod from "./units.ts";
 import { Units } from "./units.ts";
 import * as bridge from "./wasm_bridge.ts";
 import * as gui from "./nvb-imgui/src/gui/gui.ts";

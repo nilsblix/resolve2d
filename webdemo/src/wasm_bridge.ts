@@ -1,6 +1,5 @@
 // import * as nmath from "./nmath.ts";
 import { Vector2 } from "./nmath.ts";
-import { WasmModule } from "./main.ts";
 
 export const enum RigidBodies {
     disc,

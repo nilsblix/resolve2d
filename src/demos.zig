@@ -7,39 +7,32 @@ const collision = @import("collision.zig");
 const ctrs = @import("constraint.zig");
 const Solver = zigics.Solver;
 
-pub fn setupBridgeStressTestScene(solver: *Solver) !void {
-    var fac = solver.entityFactory();
+pub fn car(fac: *zigics.EntityFactory, pos: Vector2) !void {
+    const backup = fac.*;
 
     var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 1 } };
     opt.mu = 0.4;
     var body: *rigidbody.RigidBody = undefined;
 
-    try fac.makeDownwardsGravity(9.82);
+    const t_pos = nmath.sub2(pos, Vector2.init(5, 10));
 
-    // body = try fac.makeRectangleBody(opt, .{ .width = 100, .height = 1.0 });
-    // body.static = true;
-    //
-    // opt.pos = Vector2.init(0, 1);
-    // body = try fac.makeDiscBody(opt, .{ .radius = 1.0 });
-
-    // === CAR ===
-    opt.pos = Vector2.init(5, 10);
+    opt.pos = pos;
     body = try fac.makeRectangleBody(opt, .{ .width = 5, .height = 0.9 });
     opt.mu = 1.5;
     const rad: f32 = 1.0;
-    opt.pos = Vector2.init(3.5, 9.8 - rad);
+    opt.pos = nmath.add2(t_pos, Vector2.init(3.5, 9.8 - rad));
     const wheel_l = try fac.makeDiscBody(opt, .{ .radius = rad });
-    opt.pos.x = 6.5;
+    opt.pos.x = t_pos.x + 6.5;
     const wheel_r = try fac.makeDiscBody(opt, .{ .radius = rad });
     opt.mu = 0.5;
 
     const dist_car = nmath.dist2(body.props.pos, wheel_l.props.pos);
 
-    opt.pos = Vector2.init(5.25, 10.8);
+    opt.pos = nmath.add2(t_pos, Vector2.init(5.25, 10.8));
     const body2 = try fac.makeRectangleBody(opt, .{ .width = 1.2, .height = 0.5 });
 
     const power_limit = 0.8;
-    var params = ctrs.Constraint.Parameters{
+    const params = ctrs.Constraint.Parameters{
         .beta = 10,
         .power_min = -power_limit,
         .power_max = power_limit,
@@ -63,6 +56,29 @@ pub fn setupBridgeStressTestScene(solver: *Solver) !void {
     const dist23 = nmath.dist2(body.props.pos, body2.props.pos);
     _ = try fac.makeDistanceJoint(.{}, body.id, body2.id, dist23);
 
+    fac.* = backup;
+}
+
+pub fn setupBridgeStressTestScene(solver: *Solver) !void {
+    var fac = solver.entityFactory();
+
+    var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 1 } };
+    opt.mu = 0.4;
+    var body: *rigidbody.RigidBody = undefined;
+
+    try fac.makeDownwardsGravity(9.82);
+
+    const rec_opt: zigics.EntityFactory.RectangleOptions = .{ .width = 0.3, .height = 0.4 };
+    opt.pos = Vector2.init(7, 4);
+    _ = try fac.makeRectangleBody(opt, rec_opt);
+    opt.pos = Vector2.init(2, 4);
+    _ = try fac.makeRectangleBody(opt, rec_opt);
+    opt.pos = Vector2.init(3, 3);
+    _ = try fac.makeRectangleBody(opt, rec_opt);
+
+    // === CAR ===
+    try car(&fac, Vector2.init(2, 5));
+
     // === BRIDGE ===
     opt = .{ .pos = .{}, .mass_prop = .{ .density = 1 } };
     opt.mu = 0.4;
@@ -74,8 +90,8 @@ pub fn setupBridgeStressTestScene(solver: *Solver) !void {
     opt.pos.y = 0.75;
     const width: f32 = 1.0;
 
-    const power = 40;
-    params = ctrs.Constraint.Parameters{
+    const power = 10;
+    const params = ctrs.Constraint.Parameters{
         .beta = 8,
         .power_max = power,
         .power_min = -power,
@@ -97,6 +113,7 @@ pub fn setupBridgeStressTestScene(solver: *Solver) !void {
             const dist = nmath.dist2(nmath.add2(prev_body.props.pos, r1), nmath.add2(body.props.pos, r2));
             _ = try fac.makeOffsetDistanceJoint(params, prev_body.id, body.id, r1, r2, dist);
         }
+        _ = try fac.excludeCollisionPair(prev_body.id, body.id);
         prev_body = body;
     }
 
@@ -133,46 +150,8 @@ pub fn setupCarScene(solver: *Solver) !void {
     body.static = true;
 
     // CAR
-    opt.pos = Vector2.init(5, 10);
-    body = try fac.makeRectangleBody(opt, .{ .width = 5, .height = 0.9 });
-    opt.mu = 1.5;
-    const rad: f32 = 1.0;
-    opt.pos = Vector2.init(3.5, 9.8 - rad);
-    const wheel_l = try fac.makeDiscBody(opt, .{ .radius = rad });
-    opt.pos.x = 6.5;
-    const wheel_r = try fac.makeDiscBody(opt, .{ .radius = rad });
+    try car(&fac, Vector2.init(5, 10));
     opt.mu = 0.5;
-
-    const dist = nmath.dist2(body.props.pos, wheel_l.props.pos);
-
-    opt.pos = Vector2.init(5.25, 10.8);
-    const body2 = try fac.makeRectangleBody(opt, .{ .width = 1.2, .height = 0.5 });
-
-    const power_limit = 0.8;
-    const params = ctrs.Constraint.Parameters{
-        .beta = 10,
-        .power_min = -power_limit,
-        .power_max = power_limit,
-    };
-    // const params: ctrs.Constraint.Parameters = .{};
-
-    _ = try fac.makeOffsetDistanceJoint(params, wheel_l.id, body.id, .{}, Vector2.init(-1.5, 0), rad + 0.2);
-    _ = try fac.makeOffsetDistanceJoint(params, wheel_r.id, body.id, .{}, Vector2.init(1.5, 0), rad + 0.2);
-    _ = try fac.makeDistanceJoint(params, wheel_l.id, wheel_r.id, 3);
-
-    _ = try fac.makeDistanceJoint(params, wheel_l.id, body.id, dist);
-    _ = try fac.makeDistanceJoint(params, wheel_r.id, body.id, dist);
-
-    try fac.excludeCollisionPair(body.id, wheel_l.id);
-    try fac.excludeCollisionPair(body.id, wheel_r.id);
-    try fac.excludeCollisionPair(body.id, body2.id);
-
-    const dist21 = nmath.dist2(nmath.add2(body.props.pos, Vector2.init(0.25, 0)), nmath.add2(body2.props.pos, Vector2.init(-1, 1)));
-    const dist22 = nmath.dist2(nmath.add2(body.props.pos, Vector2.init(0.25, 0)), nmath.add2(body2.props.pos, Vector2.init(1, 1)));
-    _ = try fac.makeOffsetDistanceJoint(.{}, body.id, body2.id, Vector2.init(0.25, 0), Vector2.init(-1, 1), dist21);
-    _ = try fac.makeOffsetDistanceJoint(.{}, body.id, body2.id, Vector2.init(0.25, 0), Vector2.init(1, 1), dist22);
-    const dist23 = nmath.dist2(body.props.pos, body2.props.pos);
-    _ = try fac.makeDistanceJoint(.{}, body.id, body2.id, dist23);
 
     // Obstacles
     opt.pos = Vector2.init(-15, 8);
