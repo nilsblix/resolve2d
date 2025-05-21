@@ -6,7 +6,6 @@ pub fn build(b: *std.Build) void {
         .os_tag = .freestanding,
         .abi = .none,
     });
-    // const optimize = b.standardOptimizeOption(.{});
     const exe = b.addExecutable(.{
         .name = "zigics",
         .root_source_file = b.path("src/wasm_bridge.zig"),

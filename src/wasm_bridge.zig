@@ -1,10 +1,10 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const nmath = @import("nmath.zig");
+const nmath = @import("core/nmath.zig");
 const Vector2 = nmath.Vector2;
-const rb_mod = @import("rigidbody.zig");
+const rb_mod = @import("core/rigidbody.zig");
 const RigidBody = rb_mod.RigidBody;
-const zigics = @import("zigics.zig");
+const zigics = @import("core/zigics.zig");
 const Solver = zigics.Solver; // What should I do with this?
 const demos = @import("demos.zig");
 
