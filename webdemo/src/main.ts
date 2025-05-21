@@ -58,9 +58,9 @@ function initCarScene() {
     fns.solverInit(2, 4);
     fns.setupCarScene();
     app?.renderer.textures.clear();
-    app?.renderer.addStandardRigidBodyTex("/red_truck.png", 3n, 6.0);
-    app?.renderer.addStandardRigidBodyTex("/wheel.png", 4n, 2.05);
-    app?.renderer.addStandardRigidBodyTex("/wheel.png", 5n, 2.05);
+    app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.red_truck, 3n, 6.0);
+    app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.wheel, 4n, 2.05);
+    app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.wheel, 5n, 2.05);
     app?.renderer.textures.set(6n, null);
 }
 
