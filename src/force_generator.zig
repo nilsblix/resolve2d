@@ -5,17 +5,17 @@ const RigidBody = rg_mod.RigidBody;
 const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
 
-pub const ForceGenerators = enum {
-    downwards_gravity,
-};
-
 pub const ForceGenerator = struct {
+    pub const Type = enum {
+        downwards_gravity,
+    };
+
     const VTable = struct {
         deinit: *const fn (ptr: *anyopaque, alloc: Allocator) void,
         apply: *const fn (ptr: *anyopaque, body: *RigidBody) void,
     };
 
-    type: ForceGenerators,
+    type: Type,
     vtable: VTable,
     ptr: *anyopaque,
 

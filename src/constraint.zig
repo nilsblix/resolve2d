@@ -6,14 +6,14 @@ const rb_mod = @import("rigidbody.zig");
 const RigidBody = rb_mod.RigidBody;
 const consts = @import("zigics_consts.zig");
 
-pub const Constraints = enum {
-    distance_joint,
-    offset_distance_joint,
-    fixed_position_joint,
-    motor_joint,
-};
-
 pub const Constraint = struct {
+    pub const Type = enum {
+        distance_joint,
+        offset_distance_joint,
+        fixed_position_joint,
+        motor_joint,
+    };
+
     const VTable = struct {
         deinit: *const fn (ctrself: *Constraint, alloc: Allocator) void,
         solve: *const fn (ctrself: *Constraint, bodies: std.AutoArrayHashMap(RigidBody.Id, RigidBody), dt: f32, inv_dt: f32) anyerror!void,
@@ -26,7 +26,7 @@ pub const Constraint = struct {
     };
 
     params: Parameters,
-    type: Constraints,
+    type: Type,
     vtable: VTable,
     ptr: *anyopaque,
 
@@ -61,7 +61,7 @@ pub const DistanceJoint = struct {
 
         return Constraint{
             .params = params,
-            .type = Constraints.distance_joint,
+            .type = .distance_joint,
             .vtable = Self.VTable,
             .ptr = joint,
         };
@@ -134,7 +134,7 @@ pub const OffsetDistanceJoint = struct {
 
         return Constraint{
             .params = params,
-            .type = Constraints.offset_distance_joint,
+            .type = .offset_distance_joint,
             .vtable = Self.VTable,
             .ptr = joint,
         };
@@ -227,7 +227,7 @@ pub const FixedPositionJoint = struct {
 
         return Constraint{
             .params = params,
-            .type = Constraints.fixed_position_joint,
+            .type = .fixed_position_joint,
             .vtable = Self.VTable,
             .ptr = joint,
         };
@@ -293,7 +293,7 @@ pub const MotorJoint = struct {
 
         return Constraint{
             .params = params,
-            .type = Constraints.motor_joint,
+            .type = .motor_joint,
             .vtable = Self.VTable,
             .ptr = joint,
         };

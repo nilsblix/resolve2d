@@ -65,6 +65,11 @@ pub export fn solverRemoveBodyById(id: u64) bool {
 
 // === Setup demos ===
 
+pub export fn setupBridgeStressTestScene() bool {
+    demos.setupBridgeStressTestScene(solver.?) catch return false;
+    return true;
+}
+
 pub export fn setupCarScene() bool {
     demos.setupCarScene(solver.?) catch return false;
     return true;

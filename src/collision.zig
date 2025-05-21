@@ -5,7 +5,11 @@ const rb_mod = @import("rigidbody.zig");
 const RigidBody = rb_mod.RigidBody;
 const consts = @import("zigics_consts.zig");
 
-// Regarding the ptrs, when things are not meant to be persistent across processes I am okay with the "unsafe" ptrs as no destorying/creating of RigidBodies will be made during the time that this will be active. If/when (FIXME) I implement a persistent storing of collisions this will have to be changed to ids.
+// Regarding the ptrs, when things are not meant to be persistent across
+// processes I am okay with the "unsafe" ptrs as no destorying/creating of
+// RigidBodies will be made during the time that this will be active. If/when
+// (ROADMAP) I implement a persistent storing of collisions this will have to be
+// changed to ids.
 pub const CollisionKey = struct {
     ref_body: *RigidBody,
     inc_body: *RigidBody,

@@ -38,20 +38,23 @@ const DT = 1 / TARGET_FPS;
 
 var comp_dt = 0;
 
-function init() {
+function initBridgeScene() {
+    if (wasm.instance == undefined) return;
+    const fns = wasm.instance.exports as any;
+
+    fns.solverInit(2, 4);
+    fns.setupBridgeStressTestScene();
+    app?.renderer.textures.clear();
+}
+
+function initCarScene() {
     if (wasm.instance == undefined) return;
     const fns = wasm.instance.exports as any;
 
     fns.solverInit(2, 4);
     fns.setupCarScene();
-    // main = 3
-    // L = 4
-    // R = 5
-    // fns.setupDemo1();
-
+    app?.renderer.textures.clear();
     app?.renderer.addStandardRigidBodyTex("/red_truck.png", 3n, 6.0);
-    // app?.renderer.addStandardRigidBodyTex("/wheel.png", 4n, 2.45);
-    // app?.renderer.addStandardRigidBodyTex("/wheel.png", 5n, 2.45);
     app?.renderer.addStandardRigidBodyTex("/wheel.png", 4n, 2.05);
     app?.renderer.addStandardRigidBodyTex("/wheel.png", 5n, 2.05);
     app?.renderer.textures.set(6n, null);
@@ -94,39 +97,6 @@ window.addEventListener("keydown", (e) => {
     }
 });
 
-// window.addEventListener("keydown", (e) => {
-//     if (wasm.instance == undefined) return;
-//     const fns = wasm.instance.exports as any;
-//
-//     const ang = 10;
-//     const linear = 70;
-//
-//     if (e.key == "d") {
-//         const wheel_left = fns.solverGetRigidbodyPtrById(4n);
-//         const wheel_right = fns.solverGetRigidbodyPtrById(5n);
-//         fns.setRigidBodyForceX(wheel_left, linear);
-//         fns.setRigidBodyForceX(wheel_right, linear);
-//
-//         fns.setRigidBodyAngularMomentum(wheel_left, -ang);
-//         fns.setRigidBodyAngularMomentum(wheel_right, -ang);
-//     }
-//
-//     if (e.key == "a") {
-//         const wheel_left = fns.solverGetRigidbodyPtrById(4n);
-//         const wheel_right = fns.solverGetRigidbodyPtrById(5n);
-//         fns.setRigidBodyForceX(wheel_left, -linear);
-//         fns.setRigidBodyForceX(wheel_right, -linear);
-//
-//         fns.setRigidBodyAngularMomentum(wheel_left, ang);
-//         fns.setRigidBodyAngularMomentum(wheel_right, ang);
-//     }
-//
-//     if (e.key == " ") {
-//         if (app == undefined) return;
-//         app.simulating = !app?.simulating;
-//     }
-// });
-
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 function updateLoop(update: () => void) {
     let outer_dt = 0;
@@ -153,13 +123,16 @@ function updateLoop(update: () => void) {
 enum Action {
     true,
     toggle_sim,
-    reset_sim,
     process_sim,
     toggle_snap_to_body,
     change_snap_to_body_id,
+    init_car_scene,
+    init_bridge_scene,
 }
 
-init();
+
+// initBridgeStressTestScene();
+initCarScene();
 
 updateLoop(() => {
     if (wasm.instance == undefined) {
@@ -231,6 +204,19 @@ updateLoop(() => {
     win.makeLabel(gui.c, null, "Change focused body id: ");
     win.makeDraggable(gui.c, Action.change_snap_to_body_id, "Id: " + app.span_to_body_id);
 
+    const demowin = stack.makeWindow(gui.c, gui.input_state,
+        { window: Action.true, header: Action.true, resizeable: Action.true, close_btn: null, },
+        { title: "init demo scenes", x: 900, y: 0, width: 500, height: 200 },
+    );
+
+    demowin.setMode("two columns")
+
+    demowin.makeLabel(gui.c, null, "Car Scene: ");
+    demowin.makeButton(gui.c, Action.init_car_scene, "Init");
+
+    demowin.makeLabel(gui.c, null, "Bridge Scene: ");
+    demowin.makeButton(gui.c, Action.init_bridge_scene, "Init");
+
     if (app.snap_to_body) {
         const body = new bridge.RigidBody(fns, app.span_to_body_id);
         if (body.zig == undefined) return;
@@ -242,9 +228,14 @@ updateLoop(() => {
     const action = req.action;
 
     switch (action) {
-        case Action.reset_sim:
+        case Action.init_car_scene:
             fns.solverDeinit();
-            init();
+            initCarScene();
+            app.steps = 0;
+            break;
+        case Action.init_bridge_scene:
+            fns.solverDeinit();
+            initBridgeScene();
             app.steps = 0;
             break;
         case Action.toggle_sim:
@@ -265,7 +256,7 @@ updateLoop(() => {
 
     const st = performance.now();
     if (app.simulating) {
-        fns.solverProcess(DT, 4, 8);
+        fns.solverProcess(DT, 8, 16);
         app.steps += 1;
     }
     const et = performance.now();

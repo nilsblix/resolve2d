@@ -8,11 +8,6 @@ const CollisionPoint = collision.CollisionPoint;
 const aabb = @import("aabb.zig");
 const consts = @import("zigics_consts.zig");
 
-pub const RigidBodies = enum {
-    disc,
-    rectangle,
-};
-
 pub const Incident = union(enum) {
     edge: Edge.Line,
     point: Vector2,
@@ -21,9 +16,6 @@ pub const Incident = union(enum) {
 pub const Edge = struct {
     const Line = collision.Line;
     dir: Vector2,
-    // FIXME: better naming for the point att which the normal is applied?? in rect this is
-    // the avg between the two lines, used primarily for rendering but may have other uses.
-    middle: Vector2,
     edge: ?Line = null,
 };
 
@@ -31,6 +23,11 @@ pub const Edge = struct {
 /// to be implemented by the struct.
 pub const RigidBody = struct {
     pub const Id = u64;
+
+    pub const Type = enum {
+        disc,
+        rectangle,
+    };
 
     pub const VTable = struct {
         deinit: *const fn (ptr: *anyopaque, alloc: Allocator) void,
@@ -86,7 +83,7 @@ pub const RigidBody = struct {
     aabb: aabb.AABB,
     static: bool = false,
     num_normals: usize,
-    type: RigidBodies,
+    type: Type,
     /// Props are kinematic properties
     props: Props,
     ptr: *anyopaque,
@@ -191,7 +188,7 @@ pub const DiscBody = struct {
             .id = id,
             .aabb = undefined,
             .num_normals = 1,
-            .type = RigidBodies.disc,
+            .type = RigidBody.Type.disc,
             .ptr = self,
             .vtable = DiscBody.rigidbody_vtable,
         };
@@ -229,13 +226,10 @@ pub const DiscBody = struct {
         return nmath.addmult2(props.pos, normal, self.radius);
     }
 
-    pub fn getNormal(ptr: *anyopaque, props: RigidBody.Props, body: RigidBody, iter: usize) ?Edge {
-        _ = iter;
-        const self: *Self = @ptrCast(@alignCast(ptr));
-
+    pub fn getNormal(_: *anyopaque, props: RigidBody.Props, body: RigidBody, _: usize) ?Edge {
         const closest = body.closestPoint(props.pos);
         const normal = nmath.normalize2(nmath.sub2(closest, props.pos));
-        return Edge{ .dir = normal, .middle = nmath.addmult2(props.pos, normal, self.radius) };
+        return Edge{ .dir = normal };
     }
 
     pub fn projectAlongAxis(ptr: *anyopaque, props: RigidBody.Props, normal: Vector2) [2]f32 {
@@ -322,7 +316,7 @@ pub const RectangleBody = struct {
             .id = id,
             .aabb = undefined,
             .num_normals = 4,
-            .type = RigidBodies.rectangle,
+            .type = RigidBody.Type.rectangle,
             .ptr = self,
             .vtable = RectangleBody.rigidbody_vtable,
         };
@@ -397,8 +391,7 @@ pub const RectangleBody = struct {
         return best_pos;
     }
 
-    pub fn getNormal(ptr: *anyopaque, props: RigidBody.Props, body: RigidBody, iter: usize) ?Edge {
-        _ = body;
+    pub fn getNormal(ptr: *anyopaque, props: RigidBody.Props, _: RigidBody, iter: usize) ?Edge {
         const self: *Self = @ptrCast(@alignCast(ptr));
 
         const next_iter = if (iter == 3) 0 else iter + 1;
@@ -416,9 +409,7 @@ pub const RectangleBody = struct {
         const dir = nmath.normalize2(nmath.sub2(a2, a1));
         const normal = nmath.rotate90counterclockwise(dir);
 
-        const avg = nmath.scale2(nmath.add2(a1, a2), 0.5);
-
-        return Edge{ .dir = normal, .middle = avg, .edge = .{ .a = a1, .b = a2 } };
+        return Edge{ .dir = normal, .edge = .{ .a = a1, .b = a2 } };
     }
 
     pub fn projectAlongAxis(ptr: *anyopaque, props: RigidBody.Props, normal: Vector2) [2]f32 {
