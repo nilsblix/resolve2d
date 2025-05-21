@@ -5,8 +5,8 @@ import * as bridge from "./wasm_bridge.ts";
 import * as gui from "./nvb-imgui/src/gui/gui.ts";
 
 export const IMAGE_PATHS = {
-    wheel: "/wheel.png",
-    red_truck: "/red_truck.png",
+    wheel: "wheel.png",
+    red_truck: "red_truck.png",
 };
 
 export type RigidBodyTex = {
