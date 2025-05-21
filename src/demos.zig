@@ -31,7 +31,7 @@ pub fn car(fac: *zigics.EntityFactory, pos: Vector2) !void {
     opt.pos = nmath.add2(t_pos, Vector2.init(5.25, 10.8));
     const body2 = try fac.makeRectangleBody(opt, .{ .width = 1.2, .height = 0.5 });
 
-    const power_limit = 0.8;
+    const power_limit = 0.2;
     const params = ctrs.Constraint.Parameters{
         .beta = 10,
         .power_min = -power_limit,
@@ -88,11 +88,11 @@ pub fn setupBridgeStressTestScene(solver: *Solver) !void {
     body.static = true;
 
     opt.pos.y = 0.75;
-    const width: f32 = 1.0;
+    const width: f32 = 2.0;
 
-    const power = 10;
+    const power = 0.5;
     const params = ctrs.Constraint.Parameters{
-        .beta = 8,
+        .beta = 10,
         .power_max = power,
         .power_min = -power,
     };
@@ -100,8 +100,8 @@ pub fn setupBridgeStressTestScene(solver: *Solver) !void {
     var prev_body = body;
 
     for (0..20) |idx| {
-        opt.pos.x = 1.5 + width * @as(f32, @floatFromInt(idx));
-        body = try fac.makeRectangleBody(opt, .{ .width = width, .height = 0.5 });
+        opt.pos.x = 2.0 + width * @as(f32, @floatFromInt(idx));
+        body = try fac.makeRectangleBody(opt, .{ .width = width, .height = 0.3 });
         if (idx == 0) {
             const r1 = Vector2.init(1, 0.75);
             const r2 = Vector2.init(-width / 4, 0);
@@ -110,10 +110,10 @@ pub fn setupBridgeStressTestScene(solver: *Solver) !void {
         } else {
             const r1 = Vector2.init(width / 4, 0);
             const r2 = Vector2.init(-width / 4, 0);
-            const dist = nmath.dist2(nmath.add2(prev_body.props.pos, r1), nmath.add2(body.props.pos, r2));
+            const dist = 0.01 + nmath.dist2(nmath.add2(prev_body.props.pos, r1), nmath.add2(body.props.pos, r2));
             _ = try fac.makeOffsetDistanceJoint(params, prev_body.id, body.id, r1, r2, dist);
         }
-        _ = try fac.excludeCollisionPair(prev_body.id, body.id);
+        // _ = try fac.excludeCollisionPair(prev_body.id, body.id);
         prev_body = body;
     }
 

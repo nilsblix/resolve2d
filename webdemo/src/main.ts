@@ -68,31 +68,38 @@ window.addEventListener("keydown", (e) => {
     if (wasm.instance == undefined) return;
     const fns = wasm.instance.exports as any;
 
-    const body = fns.getRigidBodyPtrFromId(3n);
+    const car = fns.getRigidBodyPtrFromId(3n);
     const wl = fns.getRigidBodyPtrFromId(4n);
     const wr = fns.getRigidBodyPtrFromId(5n);
 
-    const w_ang = 30;
-    const b_ang = 390;
+    const max_angular_vel = 22;
+
+    const torque = (v: number): number => {
+        return max_angular_vel - 0.2 * Math.sqrt(Math.abs(v));
+    }
+
+    const applyWheel = (body: any, mult: number = 1): void => {
+        fns.setRigidBodyAngularMomentum(body, mult * torque(fns.getRigidBodyAngularMomentum(body) / fns.getRigidBodyInertia(body)));
+    }
 
     if (e.key == "d") {
-        fns.setRigidBodyAngularMomentum(wl, -w_ang);
-        fns.setRigidBodyAngularMomentum(wr, -w_ang);
-        fns.setRigidBodyTorque(body, b_ang);
+        applyWheel(wl, -1);
+        applyWheel(wr, -1);
+        fns.setRigidBodyTorque(car, 1000);
     }
 
     if (e.key == "a") {
-        fns.setRigidBodyAngularMomentum(wl, w_ang);
-        fns.setRigidBodyAngularMomentum(wr, w_ang);
-        fns.setRigidBodyTorque(body, -b_ang);
+        applyWheel(wl);
+        applyWheel(wr);
+        fns.setRigidBodyTorque(car, -1000);
     }
 
-    const val = 10;
+    const val = 30;
 
-    if (e.key == "ArrowUp") { fns.setRigidBodyMomentumY(body, val); }
-    if (e.key == "ArrowLeft") { fns.setRigidBodyMomentumX(body, -val); }
-    if (e.key == "ArrowDown") { fns.setRigidBodyMomentumY(body, -val); }
-    if (e.key == "ArrowRight") { fns.setRigidBodyMomentumX(body, val); }
+    if (e.key == "ArrowUp") { fns.setRigidBodyMomentumY(car, val); }
+    if (e.key == "ArrowLeft") { fns.setRigidBodyMomentumX(car, -val); }
+    if (e.key == "ArrowDown") { fns.setRigidBodyMomentumY(car, -val); }
+    if (e.key == "ArrowRight") { fns.setRigidBodyMomentumX(car, val); }
 
 
     if (e.key == " ") {
