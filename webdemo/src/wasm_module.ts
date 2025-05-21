@@ -13,7 +13,7 @@ export const wasm: WasmModule = {
 
 export async function bootstrap(): Promise<void> {
     try {
-        const wasmModule = await WebAssembly.instantiateStreaming(fetch("./zig-out/bin/zigics.wasm"));
+        const wasmModule = await WebAssembly.instantiateStreaming(fetch("zigics.wasm"));
         wasm.init(wasmModule);
 
         if (wasm.instance == undefined) {
