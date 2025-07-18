@@ -1,10 +1,10 @@
-const zigics = @import("core/zigics.zig");
-const rigidbody = @import("core/rigidbody.zig");
-const forcegenerator = @import("core/force_generator.zig");
-const nmath = @import("core/nmath.zig");
+const zigics = @import("zigics.zig");
+const rigidbody = @import("rigidbody.zig");
+const forcegenerator = @import("force_generator.zig");
+const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
-const collision = @import("core/collision.zig");
-const ctrs = @import("core/constraint.zig");
+const collision = @import("collision.zig");
+const ctrs = @import("constraint.zig");
 const Solver = zigics.Solver;
 
 pub fn car(fac: *zigics.EntityFactory, pos: Vector2) !void {

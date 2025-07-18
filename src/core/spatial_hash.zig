@@ -13,16 +13,16 @@ const AABB = @import("aabb.zig").AABB;
 
 // This is a dense implementation of spatial-hashing.
 pub const SpatialHash = struct {
-    table: std.ArrayList(usize), 
+    table: std.ArrayList(usize),
     // As said in collision.zig, when things aren't persistent, this "unsafe" ptr business is okay.
-    body_indices: std.ArrayList(*RigidBody), 
+    body_indices: std.ArrayList(*RigidBody),
     table_size: usize,
     cell_size: f32,
 
     const Self = @This();
     pub fn init(alloc: Allocator, cell_size: f32, table_size: usize, bodies: *std.AutoArrayHashMap(RigidBody.Id, RigidBody)) !SpatialHash {
         var self = SpatialHash{
-            .table = try std.ArrayList(usize).initCapacity(alloc, table_size + 1),
+            .table = try std.ArrayList(usize).initCapacity(alloc, table_size + 1), // + 1 for the guard.
             .body_indices = std.ArrayList(*RigidBody).init(alloc),
             .table_size = table_size,
             .cell_size = cell_size,
@@ -32,8 +32,7 @@ pub const SpatialHash = struct {
         self.table.appendNTimesAssumeCapacity(0, table_size + 1);
 
         const T = struct {
-            pub fn inc(spat: *Self, id: usize, body_ptr: *RigidBody) void {
-                _ = body_ptr;
+            pub fn inc(spat: *Self, id: usize, _: *RigidBody) void {
                 const val = &spat.table.items[id];
                 val.* += 1;
             }

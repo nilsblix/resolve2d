@@ -1,17 +1,18 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const nmath = @import("core/nmath.zig");
+const zigics = @import("zigics");
+const nmath = zigics.nmath;
+// const nmath = @import("core/nmath.zig");
 const Vector2 = nmath.Vector2;
-const rb_mod = @import("core/rigidbody.zig");
+const rb_mod = zigics.rigidbody_module;
+// const rb_mod = @import("core/rigidbody.zig");
 const RigidBody = rb_mod.RigidBody;
-const zigics = @import("core/zigics.zig");
 const Solver = zigics.Solver; // What should I do with this?
-const demos = @import("demos.zig");
+const demos = zigics.demos;
+// const demos = @import("core/demos.zig");
 
 // Most allocators seem to work. They have to be posix and thread independant though.
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-const alloc = gpa.allocator();
-// const alloc = std.heap.wasm_allocator;
+const alloc = std.heap.wasm_allocator;
 
 var solver: ?*Solver = null;
 
@@ -87,7 +88,6 @@ pub export fn setupDemo2() bool {
     return true;
 }
 
-
 // === RigidBody Basic Properties ===
 pub export fn getRigidBodyPtrFromId(id: u64) usize {
     const entry = solver.?.bodies.getEntry(@as(RigidBody.Id, id));
@@ -141,7 +141,7 @@ pub export fn getRigidBodyAABBHalfHeight(ptr: usize) f32 {
     return body.aabb.half_height;
 }
 
-// === RigidBody Kinematic Properties (used as body.props...) === 
+// === RigidBody Kinematic Properties (used as body.props...) ===
 pub export fn getRigidBodyPosX(ptr: usize) f32 {
     const body: *RigidBody = @ptrFromInt(ptr);
     return body.props.pos.x;

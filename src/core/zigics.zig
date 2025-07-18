@@ -1,18 +1,20 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-const nmath = @import("nmath.zig");
+pub const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
-const rb_mod = @import("rigidbody.zig");
-const RigidBody = rb_mod.RigidBody;
-const fg_mod = @import("force_generator.zig");
-const ForceGenerator = fg_mod.ForceGenerator;
-const clsn = @import("collision.zig");
-const ctr_mod = @import("constraint.zig");
-const Constraint = ctr_mod.Constraint;
-const IdKey = clsn.CollisionKeyIds;
+pub const rigidbody_module = @import("rigidbody.zig");
+const RigidBody = rigidbody_module.RigidBody;
+pub const forcegenerator_module = @import("force_generator.zig");
+const ForceGenerator = forcegenerator_module.ForceGenerator;
+pub const collision_module = @import("collision.zig");
+pub const constraint_module = @import("constraint.zig");
+const Constraint = constraint_module.Constraint;
+const IdKey = collision_module.CollisionKeyIds;
 
-const spat = @import("spatial_hash.zig");
-const SpatialHash = spat.SpatialHash;
+pub const spatialhash_module = @import("./spatial_hash.zig");
+const SpatialHash = spatialhash_module.SpatialHash;
+
+pub const demos = @import("demos.zig");
 
 pub const EntityFactory = struct {
     pub const BodyOptions = struct {
@@ -61,7 +63,7 @@ pub const EntityFactory = struct {
         };
 
         const id = self.solver.current_body_id;
-        var body = try rb_mod.DiscBody.init(self.solver.alloc, id, rigid_opt.pos, rigid_opt.angle, mass, rigid_opt.mu, geometry_opt.radius);
+        var body = try rigidbody_module.DiscBody.init(self.solver.alloc, id, rigid_opt.pos, rigid_opt.angle, mass, rigid_opt.mu, geometry_opt.radius);
 
         body.props.momentum = nmath.scale2(rigid_opt.vel, mass);
         body.props.ang_momentum = rigid_opt.omega * body.props.inertia;
@@ -76,7 +78,7 @@ pub const EntityFactory = struct {
         };
 
         const id = self.solver.current_body_id;
-        var body = try rb_mod.RectangleBody.init(self.solver.alloc, id, rigid_opt.pos, rigid_opt.angle, mass, rigid_opt.mu, geometry_opt.width, geometry_opt.height);
+        var body = try rigidbody_module.RectangleBody.init(self.solver.alloc, id, rigid_opt.pos, rigid_opt.angle, mass, rigid_opt.mu, geometry_opt.width, geometry_opt.height);
 
         body.props.momentum = nmath.scale2(rigid_opt.vel, mass);
         body.props.ang_momentum = rigid_opt.omega * body.props.inertia;
@@ -85,36 +87,36 @@ pub const EntityFactory = struct {
     }
 
     pub fn makeDownwardsGravity(self: *Self, g: f32) !void {
-        try self.solver.force_generators.append(try fg_mod.DownwardsGravity.init(self.solver.alloc, g));
+        try self.solver.force_generators.append(try forcegenerator_module.DownwardsGravity.init(self.solver.alloc, g));
     }
 
     pub fn makeOffsetDistanceJoint(self: *Self, params: Constraint.Parameters, id1: RigidBody.Id, id2: RigidBody.Id, r1: Vector2, r2: Vector2, target_distance: f32) !*Constraint {
-    const ctr = try ctr_mod.OffsetDistanceJoint.init(self.solver.alloc, params, id1, id2, r1, r2, target_distance);
+        const ctr = try constraint_module.OffsetDistanceJoint.init(self.solver.alloc, params, id1, id2, r1, r2, target_distance);
         try self.solver.constraints.append(ctr);
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
     }
 
     pub fn makeDistanceJoint(self: *Self, params: Constraint.Parameters, id1: RigidBody.Id, id2: RigidBody.Id, target_distance: f32) !*Constraint {
-        const ctr = try ctr_mod.DistanceJoint.init(self.solver.alloc, params, id1, id2, target_distance);
+        const ctr = try constraint_module.DistanceJoint.init(self.solver.alloc, params, id1, id2, target_distance);
         try self.solver.constraints.append(ctr);
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
     }
 
     pub fn makeFixedPositionJoint(self: *Self, params: Constraint.Parameters, id: RigidBody.Id, target_position: Vector2) !*Constraint {
-        const ctr = try ctr_mod.FixedPositionJoint.init(self.solver.alloc, params, id, target_position);
+        const ctr = try constraint_module.FixedPositionJoint.init(self.solver.alloc, params, id, target_position);
         try self.solver.constraints.append(ctr);
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
     }
 
     pub fn makeMotorJoint(self: *Self, params: Constraint.Parameters, id: RigidBody.Id, target_omega: f32) !*Constraint {
-        const ctr = try ctr_mod.MotorJoint.init(self.solver.alloc, params, id, target_omega);
+        const ctr = try constraint_module.MotorJoint.init(self.solver.alloc, params, id, target_omega);
         try self.solver.constraints.append(ctr);
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
     }
 
     pub fn excludeCollisionPair(self: *Self, id1: RigidBody.Id, id2: RigidBody.Id) !void {
-        const pair1 = clsn.CollisionKeyIds{ .id1 = id1, .id2 = id2 };
-        const pair2 = clsn.CollisionKeyIds{ .id1 = id1, .id2 = id1 };
+        const pair1 = collision_module.CollisionKeyIds{ .id1 = id1, .id2 = id2 };
+        const pair2 = collision_module.CollisionKeyIds{ .id1 = id1, .id2 = id1 };
         try self.solver.exclude_collision_pairs.put(pair1, pair2);
         try self.solver.exclude_collision_pairs.put(pair2, pair1);
     }
@@ -125,7 +127,7 @@ pub const Solver = struct {
     current_body_id: RigidBody.Id,
     bodies: std.AutoArrayHashMap(RigidBody.Id, RigidBody),
     force_generators: std.ArrayList(ForceGenerator),
-    manifolds: std.AutoArrayHashMap(clsn.CollisionKey, clsn.CollisionManifold),
+    manifolds: std.AutoArrayHashMap(collision_module.CollisionKey, collision_module.CollisionManifold),
     exclude_collision_pairs: std.AutoHashMap(IdKey, IdKey),
     constraints: std.ArrayList(Constraint),
 
@@ -139,7 +141,7 @@ pub const Solver = struct {
             .current_body_id = 0,
             .bodies = std.AutoArrayHashMap(RigidBody.Id, RigidBody).init(alloc),
             .force_generators = std.ArrayList(ForceGenerator).init(alloc),
-            .manifolds = std.AutoArrayHashMap(clsn.CollisionKey, clsn.CollisionManifold).init(alloc),
+            .manifolds = std.AutoArrayHashMap(collision_module.CollisionKey, collision_module.CollisionManifold).init(alloc),
             .exclude_collision_pairs = std.AutoHashMap(IdKey, IdKey).init(alloc),
             .constraints = std.ArrayList(Constraint).init(alloc),
             .spatialhash_cell_width = spatialhash_cell_width,
@@ -173,7 +175,7 @@ pub const Solver = struct {
         self.deinit();
         self.bodies = std.AutoArrayHashMap(RigidBody.Id, RigidBody).init(alloc);
         self.force_generators = std.ArrayList(ForceGenerator).init(alloc);
-        self.manifolds = std.AutoArrayHashMap(clsn.CollisionKey, clsn.CollisionManifold).init(alloc);
+        self.manifolds = std.AutoArrayHashMap(collision_module.CollisionKey, collision_module.CollisionManifold).init(alloc);
         self.constraints = std.ArrayList(Constraint).init(alloc);
     }
 
@@ -242,6 +244,7 @@ pub const Solver = struct {
     }
 
     fn updateManifolds(self: *Self, alloc: Allocator) !void {
+        // FIXME: Hardcoded values.
         var spatial = try SpatialHash.init(alloc, 4.0, 2 * self.bodies.count(), &self.bodies);
         defer spatial.deinit();
 
@@ -265,16 +268,16 @@ pub const Solver = struct {
                 if (self.exclude_collision_pairs.contains(.{ .id1 = body1.id, .id2 = body2.id })) continue;
                 if (self.exclude_collision_pairs.contains(.{ .id1 = body2.id, .id2 = body1.id })) continue;
 
-                var tmp = clsn.CollisionKey{ .ref_body = body1, .inc_body = body2 };
+                var tmp = collision_module.CollisionKey{ .ref_body = body1, .inc_body = body2 };
                 if (!self.manifolds.contains(tmp)) {
-                    tmp = clsn.CollisionKey{ .ref_body = body2, .inc_body = body1 };
+                    tmp = collision_module.CollisionKey{ .ref_body = body2, .inc_body = body1 };
                     if (!self.manifolds.contains(tmp)) {
                         if (!body1.aabb.intersects(body2.aabb)) continue;
 
-                        const sat = clsn.performNarrowSAT(body1, body2);
+                        const sat = collision_module.performNarrowSAT(body1, body2);
                         if (!sat.collides) continue;
 
-                        const manifold = clsn.CollisionManifold{
+                        const manifold = collision_module.CollisionManifold{
                             .normal = sat.normal,
                             .points = sat.key.ref_body.identifyCollisionPoints(sat.key.inc_body, sat.reference_normal_id),
                             .prev_angle_1 = sat.key.ref_body.props.angle,

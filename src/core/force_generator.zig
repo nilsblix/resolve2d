@@ -15,6 +15,7 @@ pub const ForceGenerator = struct {
         apply: *const fn (ptr: *anyopaque, body: *RigidBody) void,
     };
 
+    // FIXME: replace this name with kind.
     type: Type,
     vtable: VTable,
     ptr: *anyopaque,
@@ -59,6 +60,7 @@ pub const DownwardsGravity = struct {
     pub fn apply(ptr: *anyopaque, body: *RigidBody) void {
         const self: *Self = @ptrCast(@alignCast(ptr));
         if (body.static) return;
-        body.props.force.addmult(self.g_vec, body.props.mass);
+        body.props.force.y -= body.props.mass * self.g;
+        // body.props.force.addmult(self.g_vec, body.props.mass);
     }
 };

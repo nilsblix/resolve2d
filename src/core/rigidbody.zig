@@ -135,7 +135,6 @@ pub const RigidBody = struct {
         const ret = RigidBody.NormalIter{ .b1 = self, .b2 = other, .num_iters = self.num_normals };
         return ret;
     }
-
 };
 
 test "local to world and inverses" {
