@@ -29,7 +29,7 @@ const app = (() => {
         steps: 0,
         process_dt: 0,
         snap_to_body: true,
-        span_to_body_id: 3n,
+        span_to_body_id: 3,
     };
 })();
 
@@ -43,12 +43,12 @@ function initBridgeScene() {
     const fns = wasm.instance.exports as any;
 
     fns.solverInit(2, 4);
-    fns.setupBridgeStressTestScene();
+    fns.setup_0_2_bridge_stress();
     app?.renderer.textures.clear();
-    app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.red_truck, 3n, 6.0);
-    app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.wheel, 4n, 2.05);
-    app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.wheel, 5n, 2.05);
-    app?.renderer.textures.set(6n, null);
+    app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.red_truck, 3, 6.0);
+    app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.wheel, 4, 2.05);
+    app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.wheel, 5, 2.05);
+    app?.renderer.textures.set(6, null);
 }
 
 function initCarScene() {
@@ -56,21 +56,21 @@ function initCarScene() {
     const fns = wasm.instance.exports as any;
 
     fns.solverInit(2, 4);
-    fns.setupCarScene();
+    fns.setup_0_1_car_platformer();
     app?.renderer.textures.clear();
-    app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.red_truck, 3n, 6.0);
-    app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.wheel, 4n, 2.05);
-    app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.wheel, 5n, 2.05);
-    app?.renderer.textures.set(6n, null);
+    app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.red_truck, 3, 6.0);
+    app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.wheel, 4, 2.05);
+    app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.wheel, 5, 2.05);
+    app?.renderer.textures.set(6, null);
 }
 
 window.addEventListener("keydown", (e) => {
     if (wasm.instance == undefined) return;
     const fns = wasm.instance.exports as any;
 
-    const car = fns.getRigidBodyPtrFromId(3n);
-    const wl = fns.getRigidBodyPtrFromId(4n);
-    const wr = fns.getRigidBodyPtrFromId(5n);
+    const car = fns.getRigidBodyPtrFromId(3);
+    const wl = fns.getRigidBodyPtrFromId(4);
+    const wr = fns.getRigidBodyPtrFromId(5);
 
     const max_angular_vel = 22;
 
@@ -258,7 +258,7 @@ updateLoop(() => {
             break;
         case Action.change_snap_to_body_id:
             const num = fns.solverGetNumBodies();
-            app.span_to_body_id = BigInt(gui.updateDraggableValue(Number(app.span_to_body_id), gui.input_state, 2, { min: 0, max: num - 1 }));
+            app.span_to_body_id = Number(gui.updateDraggableValue(Number(app.span_to_body_id), gui.input_state, 2, { min: 0, max: num - 1 }));
             break;
     }
 

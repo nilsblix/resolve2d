@@ -26,7 +26,7 @@ pub fn setup(solver: *Solver) !void {
     body.static = true;
 
     opt.pos = Vector2.init(80, 20);
-    body = try fac.makeRectangleBody(opt, .{ .width = 3.0, .height  = 60 });
+    body = try fac.makeRectangleBody(opt, .{ .width = 3.0, .height = 60 });
     body.static = true;
 
     opt.vel.x = 70;

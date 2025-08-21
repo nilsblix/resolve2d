@@ -12,13 +12,13 @@ export const IMAGE_PATHS = {
 export type RigidBodyTex = {
     image: HTMLImageElement;
     scale: number;
-    id: bigint;
+    id: number;
     render: (c: CanvasRenderingContext2D, body: bridge.RigidBody) => void;
 };
 
 export class Renderer {
     units: Units;
-    textures: Map<bigint, RigidBodyTex | null>;
+    textures: Map<number, RigidBodyTex | null>;
 
     constructor(c: CanvasRenderingContext2D, desired_aspect: number, start_world_width: number) {
         this.units = new Units(c, desired_aspect, start_world_width);
@@ -136,7 +136,7 @@ export class Renderer {
         });
     }
 
-    addStandardRigidBodyTex(path: string, id: bigint, scale: number): void {
+    addStandardRigidBodyTex(path: string, id: number, scale: number): void {
         const self = this;
 
         const tex: RigidBodyTex = {

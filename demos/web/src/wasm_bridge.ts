@@ -26,7 +26,7 @@ export interface AABB {
 
 export class RigidBody {
     static readonly ZigTranslation: {
-        id: bigint;
+        id: number;
         aabb: AABB,
         static: boolean;
         num_normals: number;
@@ -40,7 +40,7 @@ export class RigidBody {
     ptr: number;
     zig: (typeof RigidBody.ZigTranslation) | null;
 
-    constructor(fns: any, id: bigint) {
+    constructor(fns: any, id: number) {
         const ptr = fns.getRigidBodyPtrFromId(id);
 
         this.ptr = ptr;
