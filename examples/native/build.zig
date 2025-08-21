@@ -28,10 +28,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-
-    const zigics_mod = b.addModule("zigics", .{
-        .root_source_file = zigics_dep.path("src/core/zigics.zig"),
-    });
+    const zigics_mod = zigics_dep.module("zigics");
 
     exe.root_module.addImport("zigics", zigics_mod);
 
