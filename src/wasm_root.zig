@@ -2,10 +2,10 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const nmath = @import("core/nmath.zig");
 const Vector2 = nmath.Vector2;
-const zigics = @import("core/zigics.zig");
+const zigics = @import("root.zig");
 const RigidBody = zigics.RigidBody;
 const Solver = zigics.Solver; // What should I do with this?
-const demos = zigics.demos;
+const examples = zigics.examples;
 
 // Most allocators seem to work. They have to be posix and thread independant though.
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -64,25 +64,23 @@ pub export fn solverRemoveBodyById(id: u16) bool {
 
 // === Setup demos ===
 
-pub export fn setupBridgeStressTestScene() bool {
-    demos.setupBridgeStressTestScene(solver.?) catch return false;
+pub export fn setup_0_1_car_platformer() bool {
+    examples.setup_0_1_car_platformer(solver.?) catch return false;
     return true;
 }
 
-pub export fn setupCarScene() bool {
-    demos.setupCarScene(solver.?) catch return false;
+pub export fn setup_0_2_bridge_stress() bool {
+    examples.setup_0_2_bridge_stress(solver.?) catch return false;
     return true;
 }
 
-pub export fn setupDemo1() bool {
-    const solv = solver orelse return false;
-    demos.setup1(solv) catch return false;
+pub export fn setup_0_3_many_boxes() bool {
+    examples.setup_0_3_many_boxes(solver.?) catch return false;
     return true;
 }
 
-pub export fn setupDemo2() bool {
-    const solv = solver orelse return false;
-    demos.setup2(solv) catch return false;
+pub export fn setup_0_4_also_many_boxes() bool {
+    examples.setup_0_4_also_many_boxes(solver.?) catch return false;
     return true;
 }
 

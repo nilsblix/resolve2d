@@ -1,16 +1,14 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
-pub const nmath = @import("nmath.zig");
+const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
-pub const RigidBody = @import("Bodies/RigidBody.zig");
-pub const ForceGen = @import("Forces/ForceGen.zig");
-pub const collision_mod = @import("collision.zig");
-pub const Constraint = @import("Constraints/Constraint.zig");
+const RigidBody = @import("Bodies/RigidBody.zig");
+const ForceGen = @import("Forces/ForceGen.zig");
+const collision_mod = @import("collision.zig");
+const Constraint = @import("Constraints/Constraint.zig");
 const IdKey = collision_mod.CollisionKeyIds;
 
 const SpatialHash = @import("SpatialHash.zig");
-
-pub const demos = @import("demos.zig");
 
 pub const EntityFactory = struct {
     pub const BodyOptions = struct {
