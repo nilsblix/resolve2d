@@ -2,7 +2,7 @@ const std = @import("std");
 
 pub fn build(b: *std.Build) void {
     const target = b.standardTargetOptions(.{});
-    const optimize = .ReleaseFast;
+    const optimize = .Debug;
 
     const exe = b.addExecutable(.{
         .name = "zigics",
@@ -29,9 +29,7 @@ pub fn build(b: *std.Build) void {
         .optimize = optimize,
     });
 
-    const zigics_mod = b.addModule("zigics", .{
-        .root_source_file = zigics_dep.path("src/core/zigics.zig"),
-    });
+    const zigics_mod = zigics_dep.module("zigics");
 
     exe.root_module.addImport("zigics", zigics_mod);
 

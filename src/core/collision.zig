@@ -1,9 +1,8 @@
 const std = @import("std");
 const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
-const rb_mod = @import("rigidbody.zig");
-const RigidBody = rb_mod.RigidBody;
-const consts = @import("zigics_consts.zig");
+const RigidBody = @import("Bodies/RigidBody.zig");
+const consts = @import("simulation_constants.zig");
 
 // Regarding the ptrs, when things are not meant to be persistent across
 // processes I am okay with the "unsafe" ptrs as no destorying/creating of

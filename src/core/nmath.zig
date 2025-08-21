@@ -1,6 +1,6 @@
 const std = @import("std");
 const expect = std.testing.expect;
-const consts = @import("zigics_consts.zig");
+const consts = @import("simulation_constants.zig");
 
 pub fn approxEql(a: f32, b: f32, eps: f32) bool {
     return a > b - eps and a < b + eps;

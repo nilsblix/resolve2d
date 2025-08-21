@@ -1,0 +1,43 @@
+const std = @import("std");
+const zigics = @import("zigics");
+const nmath = zigics.nmath;
+const Vector2 = nmath.Vector2;
+const Units = @import("Units.zig");
+
+test "mults should be inverses" {
+    var units = Units.init(.{ .width = 1000, .height = 500 }, 20);
+
+    // units.adjustCameraPos(Vector2.init(1, 0.5));
+    units.adjustCameraZoom(1.3, Vector2.init(-1, 2));
+
+    const val = 3.1415;
+    const ret = units.mult.s2w * units.mult.w2s * val;
+
+    std.debug.print("mults should be inverses \n", .{});
+    std.debug.print("     val = {}\n", .{val});
+    std.debug.print("     ret = {}\n", .{ret});
+
+    try std.testing.expect(ret == val);
+}
+
+test "s2w and w2s should be inverses" {
+    var units = Units.init(.{ .width = 1000, .height = 500 }, 20);
+
+    // units.adjustCameraPos(Vector2.init(1, 0.5));
+    units.adjustCameraZoom(1.3, Vector2.init(-1, 2));
+
+    const vec = Vector2.init(23, 34);
+    const ret = units.s2w(units.w2s(vec));
+
+    std.debug.print("transformations should be inverses \n", .{});
+    std.debug.print("     vec = {}\n", .{vec});
+    std.debug.print("     ret = {}\n", .{ret});
+
+    try std.testing.expect(nmath.equals2(ret, vec));
+}
+
+test "unit mapping" {
+    const x = 0.8;
+    const y = Units.map(x, 0, 1, 10, 20);
+    try std.testing.expect(y == 18);
+}

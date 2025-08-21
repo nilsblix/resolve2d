@@ -1,23 +1,21 @@
-const zigics = @import("core/zigics.zig");
-const rigidbody = @import("core/rigidbody.zig");
-const forcegenerator = @import("core/force_generator.zig");
-const nmath = @import("core/nmath.zig");
+const zigics = @import("zigics.zig");
+const RigidBody = @import("Bodies/RigidBody.zig");
+const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
-const collision = @import("core/collision.zig");
-const ctrs = @import("core/constraint.zig");
+const collision = @import("collision.zig");
+const Constraint = @import("Constraints/Constraint.zig");
 const Solver = zigics.Solver;
 
 pub fn car(fac: *zigics.EntityFactory, pos: Vector2) !void {
-    const backup = fac.*;
-
     var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 1 } };
     opt.mu = 0.4;
-    var body: *rigidbody.RigidBody = undefined;
 
     const t_pos = nmath.sub2(pos, Vector2.init(5, 10));
 
     opt.pos = pos;
-    body = try fac.makeRectangleBody(opt, .{ .width = 5, .height = 0.9 });
+    const body_ptr = try fac.makeRectangleBody(opt, .{ .width = 5, .height = 0.9 });
+    const body = body_ptr.*;
+
     opt.mu = 1.5;
     const rad: f32 = 1.0;
     opt.pos = nmath.add2(t_pos, Vector2.init(3.5, 9.8 - rad));
@@ -32,7 +30,7 @@ pub fn car(fac: *zigics.EntityFactory, pos: Vector2) !void {
     const body2 = try fac.makeRectangleBody(opt, .{ .width = 1.2, .height = 0.5 });
 
     const power_limit = 0.2;
-    const params = ctrs.Constraint.Parameters{
+    const params = Constraint.Parameters{
         .beta = 10,
         .power_min = -power_limit,
         .power_max = power_limit,
@@ -55,8 +53,6 @@ pub fn car(fac: *zigics.EntityFactory, pos: Vector2) !void {
     _ = try fac.makeOffsetDistanceJoint(.{}, body.id, body2.id, Vector2.init(0.25, 0), Vector2.init(1, 1), dist22);
     const dist23 = nmath.dist2(body.props.pos, body2.props.pos);
     _ = try fac.makeDistanceJoint(.{}, body.id, body2.id, dist23);
-
-    fac.* = backup;
 }
 
 pub fn setupBridgeStressTestScene(solver: *Solver) !void {
@@ -64,7 +60,7 @@ pub fn setupBridgeStressTestScene(solver: *Solver) !void {
 
     var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 1 } };
     opt.mu = 0.4;
-    var body: *rigidbody.RigidBody = undefined;
+    var body: *RigidBody = undefined;
 
     try fac.makeDownwardsGravity(9.82);
 
@@ -91,13 +87,13 @@ pub fn setupBridgeStressTestScene(solver: *Solver) !void {
     const width: f32 = 2.0;
 
     const power = 0.5;
-    const params = ctrs.Constraint.Parameters{
+    const params = Constraint.Parameters{
         .beta = 10,
         .power_max = power,
         .power_min = -power,
     };
 
-    var prev_body = body;
+    var prev_body = body.*;
 
     for (0..20) |idx| {
         opt.pos.x = 2.0 + width * @as(f32, @floatFromInt(idx));
@@ -114,7 +110,7 @@ pub fn setupBridgeStressTestScene(solver: *Solver) !void {
             _ = try fac.makeOffsetDistanceJoint(params, prev_body.id, body.id, r1, r2, dist);
         }
         // _ = try fac.excludeCollisionPair(prev_body.id, body.id);
-        prev_body = body;
+        prev_body = body.*;
     }
 
     opt.pos = Vector2.init(1.5 + width * 20, 0);
@@ -132,7 +128,7 @@ pub fn setupCarScene(solver: *Solver) !void {
 
     var opt: zigics.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 1 } };
     opt.mu = 0.3;
-    var body: *rigidbody.RigidBody = undefined;
+    var body: *RigidBody = undefined;
 
     try fac.makeDownwardsGravity(9.82);
 
@@ -398,7 +394,7 @@ pub fn setupCarScene(solver: *Solver) !void {
     // const q = nmath.add2(body.props.pos, Vector2.init(0, 0.01));
     _ = try fac.makeFixedPositionJoint(.{}, body.id, body.props.pos);
     const pow = 100;
-    const m2 = ctrs.Constraint.Parameters{
+    const m2 = Constraint.Parameters{
         .beta = 100,
         .power_max = pow,
         .power_min = -pow,

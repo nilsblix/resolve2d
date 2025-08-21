@@ -2,9 +2,8 @@
 set -ex
 
 cd examples/native
-echo "TEST: Testing examples/native"
-zig test src/Units.zig
 echo "BUILD: Compiling examples/native"
+zig fmt src
 zig build
 cd -
 

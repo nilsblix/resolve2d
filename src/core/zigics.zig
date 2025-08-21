@@ -2,17 +2,15 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 pub const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
-pub const rigidbody_mod = @import("rigidbody.zig");
-const RigidBody = rigidbody_mod.RigidBody;
-pub const force_generator_mod = @import("force_generator.zig");
-const ForceGenerator = force_generator_mod.ForceGenerator;
+pub const RigidBody = @import("Bodies/RigidBody.zig");
+pub const ForceGen = @import("Forces/ForceGen.zig");
 pub const collision_mod = @import("collision.zig");
-pub const constraint_mod = @import("constraint.zig");
-const Constraint = constraint_mod.Constraint;
+pub const Constraint = @import("Constraints/Constraint.zig");
 const IdKey = collision_mod.CollisionKeyIds;
 
-const spat = @import("spatial_hash.zig");
-const SpatialHash = spat.SpatialHash;
+const SpatialHash = @import("SpatialHash.zig");
+
+pub const demos = @import("demos.zig");
 
 pub const EntityFactory = struct {
     pub const BodyOptions = struct {
@@ -46,6 +44,15 @@ pub const EntityFactory = struct {
 
     const Self = @This();
 
+    // FIXME:
+    // Do not return a ptr!!!!
+    // This is SERIOUSLY unsafe.
+    // Return the id you doofus...
+    // Maybe make some sort of unwrap get body from id.
+    // Serious rewrite is coming. I can feel it in my bones.
+    //
+    // Also while on this topic, rewrite the demos...
+    // Ffs nilsblix... That code is seriously terrible.
     fn pushBody(self: *Self, body: RigidBody) !*RigidBody {
         try self.solver.bodies.put(body.id, body);
         self.solver.current_body_id += 1;
@@ -61,7 +68,7 @@ pub const EntityFactory = struct {
         };
 
         const id = self.solver.current_body_id;
-        var body = try rigidbody_mod.DiscBody.init(self.solver.alloc, id, rigid_opt.pos, rigid_opt.angle, mass, rigid_opt.mu, geometry_opt.radius);
+        var body = try RigidBody.Disc.init(self.solver.alloc, id, rigid_opt.pos, rigid_opt.angle, mass, rigid_opt.mu, geometry_opt.radius);
 
         body.props.momentum = nmath.scale2(rigid_opt.vel, mass);
         body.props.ang_momentum = rigid_opt.omega * body.props.inertia;
@@ -76,7 +83,7 @@ pub const EntityFactory = struct {
         };
 
         const id = self.solver.current_body_id;
-        var body = try rigidbody_mod.RectangleBody.init(self.solver.alloc, id, rigid_opt.pos, rigid_opt.angle, mass, rigid_opt.mu, geometry_opt.width, geometry_opt.height);
+        var body = try RigidBody.Rectangle.init(self.solver.alloc, id, rigid_opt.pos, rigid_opt.angle, mass, rigid_opt.mu, geometry_opt.width, geometry_opt.height);
 
         body.props.momentum = nmath.scale2(rigid_opt.vel, mass);
         body.props.ang_momentum = rigid_opt.omega * body.props.inertia;
@@ -85,29 +92,29 @@ pub const EntityFactory = struct {
     }
 
     pub fn makeDownwardsGravity(self: *Self, g: f32) !void {
-        try self.solver.force_generators.append(try force_generator_mod.DownwardsGravity.init(self.solver.alloc, g));
+        try self.solver.force_generators.append(try ForceGen.DownwardsGravity.init(self.solver.alloc, g));
     }
 
     pub fn makeOffsetDistanceJoint(self: *Self, params: Constraint.Parameters, id1: RigidBody.Id, id2: RigidBody.Id, r1: Vector2, r2: Vector2, target_distance: f32) !*Constraint {
-    const ctr = try constraint_mod.OffsetDistanceJoint.init(self.solver.alloc, params, id1, id2, r1, r2, target_distance);
+        const ctr = try Constraint.OffsetDistanceJoint.init(self.solver.alloc, params, id1, id2, r1, r2, target_distance);
         try self.solver.constraints.append(ctr);
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
     }
 
     pub fn makeDistanceJoint(self: *Self, params: Constraint.Parameters, id1: RigidBody.Id, id2: RigidBody.Id, target_distance: f32) !*Constraint {
-        const ctr = try constraint_mod.DistanceJoint.init(self.solver.alloc, params, id1, id2, target_distance);
+        const ctr = try Constraint.DistanceJoint.init(self.solver.alloc, params, id1, id2, target_distance);
         try self.solver.constraints.append(ctr);
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
     }
 
     pub fn makeFixedPositionJoint(self: *Self, params: Constraint.Parameters, id: RigidBody.Id, target_position: Vector2) !*Constraint {
-        const ctr = try constraint_mod.FixedPositionJoint.init(self.solver.alloc, params, id, target_position);
+        const ctr = try Constraint.FixedPositionJoint.init(self.solver.alloc, params, id, target_position);
         try self.solver.constraints.append(ctr);
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
     }
 
     pub fn makeMotorJoint(self: *Self, params: Constraint.Parameters, id: RigidBody.Id, target_omega: f32) !*Constraint {
-        const ctr = try constraint_mod.MotorJoint.init(self.solver.alloc, params, id, target_omega);
+        const ctr = try Constraint.MotorJoint.init(self.solver.alloc, params, id, target_omega);
         try self.solver.constraints.append(ctr);
         return &self.solver.constraints.items[self.solver.constraints.items.len - 1];
     }
@@ -124,7 +131,7 @@ pub const Solver = struct {
     alloc: Allocator,
     current_body_id: RigidBody.Id,
     bodies: std.AutoArrayHashMap(RigidBody.Id, RigidBody),
-    force_generators: std.ArrayList(ForceGenerator),
+    force_generators: std.ArrayList(ForceGen),
     manifolds: std.AutoArrayHashMap(collision_mod.CollisionKey, collision_mod.CollisionManifold),
     exclude_collision_pairs: std.AutoHashMap(IdKey, IdKey),
     constraints: std.ArrayList(Constraint),
@@ -138,7 +145,7 @@ pub const Solver = struct {
             .alloc = alloc,
             .current_body_id = 0,
             .bodies = std.AutoArrayHashMap(RigidBody.Id, RigidBody).init(alloc),
-            .force_generators = std.ArrayList(ForceGenerator).init(alloc),
+            .force_generators = std.ArrayList(ForceGen).init(alloc),
             .manifolds = std.AutoArrayHashMap(collision_mod.CollisionKey, collision_mod.CollisionManifold).init(alloc),
             .exclude_collision_pairs = std.AutoHashMap(IdKey, IdKey).init(alloc),
             .constraints = std.ArrayList(Constraint).init(alloc),
@@ -172,7 +179,7 @@ pub const Solver = struct {
     pub fn clear(self: *Self, alloc: Allocator) !void {
         self.deinit();
         self.bodies = std.AutoArrayHashMap(RigidBody.Id, RigidBody).init(alloc);
-        self.force_generators = std.ArrayList(ForceGenerator).init(alloc);
+        self.force_generators = std.ArrayList(ForceGen).init(alloc);
         self.manifolds = std.AutoArrayHashMap(collision_mod.CollisionKey, collision_mod.CollisionManifold).init(alloc);
         self.constraints = std.ArrayList(Constraint).init(alloc);
     }

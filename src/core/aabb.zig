@@ -1,37 +1,36 @@
 const std = @import("std");
 const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
-const consts = @import("zigics_consts.zig");
+const consts = @import("simulation_constants.zig");
 
-pub const AABB = struct {
-    pos: Vector2,
-    half_width: f32,
-    half_height: f32,
+pos: Vector2,
+half_width: f32,
+half_height: f32,
 
-    const Self = @This();
+const Self = @This();
+const AABB = @This();
 
-    pub fn intersects(self: Self, other: AABB) bool {
-        const EPS = consts.AABB_EPS_OVERLAP;
-        const dx = @abs(other.pos.x - self.pos.x);
-        const dy = @abs(other.pos.y - self.pos.y);
+pub fn intersects(self: Self, other: AABB) bool {
+    const EPS = consts.AABB_EPS_OVERLAP;
+    const dx = @abs(other.pos.x - self.pos.x);
+    const dy = @abs(other.pos.y - self.pos.y);
 
-        return (dx <= (self.half_width + other.half_width) + EPS) and
-            (dy <= (self.half_height + other.half_height) + EPS);
-    }
+    return (dx <= (self.half_width + other.half_width) + EPS) and
+        (dy <= (self.half_height + other.half_height) + EPS);
+}
 
-    pub fn isInside(self: Self, pos: Vector2) bool {
-        return pos.x >= self.pos.x - self.half_width and pos.x <= self.pos.x + self.half_width and pos.y >= self.pos.y - self.half_height and pos.y <= self.pos.y + self.half_height;
-    }
+pub fn isInside(self: Self, pos: Vector2) bool {
+    return pos.x >= self.pos.x - self.half_width and pos.x <= self.pos.x + self.half_width and pos.y >= self.pos.y - self.half_height and pos.y <= self.pos.y + self.half_height;
+}
 
-    pub fn getVertices(self: Self) [4]Vector2 {
-        return .{
-            Vector2.init(self.pos.x - self.half_width, self.pos.y - self.half_height),
-            Vector2.init(self.pos.x + self.half_width, self.pos.y - self.half_height),
-            Vector2.init(self.pos.x + self.half_width, self.pos.y + self.half_height),
-            Vector2.init(self.pos.x - self.half_width, self.pos.y + self.half_height),
-        };
-    }
-};
+pub fn getVertices(self: Self) [4]Vector2 {
+    return .{
+        Vector2.init(self.pos.x - self.half_width, self.pos.y - self.half_height),
+        Vector2.init(self.pos.x + self.half_width, self.pos.y - self.half_height),
+        Vector2.init(self.pos.x + self.half_width, self.pos.y + self.half_height),
+        Vector2.init(self.pos.x - self.half_width, self.pos.y + self.half_height),
+    };
+}
 
 test "sanity check aabb overlapping" {
     var s1 = AABB{ .pos = Vector2.init(1, 1), .half_width = 1.0, .half_height = 0.5 };
