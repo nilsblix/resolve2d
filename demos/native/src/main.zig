@@ -1,7 +1,7 @@
 const std = @import("std");
 const rl = @import("raylib");
 const zigics = @import("zigics");
-const demos = zigics.demos;
+const examples = zigics.examples;
 const Renderer = @import("Renderer.zig");
 const nmath = zigics.nmath;
 const Vector2 = nmath.Vector2;
@@ -30,34 +30,35 @@ pub fn main() !void {
     var fac = solver.entityFactory();
     _ = try fac.makeDownwardsGravity(9.82);
 
-    var opt = zigics.EntityFactory.BodyOptions{ .pos = .{}, .mass_prop = .{ .density = 1.0 } };
-    opt.pos = zigics.nmath.Vector2.init(1, 0);
-    var rect = try fac.makeRectangleBody(opt, .{ .width = 1.0, .height = 1.0 });
-    rect.props.momentum.x = 1;
-    rect.props.force.x = 1;
+    // var opt = zigics.EntityFactory.BodyOptions{ .pos = .{}, .mass_prop = .{ .density = 1.0 } };
+    // opt.pos = zigics.nmath.Vector2.init(1, 0);
+    // var rect = try fac.makeRectangleBody(opt, .{ .width = 1.0, .height = 1.0 });
+    // rect.props.momentum.x = 1;
+    // rect.props.force.x = 1;
+    //
+    // opt.pos = zigics.nmath.Vector2.init(-1, 0);
+    // var rect2 = try fac.makeRectangleBody(opt, .{ .width = 1.0, .height = 1.0 });
+    // rect2.props.momentum.x = 1;
+    // rect2.props.force.x = 1;
+    //
+    // opt.pos = zigics.nmath.Vector2.init(-3, 0);
+    // var rect3 = try fac.makeRectangleBody(opt, .{ .width = 1.0, .height = 1.0 });
+    // rect3.props.momentum.x = 1;
+    // rect3.props.force.x = 1;
+    // rect3.static = true;
+    //
+    // opt.pos = zigics.nmath.Vector2.init(-3, 2);
+    // var disc = try fac.makeDiscBody(opt, .{ .radius = 1.0 });
+    // disc.props.momentum.x = 1;
+    // disc.props.force.x = 1;
+    //
+    // try fac.excludeCollisionPair(0, 1);
+    // _ = try fac.makeDistanceJoint(.{}, 0, 1, 2.0);
+    // _ = try fac.makeOffsetDistanceJoint(.{}, 1, 2, .{}, .{}, 2.0);
+    // _ = try fac.makeFixedPositionJoint(.{}, 3, disc.props.pos);
+    // _ = try fac.makeMotorJoint(.{}, 3, 1.0);
 
-    opt.pos = zigics.nmath.Vector2.init(-1, 0);
-    var rect2 = try fac.makeRectangleBody(opt, .{ .width = 1.0, .height = 1.0 });
-    rect2.props.momentum.x = 1;
-    rect2.props.force.x = 1;
-
-    opt.pos = zigics.nmath.Vector2.init(-3, 0);
-    var rect3 = try fac.makeRectangleBody(opt, .{ .width = 1.0, .height = 1.0 });
-    rect3.props.momentum.x = 1;
-    rect3.props.force.x = 1;
-    rect3.static = true;
-
-    opt.pos = zigics.nmath.Vector2.init(-3, 2);
-    var disc = try fac.makeDiscBody(opt, .{ .radius = 1.0 });
-    disc.props.momentum.x = 1;
-    disc.props.force.x = 1;
-
-    try fac.excludeCollisionPair(0, 1);
-    _ = try fac.makeDistanceJoint(.{}, 0, 1, 2.0);
-    _ = try fac.makeOffsetDistanceJoint(.{}, 1, 2, .{}, .{}, 2.0);
-    _ = try fac.makeFixedPositionJoint(.{}, 3, disc.props.pos);
-    _ = try fac.makeMotorJoint(.{}, 3, 1.0);
-
+    try examples.setup_0_1_car_platformer(&solver);
     // try demos.setupCarScene(&solver);
     // try demos.setupBridgeStressTestScene(&solver);
 
