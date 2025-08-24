@@ -159,7 +159,7 @@ updateLoop(() => {
         // window is if win is moveable, header is if win is closeable and the rest are self explanatory.
         // Here we see the difference between Action.true and null.
         { window: Action.true, header: Action.true, resizeable: Action.true, close_btn: null, },
-        { title: "nvb-zigics | wasm demo", x: 0, y: 0, width: 500, height: 400 },
+        { title: "zigics | wasm demo", x: 0, y: 0, width: 500, height: 400 },
     );
 
     const fns = wasm.instance.exports as any;
