@@ -37,7 +37,16 @@ test "s2w and w2s should be inverses" {
 }
 
 test "unit mapping" {
-    const x = 0.8;
-    const y = Units.map(x, 0, 1, 10, 20);
-    try std.testing.expect(y == 18);
+    const x: f32 = 0.8;
+    const y: f32 = Units.map2(f32, x, 0, 1, 10, 20);
+    const expected: f32 = 18;
+    try std.testing.expect(y == expected);
+
+    std.debug.print("unit mapping\n", .{});
+    std.debug.print("     0.8 (0 -> 1) => (10, 20) should equal 18. output = {}\n", .{y});
+    std.debug.print("     input = {}\n", .{x});
+    std.debug.print("     output = {}\n", .{y});
+    std.debug.print("     expected = {}\n", .{expected});
+
+    try std.testing.expect(y == expected);
 }

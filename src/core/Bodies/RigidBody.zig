@@ -8,7 +8,6 @@ const MANIFOLD_MAX_PTS = collision.CollisionManifold.MAX_POINTS;
 const CollisionPoint = collision.CollisionPoint;
 
 const RigidBody = @This();
-const Self = @This();
 
 pub const Disc = @import("Disc.zig");
 pub const Rectangle = @import("Rectangle.zig");
@@ -91,47 +90,47 @@ props: Props,
 ptr: *anyopaque,
 vtable: VTable,
 
-pub fn deinit(self: *Self, alloc: Allocator) void {
+pub fn deinit(self: *RigidBody, alloc: Allocator) void {
     self.vtable.deinit(self.ptr, alloc);
 }
 
-pub fn updateAABB(self: *Self) void {
+pub fn updateAABB(self: *RigidBody) void {
     self.vtable.updateAABB(self);
 }
 
-pub fn isInside(self: Self, pos: Vector2) bool {
+pub fn isInside(self: RigidBody, pos: Vector2) bool {
     return self.vtable.isInside(self.ptr, self.props, pos);
 }
 
-pub fn closestPoint(self: Self, pos: Vector2) Vector2 {
+pub fn closestPoint(self: RigidBody, pos: Vector2) Vector2 {
     return self.vtable.closestPoint(self.ptr, self.props, pos);
 }
 
-pub fn projectAlongAxis(self: Self, normal: Vector2) [2]f32 {
+pub fn projectAlongAxis(self: RigidBody, normal: Vector2) [2]f32 {
     return self.vtable.projectAlongAxis(self.ptr, self.props, normal);
 }
 
-pub fn localToWorld(self: Self, pos: Vector2) Vector2 {
+pub fn localToWorld(self: RigidBody, pos: Vector2) Vector2 {
     const r = nmath.rotate2(pos, self.props.angle);
     const ret = nmath.add2(r, self.props.pos);
     return ret;
 }
 
-pub fn identifyCollisionPoints(self: *Self, incident: *RigidBody, active_normal_iter: usize) [MANIFOLD_MAX_PTS]?CollisionPoint {
+pub fn identifyCollisionPoints(self: *RigidBody, incident: *RigidBody, active_normal_iter: usize) [MANIFOLD_MAX_PTS]?CollisionPoint {
     return self.vtable.identifyCollisionPoints(self, incident, active_normal_iter);
 }
 
-pub fn clipAgainstEdge(self: *Self, edge: Edge) Incident {
+pub fn clipAgainstEdge(self: *RigidBody, edge: Edge) Incident {
     return self.vtable.clipAgainstEdge(self, edge.edge.?, edge.dir);
 }
 
-pub fn worldToLocal(self: Self, pos: Vector2) Vector2 {
+pub fn worldToLocal(self: RigidBody, pos: Vector2) Vector2 {
     const r = nmath.sub2(pos, self.props.pos);
     const ret = nmath.rotate2(r, -self.props.angle);
     return ret;
 }
 
-pub fn makeNormalIter(self: *Self, other: *RigidBody) RigidBody.NormalIter {
+pub fn makeNormalIter(self: *RigidBody, other: *RigidBody) RigidBody.NormalIter {
     const ret = RigidBody.NormalIter{ .b1 = self, .b2 = other, .num_iters = self.num_normals };
     return ret;
 }

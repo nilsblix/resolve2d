@@ -14,10 +14,10 @@ body_indices: std.ArrayList(*RigidBody),
 table_size: usize,
 cell_size: f32,
 
-const Self = @This();
+const SpatialHash = @This();
 
-pub fn init(alloc: Allocator, cell_size: f32, table_size: usize, bodies: *std.AutoArrayHashMap(RigidBody.Id, RigidBody)) !Self {
-    var self = Self{
+pub fn init(alloc: Allocator, cell_size: f32, table_size: usize, bodies: *std.AutoArrayHashMap(RigidBody.Id, RigidBody)) !SpatialHash {
+    var self = SpatialHash{
         .table = try std.ArrayList(usize).initCapacity(alloc, table_size + 1),
         .body_indices = std.ArrayList(*RigidBody).init(alloc),
         .table_size = table_size,
@@ -28,12 +28,12 @@ pub fn init(alloc: Allocator, cell_size: f32, table_size: usize, bodies: *std.Au
     self.table.appendNTimesAssumeCapacity(0, table_size + 1);
 
     const T = struct {
-        pub fn inc(spat: *Self, id: usize, body_ptr: *RigidBody) void {
+        pub fn inc(spat: *SpatialHash, id: usize, body_ptr: *RigidBody) void {
             _ = body_ptr;
             const val = &spat.table.items[id];
             val.* += 1;
         }
-        pub fn putIntoIndices(spat: *Self, id: usize, body_ptr: *RigidBody) void {
+        pub fn putIntoIndices(spat: *SpatialHash, id: usize, body_ptr: *RigidBody) void {
             const val = &spat.table.items[id];
             val.* -= 1;
             spat.body_indices.items[val.*] = body_ptr;
@@ -70,7 +70,7 @@ pub fn init(alloc: Allocator, cell_size: f32, table_size: usize, bodies: *std.Au
     return self;
 }
 
-pub fn deinit(self: *Self) void {
+pub fn deinit(self: *SpatialHash) void {
     self.table.deinit();
     self.body_indices.deinit();
 }
@@ -80,7 +80,7 @@ pub fn hash(table_size: usize, xi: i64, yi: i64) usize {
     return @intCast(h % table_size);
 }
 
-fn iterateAABBHashes(self: *Self, body_ptr: *RigidBody, onCell: *const fn (spat: *Self, id: usize, body_ptr: *RigidBody) void) void {
+fn iterateAABBHashes(self: *SpatialHash, body_ptr: *RigidBody, onCell: *const fn (spat: *SpatialHash, id: usize, body_ptr: *RigidBody) void) void {
     const aabb = body_ptr.aabb;
     const verts = aabb.getVertices();
 
@@ -99,13 +99,13 @@ fn iterateAABBHashes(self: *Self, body_ptr: *RigidBody, onCell: *const fn (spat:
     while (yi <= max_yi) : (yi += 1) {
         var xi: i64 = min_xi;
         while (xi <= max_xi) : (xi += 1) {
-            const id = Self.hash(self.table_size, xi, yi);
+            const id = SpatialHash.hash(self.table_size, xi, yi);
             onCell(self, id, body_ptr);
         }
     }
 }
 
-pub fn query(self: Self, target: *RigidBody, res: *std.ArrayList(*RigidBody)) !void {
+pub fn query(self: SpatialHash, target: *RigidBody, res: *std.ArrayList(*RigidBody)) !void {
     const aabb = target.aabb;
     const verts = aabb.getVertices();
 
@@ -124,7 +124,7 @@ pub fn query(self: Self, target: *RigidBody, res: *std.ArrayList(*RigidBody)) !v
     while (yi <= max_yi) : (yi += 1) {
         var xi: i64 = min_xi;
         while (xi <= max_xi) : (xi += 1) {
-            const id = Self.hash(self.table_size, xi, yi);
+            const id = SpatialHash.hash(self.table_size, xi, yi);
             const curr = self.table.items[id];
             const next = self.table.items[id + 1];
             if (curr != next) {

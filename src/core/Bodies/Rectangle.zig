@@ -12,7 +12,7 @@ const RigidBody = @import("RigidBody.zig");
 const Incident = RigidBody.Incident;
 const Edge = RigidBody.Edge;
 
-const Self = @This();
+const Rectangle = @This();
 
 width: f32,
 height: f32,
@@ -20,18 +20,18 @@ height: f32,
 local_vertices: [4]Vector2,
 
 const rigidbody_vtable = RigidBody.VTable{
-    .deinit = Self.deinit,
-    .updateAABB = Self.updateAABB,
-    .isInside = Self.isInside,
-    .closestPoint = Self.closestPoint,
-    .getNormal = Self.getNormal,
-    .projectAlongAxis = Self.projectAlongAxis,
-    .identifyCollisionPoints = Self.identifyCollisionPoints,
-    .clipAgainstEdge = Self.clipAgainstEdge,
+    .deinit = Rectangle.deinit,
+    .updateAABB = Rectangle.updateAABB,
+    .isInside = Rectangle.isInside,
+    .closestPoint = Rectangle.closestPoint,
+    .getNormal = Rectangle.getNormal,
+    .projectAlongAxis = Rectangle.projectAlongAxis,
+    .identifyCollisionPoints = Rectangle.identifyCollisionPoints,
+    .clipAgainstEdge = Rectangle.clipAgainstEdge,
 };
 
 pub fn init(alloc: Allocator, id: RigidBody.Id, pos: Vector2, angle: f32, mass: f32, mu: f32, width: f32, height: f32) !RigidBody {
-    var self: *Self = try alloc.create(Self);
+    var self: *Rectangle = try alloc.create(Rectangle);
     self.width = width;
     self.height = height;
 
@@ -56,7 +56,7 @@ pub fn init(alloc: Allocator, id: RigidBody.Id, pos: Vector2, angle: f32, mass: 
         .num_normals = 4,
         .type = RigidBody.Type.rectangle,
         .ptr = self,
-        .vtable = Self.rigidbody_vtable,
+        .vtable = Rectangle.rigidbody_vtable,
     };
 
     rigidbody.updateAABB();
@@ -64,12 +64,12 @@ pub fn init(alloc: Allocator, id: RigidBody.Id, pos: Vector2, angle: f32, mass: 
 }
 
 pub fn deinit(ptr: *anyopaque, alloc: Allocator) void {
-    const self: *Self = @ptrCast(@alignCast(ptr));
+    const self: *Rectangle = @ptrCast(@alignCast(ptr));
     alloc.destroy(self);
 }
 
 pub fn updateAABB(rigidself: *RigidBody) void {
-    const self: *Self = @ptrCast(@alignCast(rigidself.ptr));
+    const self: *Rectangle = @ptrCast(@alignCast(rigidself.ptr));
     var width: f32 = 0;
     var height: f32 = 0;
     for (self.local_vertices) |vert| {
@@ -85,7 +85,7 @@ pub fn updateAABB(rigidself: *RigidBody) void {
     rigidself.aabb = .{ .pos = rigidself.props.pos, .half_width = width, .half_height = height };
 }
 
-pub fn getWorldVertices(self: *Self, props: RigidBody.Props) [4]Vector2 {
+pub fn getWorldVertices(self: *Rectangle, props: RigidBody.Props) [4]Vector2 {
     var ret: [4]Vector2 = undefined;
 
     for (self.local_vertices, 0..) |vert, idx| {
@@ -98,7 +98,7 @@ pub fn getWorldVertices(self: *Self, props: RigidBody.Props) [4]Vector2 {
 }
 
 pub fn isInside(ptr: *anyopaque, props: RigidBody.Props, pos: Vector2) bool {
-    const self: *Self = @ptrCast(@alignCast(ptr));
+    const self: *Rectangle = @ptrCast(@alignCast(ptr));
 
     const pos_local = nmath.sub2(pos, props.pos);
     const r = nmath.rotate2(pos_local, -props.angle);
@@ -112,7 +112,7 @@ pub fn isInside(ptr: *anyopaque, props: RigidBody.Props, pos: Vector2) bool {
 }
 
 pub fn closestPoint(ptr: *anyopaque, props: RigidBody.Props, pos: Vector2) Vector2 {
-    const self: *Self = @ptrCast(@alignCast(ptr));
+    const self: *Rectangle = @ptrCast(@alignCast(ptr));
 
     var best_dist2: f32 = std.math.inf(f32);
     var best_pos: Vector2 = pos;
@@ -130,7 +130,7 @@ pub fn closestPoint(ptr: *anyopaque, props: RigidBody.Props, pos: Vector2) Vecto
 }
 
 pub fn getNormal(ptr: *anyopaque, props: RigidBody.Props, _: RigidBody, iter: usize) ?Edge {
-    const self: *Self = @ptrCast(@alignCast(ptr));
+    const self: *Rectangle = @ptrCast(@alignCast(ptr));
 
     const next_iter = if (iter == 3) 0 else iter + 1;
 
@@ -151,7 +151,7 @@ pub fn getNormal(ptr: *anyopaque, props: RigidBody.Props, _: RigidBody, iter: us
 }
 
 pub fn projectAlongAxis(ptr: *anyopaque, props: RigidBody.Props, normal: Vector2) [2]f32 {
-    const self: *Self = @ptrCast(@alignCast(ptr));
+    const self: *Rectangle = @ptrCast(@alignCast(ptr));
 
     var best_low: f32 = std.math.inf(f32);
     var best_high: f32 = -std.math.inf(f32);
@@ -169,7 +169,7 @@ pub fn projectAlongAxis(ptr: *anyopaque, props: RigidBody.Props, normal: Vector2
 }
 
 pub fn identifyCollisionPoints(rigidself: *RigidBody, incident: *RigidBody, active_normal_iter: usize) [MANIFOLD_MAX_PTS]?CollisionPoint {
-    const normal = Self.getNormal(rigidself.ptr, rigidself.props, incident.*, active_normal_iter);
+    const normal = Rectangle.getNormal(rigidself.ptr, rigidself.props, incident.*, active_normal_iter);
 
     var ret: [MANIFOLD_MAX_PTS]?CollisionPoint = undefined;
     for (0..MANIFOLD_MAX_PTS) |i| {
@@ -211,7 +211,7 @@ pub fn identifyCollisionPoints(rigidself: *RigidBody, incident: *RigidBody, acti
 }
 
 pub fn clipAgainstEdge(rigidself: *RigidBody, edge: Edge.Line, normal: Vector2) Incident {
-    const self: *Self = @ptrCast(@alignCast(rigidself.ptr));
+    const self: *Rectangle = @ptrCast(@alignCast(rigidself.ptr));
 
     var best_edge = Edge.Line{ .a = undefined, .b = undefined };
     var best_dot = std.math.inf(f32);

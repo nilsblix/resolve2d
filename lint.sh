@@ -12,6 +12,7 @@ cp zig-out/bin/zigics.wasm demos/web/dist
 echo "BUILD: Compiling demos/native"
 cd demos/native
 zig fmt src
+zig build test
 zig build
 cd -
 

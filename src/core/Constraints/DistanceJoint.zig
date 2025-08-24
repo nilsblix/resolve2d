@@ -7,19 +7,19 @@ const consts = @import("../simulation_constants.zig");
 const RigidBody = @import("../Bodies/RigidBody.zig");
 const Constraint = @import("Constraint.zig");
 
-const Self = @This();
+const DistanceJoint = @This();
 
 id1: RigidBody.Id,
 id2: RigidBody.Id,
 target_distance: f32,
 
 pub const VTable = Constraint.VTable{
-    .deinit = Self.deinit,
-    .solve = Self.solve,
+    .deinit = DistanceJoint.deinit,
+    .solve = DistanceJoint.solve,
 };
 
 pub fn init(alloc: Allocator, params: Constraint.Parameters, id1: RigidBody.Id, id2: RigidBody.Id, target_distance: f32) !Constraint {
-    var joint = try alloc.create(Self);
+    var joint = try alloc.create(DistanceJoint);
     joint.id1 = id1;
     joint.id2 = id2;
     joint.target_distance = target_distance;
@@ -27,20 +27,20 @@ pub fn init(alloc: Allocator, params: Constraint.Parameters, id1: RigidBody.Id, 
     return Constraint{
         .params = params,
         .type = .distance_joint,
-        .vtable = Self.VTable,
+        .vtable = DistanceJoint.VTable,
         .ptr = joint,
     };
 }
 
 pub fn deinit(ctrself: *Constraint, alloc: Allocator) void {
-    const self: *Self = @ptrCast(@alignCast(ctrself.ptr));
+    const self: *DistanceJoint = @ptrCast(@alignCast(ctrself.ptr));
     alloc.destroy(self);
 }
 
 pub fn solve(ctrself: *Constraint, bodies: std.AutoArrayHashMap(RigidBody.Id, RigidBody), _: f32, _: f32) anyerror!void {
     const epsilon = consts.CONSTRAINT_GRADIENT_DIVISION_LIMIT;
 
-    const self: *Self = @ptrCast(@alignCast(ctrself.ptr));
+    const self: *DistanceJoint = @ptrCast(@alignCast(ctrself.ptr));
     const entry1 = bodies.getEntry(self.id1) orelse return error.InvalidRigidBodyId;
     const b1 = entry1.value_ptr;
     const entry2 = bodies.getEntry(self.id2) orelse return error.InvalidRigidBodyId;

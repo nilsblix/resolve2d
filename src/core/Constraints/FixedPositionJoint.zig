@@ -7,38 +7,38 @@ const consts = @import("../simulation_constants.zig");
 const RigidBody = @import("../Bodies/RigidBody.zig");
 const Constraint = @import("Constraint.zig");
 
-const Self = @This();
+const FixedPositionJoint = @This();
 
 id: RigidBody.Id,
 target_position: Vector2,
 
 pub const VTable = Constraint.VTable{
-    .deinit = Self.deinit,
-    .solve = Self.solve,
+    .deinit = FixedPositionJoint.deinit,
+    .solve = FixedPositionJoint.solve,
 };
 
 pub fn init(alloc: Allocator, params: Constraint.Parameters, id: RigidBody.Id, target_position: Vector2) !Constraint {
-    var joint = try alloc.create(Self);
+    var joint = try alloc.create(FixedPositionJoint);
     joint.id = id;
     joint.target_position = target_position;
 
     return Constraint{
         .params = params,
         .type = .fixed_position_joint,
-        .vtable = Self.VTable,
+        .vtable = FixedPositionJoint.VTable,
         .ptr = joint,
     };
 }
 
 pub fn deinit(ctrself: *Constraint, alloc: Allocator) void {
-    const self: *Self = @ptrCast(@alignCast(ctrself.ptr));
+    const self: *FixedPositionJoint = @ptrCast(@alignCast(ctrself.ptr));
     alloc.destroy(self);
 }
 
 pub fn solve(ctrself: *Constraint, bodies: std.AutoArrayHashMap(RigidBody.Id, RigidBody), _: f32, _: f32) anyerror!void {
     const epsilon = consts.ALLOWED_CONSTRAINT_VALUE;
 
-    const self: *Self = @ptrCast(@alignCast(ctrself.ptr));
+    const self: *FixedPositionJoint = @ptrCast(@alignCast(ctrself.ptr));
     const entry = bodies.getEntry(self.id) orelse return error.InvalidRigidBodyId;
     const b = entry.value_ptr;
 

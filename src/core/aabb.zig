@@ -7,10 +7,9 @@ pos: Vector2,
 half_width: f32,
 half_height: f32,
 
-const Self = @This();
 const AABB = @This();
 
-pub fn intersects(self: Self, other: AABB) bool {
+pub fn intersects(self: AABB, other: AABB) bool {
     const EPS = consts.AABB_EPS_OVERLAP;
     const dx = @abs(other.pos.x - self.pos.x);
     const dy = @abs(other.pos.y - self.pos.y);
@@ -19,11 +18,11 @@ pub fn intersects(self: Self, other: AABB) bool {
         (dy <= (self.half_height + other.half_height) + EPS);
 }
 
-pub fn isInside(self: Self, pos: Vector2) bool {
+pub fn isInside(self: AABB, pos: Vector2) bool {
     return pos.x >= self.pos.x - self.half_width and pos.x <= self.pos.x + self.half_width and pos.y >= self.pos.y - self.half_height and pos.y <= self.pos.y + self.half_height;
 }
 
-pub fn getVertices(self: Self) [4]Vector2 {
+pub fn getVertices(self: AABB) [4]Vector2 {
     return .{
         Vector2.init(self.pos.x - self.half_width, self.pos.y - self.half_height),
         Vector2.init(self.pos.x + self.half_width, self.pos.y - self.half_height),

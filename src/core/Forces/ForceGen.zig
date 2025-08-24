@@ -5,7 +5,7 @@ const nmath = @import("../nmath.zig");
 const Vector2 = nmath.Vector2;
 const RigidBody = @import("../Bodies/RigidBody.zig");
 
-const Self = @This();
+const ForceGen = @This();
 
 pub const DownwardsGravity = @import("DownwardsGravity.zig");
 
@@ -22,10 +22,10 @@ type: Type,
 vtable: VTable,
 ptr: *anyopaque,
 
-pub fn deinit(self: *Self, alloc: Allocator) void {
+pub fn deinit(self: *ForceGen, alloc: Allocator) void {
     self.vtable.deinit(self.ptr, alloc);
 }
 
-pub fn apply(self: *Self, body: *RigidBody) void {
+pub fn apply(self: *ForceGen, body: *RigidBody) void {
     self.vtable.apply(self.ptr, body);
 }

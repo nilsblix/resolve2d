@@ -17,6 +17,8 @@ pub fn setup(solver: *Solver) !void {
 
     try fac.makeDownwardsGravity(9.82);
 
+    try utils.car(&fac, .{});
+
     // // === PLATFORM 1 ===
     // opt.pos = Vector2.init(0, -100);
     // body = try fac.makeRectangleBody(opt, .{ .width = 1000, .height = 20 });

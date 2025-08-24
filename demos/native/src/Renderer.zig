@@ -5,6 +5,8 @@ const nmath = zigics.nmath;
 const Vector2 = nmath.Vector2;
 const Units = @import("Units.zig");
 
+const Renderer = @This();
+
 const OptPair = struct {
     world: f32,
     scr: f32,
@@ -55,8 +57,7 @@ body_options: BodyOptions,
 
 const RING_RES: i32 = 30;
 
-const Self = @This();
-pub fn init(screen_size: Units.Size, default_world_width: f32) Self {
+pub fn init(screen_size: Units.Size, default_world_width: f32) Renderer {
     var units = Units.init(screen_size, default_world_width);
     units.camera.pos = Vector2.init(-units.camera.viewport.width / 2, -units.camera.viewport.height / 2);
     return .{
@@ -69,18 +70,18 @@ pub fn init(screen_size: Units.Size, default_world_width: f32) Self {
     };
 }
 
-pub fn adjustCameraZoom(self: *Self, factor: f32, screen_pos: Vector2) void {
+pub fn adjustCameraZoom(self: *Renderer, factor: f32, screen_pos: Vector2) void {
     self.units.adjustCameraZoom(factor, screen_pos);
 
     self.spring_options.segment_width.scr = self.units.mult.w2s * self.spring_options.segment_width.world;
     self.body_options.edge_thickness.scr = self.units.mult.w2s * self.body_options.edge_thickness.world;
 }
 
-pub fn adjustCameraPos(self: *Self, delta: Vector2) void {
+pub fn adjustCameraPos(self: *Renderer, delta: Vector2) void {
     self.units.adjustCameraPos(delta);
 }
 
-pub fn render(self: *Self, solver: zigics.Solver, show_collisions: bool, show_aabbs: bool) !void {
+pub fn render(self: *Renderer, solver: zigics.Solver, show_collisions: bool, show_aabbs: bool) !void {
     for (solver.force_generators.items) |*gen| {
         switch (gen.type) {
             .downwards_gravity => continue,
@@ -174,7 +175,7 @@ pub fn render(self: *Self, solver: zigics.Solver, show_collisions: bool, show_aa
     }
 }
 
-fn spring(self: Self, start_pos: Vector2, end_pos: Vector2) void {
+fn spring(self: Renderer, start_pos: Vector2, end_pos: Vector2) void {
     const nmath_sp1 = self.units.w2s(start_pos);
     const nmath_sp2 = self.units.w2s(end_pos);
     const sp1 = rl.Vector2.init(nmath_sp1.x, nmath_sp1.y);
@@ -183,7 +184,7 @@ fn spring(self: Self, start_pos: Vector2, end_pos: Vector2) void {
     rl.drawLineEx(sp1, sp2, self.spring_options.segment_width.scr, self.spring_options.segment_color);
 }
 
-fn discbody(self: Self, screen_pos: rl.Vector2, body: *zigics.RigidBody) void {
+fn discbody(self: Renderer, screen_pos: rl.Vector2, body: *zigics.RigidBody) void {
     const disc: *zigics.RigidBody.Disc = @ptrCast(@alignCast(body.ptr));
     var color = if (body.static) self.body_options.static_color else self.body_options.color;
 
@@ -204,12 +205,12 @@ fn discbody(self: Self, screen_pos: rl.Vector2, body: *zigics.RigidBody) void {
 
     const inner = self.units.mult.w2s * (rad - self.body_options.edge_thickness.world);
     const outer = self.units.mult.w2s * rad;
-    rl.drawRing(vec, 0, inner, 0, 360, Self.RING_RES, color.inner);
-    rl.drawRing(vec, inner, outer, 0, 360, Self.RING_RES, color.edge);
+    rl.drawRing(vec, 0, inner, 0, 360, Renderer.RING_RES, color.inner);
+    rl.drawRing(vec, inner, outer, 0, 360, Renderer.RING_RES, color.edge);
     rl.drawLineEx(vec, rl_rot_screen, self.body_options.edge_thickness.scr, color.edge);
 }
 
-pub fn rectanglebody(self: *Self, body: *zigics.RigidBody) void {
+pub fn rectanglebody(self: *Renderer, body: *zigics.RigidBody) void {
     const rect: *zigics.RigidBody.Rectangle = @ptrCast(@alignCast(body.ptr));
     var color = if (body.static) self.body_options.static_color else self.body_options.color;
 
