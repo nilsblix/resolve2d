@@ -25,9 +25,9 @@ pub fn car(fac: *root.EntityFactory, pos: Vector2) !void {
     opt.pos = nmath.add2(t_pos, Vector2.init(5.25, 10.8));
     const bh2 = try fac.makeRectangleBody(opt, .{ .width = 1.2, .height = 0.5 });
 
-    const power_limit = 0.2;
+    const power_limit = 2;
     const params = root.Constraint.Parameters{
-        .beta = 10,
+        .beta = 14,
         .power_min = -power_limit,
         .power_max = power_limit,
     };
@@ -48,5 +48,5 @@ pub fn car(fac: *root.EntityFactory, pos: Vector2) !void {
     _ = try fac.makeOffsetDistanceJoint(.{}, bh, bh2, Vector2.init(0.25, 0), Vector2.init(-1, 1), dist21);
     _ = try fac.makeOffsetDistanceJoint(.{}, bh, bh2, Vector2.init(0.25, 0), Vector2.init(1, 1), dist22);
     const dist23 = nmath.dist2(bh.body_unwrap().props.pos, bh2.body_unwrap().props.pos);
-    _ = try fac.makeDistanceJoint(.{}, bh, bh2, dist23);
+    _ = try fac.makeDistanceJoint(.{ .beta = 100 }, bh, bh2, dist23);
 }

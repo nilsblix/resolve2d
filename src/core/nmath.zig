@@ -10,6 +10,8 @@ pub const Vector2 = struct {
     x: f32 = 0.0,
     y: f32 = 0.0,
 
+    pub const zero = Vector2{ .x = 0, .y = 0 };
+
     const Self = @This();
     pub fn init(x: f32, y: f32) Self {
         return .{
@@ -46,6 +48,10 @@ pub const Vector2 = struct {
     pub fn negate(self: *Self) void {
         self.x *= -1;
         self.y *= -1;
+    }
+
+    pub fn length(self: Self) f32 {
+        return length2(self);
     }
 };
 

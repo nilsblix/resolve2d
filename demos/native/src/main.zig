@@ -3,23 +3,28 @@ const rl = @import("raylib");
 const zigics = @import("zigics");
 const examples = zigics.examples;
 const Renderer = @import("Renderer.zig");
+const Units = @import("Units.zig");
 const nmath = zigics.nmath;
 const Vector2 = nmath.Vector2;
 
 pub fn main() !void {
     const alloc = std.heap.page_allocator;
 
-    const SCREEN_WIDTH = 1280;
-    const SCREEN_HEIGHT = 900;
+    // const SCREEN_WIDTH = 1280;
+    // const SCREEN_HEIGHT = 900;
+    var screen_dims = Vector2.init(900, 560);
 
-    const TARGET_FPS = 60;
+    const TARGET_FPS: f32 = 60;
     const SUB_STEPS = 4;
     const CONSTR_ITERS = 4;
 
     const DT = 1 / TARGET_FPS;
 
-    rl.setConfigFlags(.{ .msaa_4x_hint = true });
-    rl.initWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "zigics");
+    rl.setConfigFlags(.{
+        .msaa_4x_hint = true,
+        .window_resizable = true,
+    });
+    rl.initWindow(@intFromFloat(screen_dims.x), @intFromFloat(screen_dims.y), "zigics");
     defer rl.closeWindow();
 
     rl.setTargetFPS(TARGET_FPS);
@@ -30,42 +35,12 @@ pub fn main() !void {
     var fac = solver.entityFactory();
     _ = try fac.makeDownwardsGravity(9.82);
 
-    // var opt = zigics.EntityFactory.BodyOptions{ .pos = .{}, .mass_prop = .{ .density = 1.0 } };
-    // opt.pos = zigics.nmath.Vector2.init(1, 0);
-    // var rect = try fac.makeRectangleBody(opt, .{ .width = 1.0, .height = 1.0 });
-    // rect.props.momentum.x = 1;
-    // rect.props.force.x = 1;
-    //
-    // opt.pos = zigics.nmath.Vector2.init(-1, 0);
-    // var rect2 = try fac.makeRectangleBody(opt, .{ .width = 1.0, .height = 1.0 });
-    // rect2.props.momentum.x = 1;
-    // rect2.props.force.x = 1;
-    //
-    // opt.pos = zigics.nmath.Vector2.init(-3, 0);
-    // var rect3 = try fac.makeRectangleBody(opt, .{ .width = 1.0, .height = 1.0 });
-    // rect3.props.momentum.x = 1;
-    // rect3.props.force.x = 1;
-    // rect3.static = true;
-    //
-    // opt.pos = zigics.nmath.Vector2.init(-3, 2);
-    // var disc = try fac.makeDiscBody(opt, .{ .radius = 1.0 });
-    // disc.props.momentum.x = 1;
-    // disc.props.force.x = 1;
-    //
-    // try fac.excludeCollisionPair(0, 1);
-    // _ = try fac.makeDistanceJoint(.{}, 0, 1, 2.0);
-    // _ = try fac.makeOffsetDistanceJoint(.{}, 1, 2, .{}, .{}, 2.0);
-    // _ = try fac.makeFixedPositionJoint(.{}, 3, disc.props.pos);
-    // _ = try fac.makeMotorJoint(.{}, 3, 1.0);
-
     try examples.setup_0_1_car_platformer(&solver);
-    // try demos.setupCarScene(&solver);
-    // try demos.setupBridgeStressTestScene(&solver);
 
     var renderer = Renderer.init(.{
-        .width = SCREEN_WIDTH,
-        .height = SCREEN_HEIGHT,
-    }, 20);
+        .width = screen_dims.x,
+        .height = screen_dims.y,
+    }, 70);
 
     var frame: usize = 0;
 
@@ -80,7 +55,7 @@ pub fn main() !void {
 
         const rl_pos = rl.getMousePosition();
         screen_mouse_pos = Vector2.init(rl_pos.x, rl_pos.y);
-        mouse_pos = renderer.units.s2w(Vector2.init(screen_mouse_pos.x, screen_mouse_pos.y));
+        mouse_pos = renderer.units.s2w(screen_mouse_pos);
 
         const delta_screen = nmath.sub2(screen_mouse_pos, screen_prev_mouse_pos);
         var world_delta_mouse_pos = nmath.scale2(delta_screen, renderer.units.mult.s2w);
@@ -95,17 +70,61 @@ pub fn main() !void {
             renderer.adjustCameraPos(world_delta_mouse_pos);
         }
 
-        std.debug.print("MOUSE POS WORLD: x: {d}, y: {d}\n", .{ mouse_pos.x, mouse_pos.y });
+        handleCar(&solver, &renderer);
+
+        if (rl.isWindowResized()) {
+            screen_dims = Vector2.init(
+                @floatFromInt(rl.getScreenWidth()),
+                @floatFromInt(rl.getScreenHeight()),
+            );
+            renderer.units.updateDimensions(screen_dims);
+        }
 
         rl.beginDrawing();
         defer rl.endDrawing();
         defer rl.clearBackground(.{ .r = 18, .g = 18, .b = 18, .a = 1 });
 
-        try solver.process(alloc, DT, SUB_STEPS, CONSTR_ITERS);
+        if (rl.isKeyPressed(.right) or rl.isKeyDown(.l)) {
+            try solver.process(alloc, DT, SUB_STEPS, CONSTR_ITERS);
+        }
+
+        std.debug.print("mouse pos world = {}\n", .{mouse_pos});
+
+        {
+            const der_scr = renderer.units.w2s(mouse_pos);
+            rl.drawCircle(@intFromFloat(der_scr.x), @intFromFloat(der_scr.y), 5.0, rl.Color.red);
+            const zero = renderer.units.w2s(Vector2.zero);
+            rl.drawCircle(@intFromFloat(zero.x), @intFromFloat(zero.y), renderer.units.mult.w2s * 0.25, rl.Color.red);
+            const bottom_right = renderer.units.s2w(nmath.scale2(screen_dims, 1.0));
+            std.debug.print("bottom_right (world pos) = {}\n", .{bottom_right});
+        }
+
         try renderer.render(solver, false, false);
 
         frame += 1;
-
-        std.debug.print("frame: {}\n", .{frame});
     }
+}
+
+fn handleCar(solver: *zigics.Solver, renderer: *Renderer) void {
+    const car_handle = solver.bodyHandle(3);
+    const wl = solver.bodyHandle(4);
+    const wr = solver.bodyHandle(5);
+
+    const wheel_mom = 20.0;
+    const body_acc = 10.0;
+
+    if (rl.isKeyDown(.d)) {
+        wl.body_unwrap().props.ang_momentum = -wheel_mom;
+        wr.body_unwrap().props.ang_momentum = -wheel_mom;
+        car_handle.body_unwrap().props.torque = if (car_handle.body_unwrap().props.momentum.length() > 8) 0 else body_acc;
+    }
+
+    if (rl.isKeyDown(.a)) {
+        wl.body_unwrap().props.ang_momentum = wheel_mom;
+        wr.body_unwrap().props.ang_momentum = wheel_mom;
+        car_handle.body_unwrap().props.torque = if (car_handle.body_unwrap().props.momentum.length() > 8) 0 else -body_acc;
+    }
+
+    const half_view = nmath.scale2(renderer.units.camera.viewport.toVector2(), 0.25);
+    renderer.units.camera.pos = nmath.sub2(car_handle.body_unwrap().props.pos, half_view);
 }

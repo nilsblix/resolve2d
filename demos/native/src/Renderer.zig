@@ -58,8 +58,7 @@ body_options: BodyOptions,
 const RING_RES: i32 = 30;
 
 pub fn init(screen_size: Units.Size, default_world_width: f32) Renderer {
-    var units = Units.init(screen_size, default_world_width);
-    units.camera.pos = Vector2.init(-units.camera.viewport.width / 2, -units.camera.viewport.height / 2);
+    const units = Units.init(screen_size, default_world_width);
     return .{
         .units = units,
         .spring_options = .{

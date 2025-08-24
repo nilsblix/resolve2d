@@ -298,6 +298,13 @@ pub const Solver = struct {
         }
     }
 
+    pub fn bodyHandle(self: *Self, id: RigidBody.Id) EntityFactory.BodyHandle {
+        return EntityFactory.BodyHandle{
+            .id = id,
+            .solver = self,
+        };
+    }
+
     pub fn removeRigidBody(self: *Self, id: RigidBody.Id) !void {
         if (!self.bodies.swapRemove(id)) return error.NoSuchIdExists;
     }

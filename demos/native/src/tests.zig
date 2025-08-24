@@ -36,6 +36,25 @@ test "s2w and w2s should be inverses" {
     try std.testing.expect(nmath.equals2(ret, vec));
 }
 
+test "units mapping makes sense" {
+    const width: f32 = 1234;
+    const height: f32 = 513;
+    const default_width: f32 = 20;
+    var units = Units.init(.{ .width = width, .height = height }, default_width);
+
+    const screen = Vector2.init(width, height);
+    const world = units.s2w(screen);
+
+    const expected = Vector2.init(default_width, 0);
+
+    std.debug.print("units mapping makes sense\n", .{});
+    std.debug.print("     screen (input) = {}\n", .{screen});
+    std.debug.print("     world (output) = {}\n", .{world});
+    std.debug.print("     expected       = {}\n", .{expected});
+
+    try std.testing.expect(nmath.approxEql2(world, expected, 0.001));
+}
+
 test "unit mapping" {
     const x: f32 = 0.8;
     const y: f32 = Units.map2(f32, x, 0, 1, 10, 20);

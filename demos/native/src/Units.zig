@@ -6,6 +6,14 @@ const Vector2 = nmath.Vector2;
 pub const Size = struct {
     width: f32,
     height: f32,
+
+    pub fn toVector2(self: Size) Vector2 {
+        return Vector2{ .x = self.width, .y = self.height };
+    }
+
+    pub fn fromVector2(vec: Size) Size {
+        return Size{ .width = vec.x, .heigth = vec.y };
+    }
 };
 
 pub const TransformMult = struct {
@@ -34,7 +42,7 @@ pub fn init(screen_size: Size, default_world_width: f32) Units {
     const default_world_size = Size{ .width = default_world_width, .height = default_world_width * aspect_ratio };
 
     const camera = Camera{
-        .pos = .{},
+        .pos = Vector2.zero,
         .zoom = 1.0,
         .viewport = default_world_size,
     };
@@ -50,6 +58,22 @@ pub fn init(screen_size: Size, default_world_width: f32) Units {
         .default_world_size = default_world_size,
         .screen_size = screen_size,
     };
+}
+
+pub fn updateDimensions(self: *Units, new_screen_size: Vector2) void {
+    const current_size = Vector2.init(self.screen_size.width, self.screen_size.height);
+    const middle_world = self.s2w(nmath.scale2(current_size, 0.5));
+
+    const prev_units = self.*;
+
+    const size = Size{ .width = new_screen_size.x, .height = new_screen_size.y };
+    self.* = Units.init(size, prev_units.camera.viewport.width);
+    self.camera.zoom = prev_units.camera.zoom;
+
+    // Whats the new middle of the world? Get the delta, and move there.
+    const new_middle_world = self.s2w(nmath.scale2(new_screen_size, 0.5));
+    const delta = nmath.sub2(middle_world, new_middle_world);
+    self.camera.pos.add(delta);
 }
 
 fn updateViewPort(self: *Units) void {
