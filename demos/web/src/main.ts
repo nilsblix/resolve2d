@@ -36,6 +36,11 @@ const app = (() => {
 const TARGET_FPS = 60;
 const DT = 1 / TARGET_FPS;
 
+const PROCESS_CONFIG = {
+    sub_steps: 4,
+    collision_iters: 4,
+};
+
 var comp_dt = 0;
 
 function initBridgeScene() {
@@ -56,50 +61,51 @@ function initCarScene() {
     const fns = wasm.instance.exports as any;
 
     fns.solverInit(2, 4);
-    fns.setup_0_1_car_platformer();
+    // fns.setup_0_1_car_platformer();
+    fns.setup_0_3_many_boxes();
     app?.renderer.textures.clear();
-    app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.red_truck, 3, 6.0);
+    // app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.red_truck, 3, 6.0);
     app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.wheel, 4, 2.05);
     app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.wheel, 5, 2.05);
-    app?.renderer.textures.set(6, null);
+    // app?.renderer.textures.set(6, null);
 }
 
 window.addEventListener("keydown", (e) => {
     if (wasm.instance == undefined) return;
-    const fns = wasm.instance.exports as any;
+    // const fns = wasm.instance.exports as any;
 
-    const car = fns.getRigidBodyPtrFromId(3);
-    const wl = fns.getRigidBodyPtrFromId(4);
-    const wr = fns.getRigidBodyPtrFromId(5);
-
-    const max_angular_vel = 22;
-
-    const torque = (v: number): number => {
-        return max_angular_vel - 0.2 * Math.sqrt(Math.abs(v));
-    }
-
-    const applyWheel = (body: any, mult: number = 1): void => {
-        fns.setRigidBodyAngularMomentum(body, mult * torque(fns.getRigidBodyAngularMomentum(body) / fns.getRigidBodyInertia(body)));
-    }
-
-    if (e.key == "d") {
-        applyWheel(wl, -1);
-        applyWheel(wr, -1);
-        fns.setRigidBodyTorque(car, 1000);
-    }
-
-    if (e.key == "a") {
-        applyWheel(wl);
-        applyWheel(wr);
-        fns.setRigidBodyTorque(car, -1000);
-    }
-
-    const val = 30;
-
-    if (e.key == "ArrowUp") { fns.setRigidBodyMomentumY(car, val); }
-    if (e.key == "ArrowLeft") { fns.setRigidBodyMomentumX(car, -val); }
-    if (e.key == "ArrowDown") { fns.setRigidBodyMomentumY(car, -val); }
-    if (e.key == "ArrowRight") { fns.setRigidBodyMomentumX(car, val); }
+    // const car = fns.getRigidBodyPtrFromId(3);
+    // const wl = fns.getRigidBodyPtrFromId(4);
+    // const wr = fns.getRigidBodyPtrFromId(5);
+    //
+    // const max_angular_vel = 22;
+    //
+    // const torque = (v: number): number => {
+    //     return max_angular_vel - 0.2 * Math.sqrt(Math.abs(v));
+    // }
+    //
+    // const applyWheel = (body: any, mult: number = 1): void => {
+    //     fns.setRigidBodyAngularMomentum(body, mult * torque(fns.getRigidBodyAngularMomentum(body) / fns.getRigidBodyInertia(body)));
+    // }
+    //
+    // if (e.key == "d") {
+    //     applyWheel(wl, -1);
+    //     applyWheel(wr, -1);
+    //     fns.setRigidBodyTorque(car, 1000);
+    // }
+    //
+    // if (e.key == "a") {
+    //     applyWheel(wl);
+    //     applyWheel(wr);
+    //     fns.setRigidBodyTorque(car, -1000);
+    // }
+    //
+    // const val = 30;
+    //
+    // if (e.key == "ArrowUp") { fns.setRigidBodyMomentumY(car, val); }
+    // if (e.key == "ArrowLeft") { fns.setRigidBodyMomentumX(car, -val); }
+    // if (e.key == "ArrowDown") { fns.setRigidBodyMomentumY(car, -val); }
+    // if (e.key == "ArrowRight") { fns.setRigidBodyMomentumX(car, val); }
 
 
     if (e.key == " ") {
@@ -250,7 +256,7 @@ updateLoop(() => {
             app.simulating = !app.simulating;
             break;
         case Action.process_sim:
-            fns.solverProcess(DT, 8, 16);
+            fns.solverProcess(DT, PROCESS_CONFIG.sub_steps, PROCESS_CONFIG.collision_iters);
             app.steps += 1;
             break;
         case Action.toggle_snap_to_body:
@@ -264,7 +270,7 @@ updateLoop(() => {
 
     const st = performance.now();
     if (app.simulating) {
-        fns.solverProcess(DT, 8, 16);
+        fns.solverProcess(DT, PROCESS_CONFIG.sub_steps, PROCESS_CONFIG.collision_iters);
         app.steps += 1;
     }
     const et = performance.now();

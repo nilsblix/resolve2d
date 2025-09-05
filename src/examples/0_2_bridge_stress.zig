@@ -11,7 +11,6 @@ const utils = @import("utils.zig");
 
 pub fn setup(solver: *root.Solver) !void {
     _ = solver;
-
     // var fac = solver.entityFactory();
     //
     // var opt: root.EntityFactory.BodyOptions = .{ .pos = .{}, .mass_prop = .{ .density = 1 } };

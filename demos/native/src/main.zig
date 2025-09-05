@@ -32,10 +32,13 @@ pub fn main() !void {
     var solver = try zigics.Solver.init(alloc, 2, 4);
     std.debug.print("solver: {}\n", .{solver});
 
-    var fac = solver.entityFactory();
-    _ = try fac.makeDownwardsGravity(9.82);
-
-    try examples.setup_0_1_car_platformer(&solver);
+    // try examples.setup_0_1_car_platformer(&solver);
+    // try examples.setup_0_2_bridge_stress(&solver);
+    try examples.setup_0_3_many_boxes(&solver);
+    // try examples.setup_0_4_also_many_boxes(&solver);
+    std.debug.print("\n", .{});
+    std.debug.print("solver.bodies.count() = {d}\n", .{solver.bodies.count()});
+    // std.debug.print("solver.bodies.values() = {any}\n", .{solver.bodies.values()});
 
     var renderer = Renderer.init(.{
         .width = screen_dims.x,
@@ -99,32 +102,34 @@ pub fn main() !void {
             std.debug.print("bottom_right (world pos) = {}\n", .{bottom_right});
         }
 
-        try renderer.render(solver, false, false);
+        renderer.render(solver, false, false);
 
         frame += 1;
     }
 }
 
 fn handleCar(solver: *zigics.Solver, renderer: *Renderer) void {
-    const car_handle = solver.bodyHandle(3);
-    const wl = solver.bodyHandle(4);
-    const wr = solver.bodyHandle(5);
-
-    const wheel_mom = 20.0;
-    const body_acc = 10.0;
-
-    if (rl.isKeyDown(.d)) {
-        wl.body_unwrap().props.ang_momentum = -wheel_mom;
-        wr.body_unwrap().props.ang_momentum = -wheel_mom;
-        car_handle.body_unwrap().props.torque = if (car_handle.body_unwrap().props.momentum.length() > 8) 0 else body_acc;
-    }
-
-    if (rl.isKeyDown(.a)) {
-        wl.body_unwrap().props.ang_momentum = wheel_mom;
-        wr.body_unwrap().props.ang_momentum = wheel_mom;
-        car_handle.body_unwrap().props.torque = if (car_handle.body_unwrap().props.momentum.length() > 8) 0 else -body_acc;
-    }
-
-    const half_view = nmath.scale2(renderer.units.camera.viewport.toVector2(), 0.25);
-    renderer.units.camera.pos = nmath.sub2(car_handle.body_unwrap().props.pos, half_view);
+    _ = solver;
+    _ = renderer;
+    // const car_handle = solver.bodyHandle(3);
+    // const wl = solver.bodyHandle(4);
+    // const wr = solver.bodyHandle(5);
+    //
+    // const wheel_mom = 20.0;
+    // const body_acc = 10.0;
+    //
+    // if (rl.isKeyDown(.d)) {
+    //     wl.body_unwrap().props.ang_momentum = -wheel_mom;
+    //     wr.body_unwrap().props.ang_momentum = -wheel_mom;
+    //     car_handle.body_unwrap().props.torque = if (car_handle.body_unwrap().props.momentum.length() > 8) 0 else body_acc;
+    // }
+    //
+    // if (rl.isKeyDown(.a)) {
+    //     wl.body_unwrap().props.ang_momentum = wheel_mom;
+    //     wr.body_unwrap().props.ang_momentum = wheel_mom;
+    //     car_handle.body_unwrap().props.torque = if (car_handle.body_unwrap().props.momentum.length() > 8) 0 else -body_acc;
+    // }
+    //
+    // const half_view = nmath.scale2(renderer.units.camera.viewport.toVector2(), 0.25);
+    // renderer.units.camera.pos = nmath.sub2(car_handle.body_unwrap().props.pos, half_view);
 }

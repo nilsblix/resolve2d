@@ -20,6 +20,8 @@ pub fn car(fac: *root.EntityFactory, pos: Vector2) !void {
     const wr = try fac.makeDiscBody(opt, .{ .radius = rad });
     opt.mu = 0.5;
 
+    wr.body_unwrap().props.ang_momentum = -100;
+
     const dist_car = nmath.dist2(bh.body_unwrap().props.pos, wl.body_unwrap().props.pos);
 
     opt.pos = nmath.add2(t_pos, Vector2.init(5.25, 10.8));

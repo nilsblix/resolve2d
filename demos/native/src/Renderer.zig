@@ -80,7 +80,7 @@ pub fn adjustCameraPos(self: *Renderer, delta: Vector2) void {
     self.units.adjustCameraPos(delta);
 }
 
-pub fn render(self: *Renderer, solver: zigics.Solver, show_collisions: bool, show_aabbs: bool) !void {
+pub fn render(self: *Renderer, solver: zigics.Solver, show_collisions: bool, show_aabbs: bool) void {
     for (solver.force_generators.items) |*gen| {
         switch (gen.type) {
             .downwards_gravity => continue,

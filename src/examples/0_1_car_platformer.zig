@@ -148,7 +148,10 @@ pub fn setup(solver: *Solver) !void {
     _ = try fac.makeFixedPositionJoint(.{}, body, body.body_unwrap().props.pos);
 
     opt.pos = Vector2.init(38, 19);
+    const old_mass_prop = opt.mass_prop;
+    opt.mass_prop = .{ .mass = 100 };
     _ = try fac.makeDiscBody(opt, .{ .radius = 1.0 });
+    opt.mass_prop = old_mass_prop;
 
     opt.pos = Vector2.init(48, 9.5);
     body = try fac.makeRectangleBody(opt, .{ .width = 15, .height = 1 });
