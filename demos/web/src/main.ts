@@ -41,8 +41,6 @@ const PROCESS_CONFIG = {
     collision_iters: 4,
 };
 
-var comp_dt = 0;
-
 function initBridgeScene() {
     if (wasm.instance == undefined) return;
     const fns = wasm.instance.exports as any;
@@ -61,51 +59,50 @@ function initCarScene() {
     const fns = wasm.instance.exports as any;
 
     fns.solverInit(2, 4);
-    // fns.setup_0_1_car_platformer();
-    fns.setup_0_3_many_boxes();
+    fns.setup_0_1_car_platformer();
     app?.renderer.textures.clear();
-    // app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.red_truck, 3, 6.0);
+    app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.red_truck, 3, 6.0);
     app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.wheel, 4, 2.05);
     app?.renderer.addStandardRigidBodyTex(rendmod.IMAGE_PATHS.wheel, 5, 2.05);
-    // app?.renderer.textures.set(6, null);
+    app?.renderer.textures.set(6, null);
 }
 
 window.addEventListener("keydown", (e) => {
     if (wasm.instance == undefined) return;
-    // const fns = wasm.instance.exports as any;
+    const fns = wasm.instance.exports as any;
 
-    // const car = fns.getRigidBodyPtrFromId(3);
-    // const wl = fns.getRigidBodyPtrFromId(4);
-    // const wr = fns.getRigidBodyPtrFromId(5);
-    //
-    // const max_angular_vel = 22;
-    //
-    // const torque = (v: number): number => {
-    //     return max_angular_vel - 0.2 * Math.sqrt(Math.abs(v));
-    // }
-    //
-    // const applyWheel = (body: any, mult: number = 1): void => {
-    //     fns.setRigidBodyAngularMomentum(body, mult * torque(fns.getRigidBodyAngularMomentum(body) / fns.getRigidBodyInertia(body)));
-    // }
-    //
-    // if (e.key == "d") {
-    //     applyWheel(wl, -1);
-    //     applyWheel(wr, -1);
-    //     fns.setRigidBodyTorque(car, 1000);
-    // }
-    //
-    // if (e.key == "a") {
-    //     applyWheel(wl);
-    //     applyWheel(wr);
-    //     fns.setRigidBodyTorque(car, -1000);
-    // }
-    //
-    // const val = 30;
-    //
-    // if (e.key == "ArrowUp") { fns.setRigidBodyMomentumY(car, val); }
-    // if (e.key == "ArrowLeft") { fns.setRigidBodyMomentumX(car, -val); }
-    // if (e.key == "ArrowDown") { fns.setRigidBodyMomentumY(car, -val); }
-    // if (e.key == "ArrowRight") { fns.setRigidBodyMomentumX(car, val); }
+    const car = fns.getRigidBodyPtrFromId(3);
+    const wl = fns.getRigidBodyPtrFromId(4);
+    const wr = fns.getRigidBodyPtrFromId(5);
+
+    const max_angular_vel = 22;
+
+    const torque = (v: number): number => {
+        return max_angular_vel - 0.2 * Math.sqrt(Math.abs(v));
+    }
+
+    const applyWheel = (body: any, mult: number = 1): void => {
+        fns.setRigidBodyAngularMomentum(body, mult * torque(fns.getRigidBodyAngularMomentum(body) / fns.getRigidBodyInertia(body)));
+    }
+
+    if (e.key == "d") {
+        applyWheel(wl, -1);
+        applyWheel(wr, -1);
+        fns.setRigidBodyTorque(car, 500);
+    }
+
+    if (e.key == "a") {
+        applyWheel(wl);
+        applyWheel(wr);
+        fns.setRigidBodyTorque(car, -500);
+    }
+
+    const val = 30;
+
+    if (e.key == "ArrowUp") { fns.setRigidBodyMomentumY(car, val); }
+    if (e.key == "ArrowLeft") { fns.setRigidBodyMomentumX(car, -val); }
+    if (e.key == "ArrowDown") { fns.setRigidBodyMomentumY(car, -val); }
+    if (e.key == "ArrowRight") { fns.setRigidBodyMomentumX(car, val); }
 
 
     if (e.key == " ") {
@@ -114,27 +111,52 @@ window.addEventListener("keydown", (e) => {
     }
 });
 
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-function updateLoop(update: () => void) {
-    let outer_dt = 0;
+function startFixedTicker() {
+    const dt_ms = 1000 / TARGET_FPS;
+    const start = performance.now();
+    let tick_idx = 0; // number of completed fixed updates since start
+    let running = true;
 
-    const loop = async () => {
-        const st = performance.now();
-        update();
-        const et = performance.now();
+    function onTick() {
+        if (!running) return;
+        const now = performance.now();
 
-        outer_dt = et - st;
-        comp_dt = outer_dt;
+        const expected_idx = Math.floor((now - start) / dt_ms);
 
-        const left = 1e3 / TARGET_FPS - outer_dt;
-        if (left > 0) {
-            await sleep(left);
-        } else {
-            console.log("EXCEEDED TIME = " + outer_dt + " TARGET DT = " + DT);
+        if (expected_idx >= tick_idx + 1) {
+            const fns = (wasm.instance?.exports as any);
+            while (tick_idx < expected_idx) {
+                const st = performance.now();
+                if (app?.simulating) {
+                    fns.solverProcess(DT, PROCESS_CONFIG.sub_steps, PROCESS_CONFIG.collision_iters);
+                    if (app) app.steps += 1;
+                }
+                const et = performance.now();
+                if (app) app.process_dt = et - st;
+                tick_idx += 1;
+            }
         }
-        requestAnimationFrame(loop);
+
+        scheduleNext();
     }
-    loop();
+
+    function scheduleNext() {
+        if (!running) return;
+        const next_time = start + (tick_idx + 1) * dt_ms;
+        const delay = Math.max(0, next_time - performance.now());
+        setTimeout(onTick, delay);
+    }
+
+    scheduleNext();
+    return () => { running = false; };
+}
+
+function startRenderLoop(renderFrame: () => void) {
+    const loop = () => {
+        renderFrame();
+        requestAnimationFrame(loop);
+    };
+    requestAnimationFrame(loop);
 }
 
 enum Action {
@@ -148,10 +170,11 @@ enum Action {
 }
 
 
-// initBridgeStressTestScene();
 initCarScene();
 
-updateLoop(() => {
+startFixedTicker();
+
+startRenderLoop(() => {
     if (wasm.instance == undefined) {
         console.error("Error: BAD! `wasm.instance` is undefined");
         return;
@@ -165,19 +188,25 @@ updateLoop(() => {
         // window is if win is moveable, header is if win is closeable and the rest are self explanatory.
         // Here we see the difference between Action.true and null.
         { window: Action.true, header: Action.true, resizeable: Action.true, close_btn: null, },
-        { title: "zigics | wasm demo", x: 0, y: 0, width: 500, height: 400 },
+        { title: "Zigics | WASM Demo", x: 0, y: 20, width: 420, height: 500 },
     );
+
+    // We do not care about the return value of this.
+    stack.makeWindow(gui.c, gui.input_state,
+        { window: null, header: null, resizeable: null, close_btn: null, },
+        { title: "Tip: Double click the window-headers to expand/minimize a window", x: 0, y: 0, width: 470, height: 50, },
+    );
+
+    gui.input_state.window_minimised[1] = true
 
     const fns = wasm.instance.exports as any;
 
-    win.makeLabel(gui.c, null, "=== DEBUGS ===");
-    win.setMode("two columns");
+    win.makeLabel(gui.c, null, "Simulation values:");
+    win.setMode("two columns")
 
-    win.makeLabel(gui.c, null, "Comptime: ");
-    win.makeLabel(gui.c, null, Math.floor(10 * comp_dt) / 10 + " ms");
-
-    win.makeLabel(gui.c, null, "Process dt: ");
-    win.makeLabel(gui.c, null, Math.floor(10 * app.process_dt) / 10 + " ms");
+    win.makeLabel(gui.c, null, "Simulation compute time: ");
+    const process_dt = Math.floor(10 * app.process_dt) / 10;
+    win.makeLabel(gui.c, null, (process_dt == 0) ? "Not simulating" : (process_dt + " ms"));
 
     win.makeLabel(gui.c, null, "Step: ");
     win.makeLabel(gui.c, null, "" + app.steps);
@@ -191,45 +220,67 @@ updateLoop(() => {
     mpw.x -= rect.left;
     mpw.y -= rect.top;
     mpw = app.renderer.units.s2w(mpw);
+    mpw.x = Math.round(mpw.x * 1000) / 1000
+    mpw.y = Math.round(mpw.y * 1000) / 1000
     win.makeLabel(gui.c, null, "(" + mpw.x + ", " + mpw.y + ")");
 
-    win.setMode("normal");
-    win.makeLabel(gui.c, null, "");
-    win.makeLabel(gui.c, null, "=== SIMULATION ===");
-    win.setMode("two columns");
+    win.setMode("normal")
+    const half_width = gui.MBBox.calcWidth(win.bbox) / 2;
 
-    win.makeLabel(gui.c, null, "Toggle simulating:");
+    win.makeLabel(gui.c, null, "");
+    win.makeLabel(gui.c, null, "Interact with the simulation:");
+    win.setMode("two columns")
+
+    win.makeText(gui.c, null, "Toggle the simulation:", half_width);
     win.makeButton(gui.c, Action.toggle_sim, "" + app.simulating);
 
-    win.makeLabel(gui.c, null, "Process once:");
-    win.makeButton(gui.c, Action.process_sim, "Once");
+    win.makeText(gui.c, null, "Step one time frame forwards: ", half_width);
+    win.makeButton(gui.c, Action.process_sim, "Step");
 
-    win.makeLabel(gui.c, null, "Process while held:");
+    win.makeText(gui.c, null, "Process the simulation while holding: ", half_width);
     win.makeDraggable(gui.c, Action.process_sim, "Hold");
+    const text = win.makeText(gui.c, null, "Note: The option above will run at the frequency of the UI-update, which will be more frequently than the dedicated physics pipeline. The results of the engine will be the same hover, as the engine is deterministic with the same inputs.");
 
     win.setMode("normal");
     win.makeLabel(gui.c, null, "");
-    win.makeLabel(gui.c, null, "=== RENDER ===");
+    win.cursor.x = text.bbox.left;
+    win.cursor.y = text.bbox.bottom;
+    win.makeLabel(gui.c, null, "Change the rendering options:");
     win.setMode("two columns");
 
-    win.makeLabel(gui.c, null, "Toggle focus camera pos to body: ");
+    win.makeText(gui.c, null, "Focus camera position to a RigidBody: ", half_width);
     win.makeButton(gui.c, Action.toggle_snap_to_body, "" + app.snap_to_body);
 
-    win.makeLabel(gui.c, null, "Change focused body id: ");
-    win.makeDraggable(gui.c, Action.change_snap_to_body_id, "Id: " + app.span_to_body_id);
+    win.makeText(gui.c, null, "The index of the focused RigidBody. Hold and drag the button: ", half_width);
+    win.makeDraggable(gui.c, Action.change_snap_to_body_id, "Index = " + app.span_to_body_id);
 
-    const demowin = stack.makeWindow(gui.c, gui.input_state,
+    const demo_win = stack.makeWindow(gui.c, gui.input_state,
         { window: Action.true, header: Action.true, resizeable: Action.true, close_btn: null, },
-        { title: "init demo scenes", x: 900, y: 0, width: 500, height: 200 },
+        { title: "Press the buttons to test the different scenes!", x: 0, y: win.bbox.bottom, width: gui.MBBox.calcWidth(win.bbox), height: 100 },
     );
 
-    demowin.setMode("two columns")
+    demo_win.setMode("two columns")
 
-    demowin.makeLabel(gui.c, null, "Car Scene: ");
-    demowin.makeButton(gui.c, Action.init_car_scene, "Init");
+    const demo_half_width = gui.MBBox.calcWidth(demo_win.bbox) / 2;
 
-    demowin.makeLabel(gui.c, null, "Bridge Scene: ");
-    demowin.makeButton(gui.c, Action.init_bridge_scene, "Init");
+    demo_win.makeText(gui.c, null, "Car-Platformer Scene (default): ", demo_half_width);
+    demo_win.makeButton(gui.c, Action.init_car_scene, "Init");
+
+    demo_win.makeText(gui.c, null, "Car-Bridge Scene: ", demo_half_width);
+    demo_win.makeButton(gui.c, Action.init_bridge_scene, "Init");
+
+    const key_win = stack.makeWindow(gui.c, gui.input_state,
+        { window: Action.true, header: Action.true, resizeable: Action.true, close_btn: null, },
+        { title: "List of keybindings", x: 0, y: demo_win.bbox.bottom, width: gui.MBBox.calcWidth(win.bbox), height: 110 },
+    );
+
+    key_win.setMode("two columns");
+
+    key_win.makeLabel(gui.c, null, "Space");
+    key_win.makeLabel(gui.c, null, "Toggle the simulation")
+
+    key_win.makeLabel(gui.c, null, "WASD");
+    key_win.makeLabel(gui.c, null, "Drive the car")
 
     if (app.snap_to_body) {
         const body = new bridge.RigidBody(fns, app.span_to_body_id);
@@ -256,8 +307,11 @@ updateLoop(() => {
             app.simulating = !app.simulating;
             break;
         case Action.process_sim:
+            // Manual single step (independent of fixed ticker)
+            const pst = performance.now();
             fns.solverProcess(DT, PROCESS_CONFIG.sub_steps, PROCESS_CONFIG.collision_iters);
             app.steps += 1;
+            app.process_dt = performance.now() - pst;
             break;
         case Action.toggle_snap_to_body:
             app.snap_to_body = !app.snap_to_body;
@@ -267,14 +321,6 @@ updateLoop(() => {
             app.span_to_body_id = Number(gui.updateDraggableValue(Number(app.span_to_body_id), gui.input_state, 2, { min: 0, max: num - 1 }));
             break;
     }
-
-    const st = performance.now();
-    if (app.simulating) {
-        fns.solverProcess(DT, PROCESS_CONFIG.sub_steps, PROCESS_CONFIG.collision_iters);
-        app.steps += 1;
-    }
-    const et = performance.now();
-    app.process_dt = et - st;
 
     app?.renderer.render(fns, app.c);
 

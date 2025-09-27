@@ -1,6 +1,6 @@
 {
     inputs = {
-        nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+        nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.05";
         flake-utils.url = "github:numtide/flake-utils";
     };
 
@@ -12,11 +12,10 @@
                 };
             in {
                 devShells.default = pkgs.mkShell {
-                    packages =
-                        (with pkgs; [
-                            nodejs_24
-                            zig_0_14
-                        ]);
+                    packages = with pkgs; [
+                        nodejs_24
+                        zig_0_14
+                    ];
                 };
             }
         );

@@ -120,7 +120,7 @@ export class Window<ActionType> extends Layout<ActionType> implements Widget<Act
     resize_loc.push(this.widgets.length);
 
     if (resizeable_action_type != null)
-      this.widgets.push(new Resizeable<ActionType>(c, resizeable_action_type, resize_loc, { x: this.bbox.right - 27, y: this.bbox.bottom - 20 }, "res"));
+      this.widgets.push(new Resizeable<ActionType>(c, resizeable_action_type, resize_loc, { x: this.bbox.right - 13, y: this.bbox.bottom - 20 }, ">"));
 
     const close_loc = this.loc.concat([]);
     close_loc.push(this.widgets.length);

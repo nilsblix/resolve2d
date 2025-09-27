@@ -58,7 +58,8 @@ body_options: BodyOptions,
 const RING_RES: i32 = 30;
 
 pub fn init(screen_size: Units.Size, default_world_width: f32) Renderer {
-    const units = Units.init(screen_size, default_world_width);
+    var units = Units.init(screen_size, default_world_width);
+    units.updateDimensions(screen_size.toVector2());
     return .{
         .units = units,
         .spring_options = .{
@@ -161,15 +162,6 @@ pub fn render(self: *Renderer, solver: zigics.Solver, show_collisions: bool, sho
             .offset_distance_joint => {},
             .fixed_position_joint => {},
             .motor_joint => {},
-            // .single_link_joint => {
-            //     const joint: *ctr_mod.SingleLinkJoint = @ptrCast(@alignCast(constraint.ptr));
-            //     const entry = solver.bodies.getEntry(joint.id) orelse return error.InvalidRigidBodyId;
-            //     const body = entry.value_ptr;
-            //     const r = nmath.rotate2(joint.local_r, body.props.angle);
-            //     const a = nmath.add2(body.props.pos, r);
-            //     self.spring(a, joint.q);
-            // },
-            // .motor_joint => {},
         }
     }
 }

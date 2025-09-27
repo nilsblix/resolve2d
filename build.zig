@@ -1,6 +1,13 @@
 const std = @import("std");
 
 pub fn build(b: *std.Build) void {
+    // Accept standard target/optimize options when this package is used as a
+    // dependency. We don't need to use them here, but registering them
+    // prevents `invalid option: -Dcpu/-Dtarget/-Doptimize` errors when
+    // dependents pass these through via `b.dependency`.
+    _ = b.standardTargetOptions(.{});
+    _ = b.standardOptimizeOption(.{});
+
     _ = b.addModule("zigics", .{
         .root_source_file = b.path("src/root.zig"),
     });

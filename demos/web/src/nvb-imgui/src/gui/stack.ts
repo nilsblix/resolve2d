@@ -130,6 +130,7 @@ export class Stack<ActionType> { // root
       document.body.style.cursor = "default";
 
       if (input_state.moving_window && JSON.stringify(input_state.active_widget_loc) === JSON.stringify(widget.loc)) {
+        document.body.style.cursor = "grab";
         if (input_state.mouse_frame.clicked) {
           input_state.window_order.splice(o, 1);
           input_state.window_order.unshift(i);

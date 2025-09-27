@@ -10,9 +10,8 @@ const Vector2 = nmath.Vector2;
 pub fn main() !void {
     const alloc = std.heap.page_allocator;
 
-    // const SCREEN_WIDTH = 1280;
-    // const SCREEN_HEIGHT = 900;
-    var screen_dims = Vector2.init(900, 560);
+    const SCREEN_WIDTH = 800;
+    const SCREEN_HEIGHT = 500;
 
     const TARGET_FPS: f32 = 60;
     const SUB_STEPS = 4;
@@ -23,22 +22,25 @@ pub fn main() !void {
     rl.setConfigFlags(.{
         .msaa_4x_hint = true,
         .window_resizable = true,
+        .window_maximized = true,
     });
-    rl.initWindow(@intFromFloat(screen_dims.x), @intFromFloat(screen_dims.y), "zigics");
+
+    rl.initWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "zigics");
     defer rl.closeWindow();
 
     rl.setTargetFPS(TARGET_FPS);
 
     var solver = try zigics.Solver.init(alloc, 2, 4);
-    std.debug.print("solver: {}\n", .{solver});
 
-    // try examples.setup_0_1_car_platformer(&solver);
+    try examples.setup_0_1_car_platformer(&solver);
     // try examples.setup_0_2_bridge_stress(&solver);
-    try examples.setup_0_3_many_boxes(&solver);
+    // try examples.setup_0_3_many_boxes(&solver);
     // try examples.setup_0_4_also_many_boxes(&solver);
-    std.debug.print("\n", .{});
-    std.debug.print("solver.bodies.count() = {d}\n", .{solver.bodies.count()});
-    // std.debug.print("solver.bodies.values() = {any}\n", .{solver.bodies.values()});
+
+    var screen_dims = Vector2.init(
+        @floatFromInt(rl.getScreenWidth()),
+        @floatFromInt(rl.getScreenHeight()),
+    );
 
     var renderer = Renderer.init(.{
         .width = screen_dims.x,
@@ -75,11 +77,12 @@ pub fn main() !void {
 
         handleCar(&solver, &renderer);
 
-        if (rl.isWindowResized()) {
-            screen_dims = Vector2.init(
-                @floatFromInt(rl.getScreenWidth()),
-                @floatFromInt(rl.getScreenHeight()),
-            );
+        screen_dims = Vector2.init(
+            @floatFromInt(rl.getScreenWidth()),
+            @floatFromInt(rl.getScreenHeight()),
+        );
+
+        if (!nmath.equals2(screen_dims, renderer.units.screen_size.toVector2())) {
             renderer.units.updateDimensions(screen_dims);
         }
 
@@ -91,15 +94,9 @@ pub fn main() !void {
             try solver.process(alloc, DT, SUB_STEPS, CONSTR_ITERS);
         }
 
-        std.debug.print("mouse pos world = {}\n", .{mouse_pos});
-
         {
             const der_scr = renderer.units.w2s(mouse_pos);
             rl.drawCircle(@intFromFloat(der_scr.x), @intFromFloat(der_scr.y), 5.0, rl.Color.red);
-            const zero = renderer.units.w2s(Vector2.zero);
-            rl.drawCircle(@intFromFloat(zero.x), @intFromFloat(zero.y), renderer.units.mult.w2s * 0.25, rl.Color.red);
-            const bottom_right = renderer.units.s2w(nmath.scale2(screen_dims, 1.0));
-            std.debug.print("bottom_right (world pos) = {}\n", .{bottom_right});
         }
 
         renderer.render(solver, false, false);
