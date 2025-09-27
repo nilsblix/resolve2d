@@ -1,35 +1,76 @@
-# zigics
+# Zigics
 
-## WIP (very much)
+2D rigid-body realtime physics engine written in Zig, with both WebAssemblw and
+native demos. Zigics provides simple primitives, a small constraint set and an
+iterative solver with broadphase and narrowphase collision detection. The goal
+is to be educational, hackable, lightweight and fast enough for real-time
+applications.
 
-Fixmes:
+Status: early WIP. Expect breaking changes and sharp edges.
 
-Some things to keep in mind:
+## Features
+Interfaces have been created for the following three physical concepts:
+- Rigidbodies: The solver can simulate the geometry of any convex polygon,
+although only disc- and rectangle geometries have been implemented so far.
+- Constraints: A constraint is a set of equations that describe how a body
+should behave, such as a bead on a string or point fixed in space. The solver
+is able to simulate both positional and velocity based constraints, with them
+being either equality- or inequality based constraints. The solver is even
+equipped with calculating and limiting the power outputted by a single
+constraint, which means that constraints such as motors, springs or even
+animations are able to be simulated via this pipeline.
+- Forces: An abstraction for forces is used, which can be applied to all
+bodies, such as gravity, or single-body based ones such as springs.
 
-SOLVED:
-When building scenes, if one is creating a constraint, "input body" has to be
-fresh. I.e, the statement declaring constraint has to come after the creation
-of the body. If this is not met, the system will seg-fault. Something to do
-with zig being annoying with `array[last_id]`.
-<b>Solution</b> was that when an array appends an item, it can move positions which
-means that previously returned pointer will be dangling.
+The engine features more highlights, such as:
+- Collisions: Collisions can be represented via the constraint pipeline as a
+positional inequality constraint, however it was split from the constraint
+pipeline as gathering collision-pairs is easier done outside of the constraint
+pipeline.
+- Determinism: If the same inputs are presented, then the engine gives the same
+result. This is possible due to the solver referring to bodies via identities,
+and not relying on pure pointer arithmetic.
+- Demos: Native (raylib) and web (WASM + Canvas +
+(imgui.ts)[github.com/nilsblix/imgui.ts].
 
-WASM:
-Wow. This is incredible. Just do `zig build` and run web/index.html via an http server. Wasm is amazing.
+## Installation
+If used in a Zig-project, then simply add it to the target project's build.zig.zon
+via `$ zig fetch --save https://github.com/nilsblix/zigics.git`.
 
-TODO:
-add setters in wasm_bridge.zig. set force is very important.
+If used in a web-environment, then add the zigics-wasm-binary to the target
+project and instantiate a WASM module. See demos/web for an example on how to
+package the WASM module.
 
-Roadmap:
-Composite bodies:
-* Another list/map/array in the base of solver. 
-    key = Arraylist(RigidBody.Id)?
-* New struct? `KinematicComposite`?
-* When collision:
-    Do not apply to base body, apply to the composite. Scaled ofcourse.
-* In RigidBody, instead of `static: bool` have `mode: enum...`. Would that solve the collision thing? Not really
-    Maybe mode.composite can contain some sort of `contribution` that after
-    collision/constraint solving should be applied to the larger body? Tagged enums? Would be good.
-* How should I separate static pos/rotation while still complying with composite?
-### Seems like I'm in for a rewrite/restructuring of the kinematic system?
-I will not redo KinematicProps.
+## Quick Start
+__TODO__
+
+## Demos
+__TODO__
+
+## Roadmap
+- Composite bodies and kinematic modes:
+    - Introduce composite/aggregate bodies that distribute impulses to member
+    bodies.
+    - Replace `static: bool` with a `mode` enum
+    (dynamic/kinematic/static/composite).
+- Collision and stability:
+    - Persist manifolds across frames by keying with stable body IDs, not
+    pointers.
+    - Wire solver spatial-hash configuration (cell width/table size) instead of
+    hard-coded values.
+    - Sleeping/awakening, better stacking stability and optional restitution.
+- Rigidbodes, constraints and forces:
+    - More Rigidbody implementations, with triangle, star and generalized
+    polygon.
+    - More joints (hinge/pivot, spring-damper, prismatic/slider).
+    - Tunable friction models and force generators.
+- WASM and tooling:
+    - Expand the bridge API and document exports.
+    - Demo UX improvements and more showcase scenes.
+- Quality and docs:
+    - More tests around collision/constraint edge cases.
+    - Clearer examples and API docs; packaging guidance for depending projects.
+
+## Contributing
+Issues and PRs are welcome. The codebase aims to stay small and readable;
+contributions that keep things simple are appreciated.
