@@ -301,15 +301,10 @@ pub fn performNarrowSAT(b1: *RigidBody, b2: *RigidBody) SATResult {
     ret.collides = false;
     ret.penetration = std.math.inf(f32);
 
-    // FIXME: Allocators don't align memory the same --> Non deterministic
-    // behaviour between allocators.
-    const num1 = @intFromPtr(b1.ptr);
-    const num2 = @intFromPtr(b2.ptr);
+    const num1 = b1.id;
+    const num2 = b2.id;
     const o1 = if (num1 < num2) b1 else b2;
     const o2 = if (o1 == b1) b2 else b1;
-
-    // const o1 = b1;
-    // const o2 = b2;
 
     if (!overlapSAT(&ret, o1, o2)) {
         return ret;

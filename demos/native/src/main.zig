@@ -49,6 +49,8 @@ pub fn main() !void {
 
     var frame: usize = 0;
 
+    var simulating = false;
+
     var screen_prev_mouse_pos: Vector2 = .{};
     var screen_mouse_pos: Vector2 = .{};
     var prev_mouse_pos: Vector2 = .{};
@@ -90,8 +92,12 @@ pub fn main() !void {
         defer rl.endDrawing();
         defer rl.clearBackground(.{ .r = 18, .g = 18, .b = 18, .a = 1 });
 
-        if (rl.isKeyPressed(.right) or rl.isKeyDown(.l)) {
+        if (rl.isKeyPressed(.right) or rl.isKeyDown(.l) or simulating) {
             try solver.process(alloc, DT, SUB_STEPS, CONSTR_ITERS);
+        }
+
+        if (rl.isKeyPressed(.space)) {
+            simulating = !simulating;
         }
 
         {
@@ -106,27 +112,28 @@ pub fn main() !void {
 }
 
 fn handleCar(solver: *zigics.Solver, renderer: *Renderer) void {
-    _ = solver;
-    _ = renderer;
-    // const car_handle = solver.bodyHandle(3);
-    // const wl = solver.bodyHandle(4);
-    // const wr = solver.bodyHandle(5);
-    //
-    // const wheel_mom = 20.0;
-    // const body_acc = 10.0;
-    //
-    // if (rl.isKeyDown(.d)) {
-    //     wl.body_unwrap().props.ang_momentum = -wheel_mom;
-    //     wr.body_unwrap().props.ang_momentum = -wheel_mom;
-    //     car_handle.body_unwrap().props.torque = if (car_handle.body_unwrap().props.momentum.length() > 8) 0 else body_acc;
-    // }
-    //
-    // if (rl.isKeyDown(.a)) {
-    //     wl.body_unwrap().props.ang_momentum = wheel_mom;
-    //     wr.body_unwrap().props.ang_momentum = wheel_mom;
-    //     car_handle.body_unwrap().props.torque = if (car_handle.body_unwrap().props.momentum.length() > 8) 0 else -body_acc;
-    // }
-    //
-    // const half_view = nmath.scale2(renderer.units.camera.viewport.toVector2(), 0.25);
-    // renderer.units.camera.pos = nmath.sub2(car_handle.body_unwrap().props.pos, half_view);
+    const car_handle = solver.bodyHandle(3);
+    const wl = solver.bodyHandle(4);
+    const wr = solver.bodyHandle(5);
+
+    const wheel_mom = 20.0;
+    const body_acc = 400.0;
+    // const limit = 100;
+
+    if (rl.isKeyDown(.d)) {
+        wl.body_unwrap().props.ang_momentum = -wheel_mom;
+        wr.body_unwrap().props.ang_momentum = -wheel_mom;
+        car_handle.body_unwrap().props.torque = body_acc;
+        // car_handle.body_unwrap().props.torque = if (car_handle.body_unwrap().props.momentum.length() > limit) 0 else body_acc;
+    }
+
+    if (rl.isKeyDown(.a)) {
+        wl.body_unwrap().props.ang_momentum = wheel_mom;
+        wr.body_unwrap().props.ang_momentum = wheel_mom;
+        car_handle.body_unwrap().props.torque = -body_acc;
+        // car_handle.body_unwrap().props.torque = if (car_handle.body_unwrap().props.momentum.length() > limit) 0 else -body_acc;
+    }
+
+    const half_view = nmath.scale2(renderer.units.camera.viewport.toVector2(), 0.25);
+    renderer.units.camera.pos = nmath.sub2(car_handle.body_unwrap().props.pos, half_view);
 }

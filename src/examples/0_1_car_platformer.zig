@@ -225,49 +225,12 @@ pub fn setup(solver: *Solver) !void {
     };
     opt.mu = 0.7;
     x = 65;
-    opt.pos = Vector2.init(x, 9);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 10);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 11);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 12);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 13);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    x = 66;
-    opt.pos = Vector2.init(x, 9);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 10);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 11);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 12);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 13);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    x = 67;
-    opt.pos = Vector2.init(x, 9);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 10);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 11);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 12);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 13);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    x = 68;
-    opt.pos = Vector2.init(x, 9);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 10);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 11);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 12);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
-    opt.pos = Vector2.init(x, 13);
-    _ = try fac.makeRectangleBody(opt, rect_opt);
+    for (65..71) |xp| {
+        for (9..20) |yp| {
+            opt.pos = Vector2.init(@floatFromInt(xp), @floatFromInt(yp));
+            _ = try fac.makeRectangleBody(opt, rect_opt);
+        }
+    }
     opt.mu = 0.5;
 
     // === PLATFORM 3 ===
