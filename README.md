@@ -31,7 +31,7 @@ pipeline.
 result. This is possible due to the solver referring to bodies via identities,
 and not relying on pure pointer arithmetic.
 - Demos: Native (raylib) and web (WASM + Canvas +
-(imgui.ts)[github.com/nilsblix/imgui.ts].
+[imgui.ts](https://github.com/nilsblix/imgui.ts).
 
 ## Installation
 If used in a Zig-project, then simply add it to the target project's build.zig.zon
@@ -48,11 +48,14 @@ __TODO__
 __TODO__
 
 ## Roadmap
-- Composite bodies and kinematic modes:
-    - Introduce composite/aggregate bodies that distribute impulses to member
-    bodies.
-    - Replace `static: bool` with a `mode` enum
-    (dynamic/kinematic/static/composite).
+- Refactor `bodies` property of Solver:
+    - Create struct `Bodies`, which contains hashmap of bodies and ids, like
+    current implementation in Solver. This struct can contain hashmaps of other
+    properties, such as `static`, `sleeping` etc. This will make the program
+    more memory efficient and make each `RigidBody` have a smaller memory
+    footprint.
+    - This will also enable composite/aggregate bodies that distribute impulses
+    to member bodies.
 - Collision and stability:
     - Persist manifolds across frames by keying with stable body IDs, not
     pointers.
