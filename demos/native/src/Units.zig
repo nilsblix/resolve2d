@@ -1,6 +1,6 @@
 const std = @import("std");
-const zigics = @import("zigics");
-const nmath = zigics.nmath;
+const r2d = @import("resolve2d");
+const nmath = r2d.nmath;
 const Vector2 = nmath.Vector2;
 
 pub const Size = struct {

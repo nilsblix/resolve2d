@@ -1,10 +1,10 @@
 const std = @import("std");
 const rl = @import("raylib");
-const zigics = @import("zigics");
-const examples = zigics.examples;
+const r2d = @import("resolve2d");
+const examples = r2d.examples;
 const Renderer = @import("Renderer.zig");
 const Units = @import("Units.zig");
-const nmath = zigics.nmath;
+const nmath = r2d.nmath;
 const Vector2 = nmath.Vector2;
 
 pub fn main() !void {
@@ -25,12 +25,12 @@ pub fn main() !void {
         .window_maximized = true,
     });
 
-    rl.initWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "zigics");
+    rl.initWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Resolve2d");
     defer rl.closeWindow();
 
     rl.setTargetFPS(TARGET_FPS);
 
-    var solver = try zigics.Solver.init(alloc, 2, 4);
+    var solver = try r2d.Solver.init(alloc, 2, 4);
 
     try examples.setup_0_1_car_platformer(&solver);
     // try examples.setup_0_2_bridge_stress(&solver);
@@ -111,7 +111,7 @@ pub fn main() !void {
     }
 }
 
-fn handleCar(solver: *zigics.Solver, renderer: *Renderer) void {
+fn handleCar(solver: *r2d.Solver, renderer: *Renderer) void {
     const car_handle = solver.bodyHandle(3);
     const wl = solver.bodyHandle(4);
     const wr = solver.bodyHandle(5);

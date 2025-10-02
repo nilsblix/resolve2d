@@ -1,7 +1,7 @@
 const std = @import("std");
 const rl = @import("raylib");
-const zigics = @import("zigics");
-const nmath = zigics.nmath;
+const r2d = @import("resolve2d");
+const nmath = r2d.nmath;
 const Vector2 = nmath.Vector2;
 const Units = @import("Units.zig");
 
@@ -81,7 +81,7 @@ pub fn adjustCameraPos(self: *Renderer, delta: Vector2) void {
     self.units.adjustCameraPos(delta);
 }
 
-pub fn render(self: *Renderer, solver: zigics.Solver, show_collisions: bool, show_aabbs: bool) void {
+pub fn render(self: *Renderer, solver: r2d.Solver, show_collisions: bool, show_aabbs: bool) void {
     for (solver.force_generators.items) |*gen| {
         switch (gen.type) {
             .downwards_gravity => continue,
@@ -175,8 +175,8 @@ fn spring(self: Renderer, start_pos: Vector2, end_pos: Vector2) void {
     rl.drawLineEx(sp1, sp2, self.spring_options.segment_width.scr, self.spring_options.segment_color);
 }
 
-fn discbody(self: Renderer, screen_pos: rl.Vector2, body: *zigics.RigidBody) void {
-    const disc: *zigics.RigidBody.Disc = @ptrCast(@alignCast(body.ptr));
+fn discbody(self: Renderer, screen_pos: rl.Vector2, body: *r2d.RigidBody) void {
+    const disc: *r2d.RigidBody.Disc = @ptrCast(@alignCast(body.ptr));
     var color = if (body.static) self.body_options.static_color else self.body_options.color;
 
     if (!body.static) {
@@ -201,8 +201,8 @@ fn discbody(self: Renderer, screen_pos: rl.Vector2, body: *zigics.RigidBody) voi
     rl.drawLineEx(vec, rl_rot_screen, self.body_options.edge_thickness.scr, color.edge);
 }
 
-pub fn rectanglebody(self: *Renderer, body: *zigics.RigidBody) void {
-    const rect: *zigics.RigidBody.Rectangle = @ptrCast(@alignCast(body.ptr));
+pub fn rectanglebody(self: *Renderer, body: *r2d.RigidBody) void {
+    const rect: *r2d.RigidBody.Rectangle = @ptrCast(@alignCast(body.ptr));
     var color = if (body.static) self.body_options.static_color else self.body_options.color;
 
     if (!body.static) {

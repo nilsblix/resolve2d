@@ -5,7 +5,7 @@ pub fn build(b: *std.Build) void {
     const optimize = .Debug;
 
     const exe = b.addExecutable(.{
-        .name = "zigics",
+        .name = "resolve2d",
         .root_module = b.createModule(.{
             .root_source_file = b.path("src/main.zig"),
             .target = target,
@@ -26,14 +26,14 @@ pub fn build(b: *std.Build) void {
     exe.root_module.addImport("raylib", raylib);
     exe.root_module.addImport("raygui", raygui);
 
-    const zigics_dep = b.dependency("zigics", .{
+    const resolve2d_dep = b.dependency("resolve2d", .{
         .target = target,
         .optimize = optimize,
     });
 
-    const zigics_mod = zigics_dep.module("zigics");
+    const resolve2d_mod = resolve2d_dep.module("resolve2d");
 
-    exe.root_module.addImport("zigics", zigics_mod);
+    exe.root_module.addImport("resolve2d", resolve2d_mod);
 
     b.installArtifact(exe);
 
@@ -45,7 +45,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
-    unit_tests.root_module.addImport("zigics", zigics_mod);
+    unit_tests.root_module.addImport("resolve2d", resolve2d_mod);
 
     const test_step = b.step("test", "Run all tests");
     test_step.dependOn(&b.addRunArtifact(unit_tests).step);

@@ -188,7 +188,7 @@ startRenderLoop(() => {
         // window is if win is moveable, header is if win is closeable and the rest are self explanatory.
         // Here we see the difference between Action.true and null.
         { window: Action.true, header: Action.true, resizeable: Action.true, close_btn: null, },
-        { title: "Zigics | WASM Demo", x: 0, y: 20, width: 420, height: 500 },
+        { title: "Resolve2D | WASM Demo", x: 0, y: 20, width: 420, height: 500 },
     );
 
     // We do not care about the return value of this.

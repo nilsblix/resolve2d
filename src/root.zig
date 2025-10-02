@@ -1,9 +1,9 @@
 const std = @import("std");
-const zigics = @import("core/zigics.zig");
+const r2d = @import("core/resolve2d.zig");
 
 pub const nmath = @import("core/nmath.zig");
-pub const Solver = zigics.Solver;
-pub const EntityFactory = zigics.EntityFactory;
+pub const Solver = r2d.Solver;
+pub const EntityFactory = r2d.EntityFactory;
 pub const RigidBody = @import("core/Bodies/RigidBody.zig");
 pub const Constraint = @import("core/Constraints/Constraint.zig");
 pub const ForceGen = @import("core/Forces/ForceGen.zig");

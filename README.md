@@ -1,7 +1,7 @@
-# Zigics
+# Resolve2D
 
 2D rigid-body realtime physics engine written in Zig, with both WebAssemblw and
-native demos. Zigics provides simple primitives, a small constraint set and an
+native demos. Resolve2D provides simple primitives, a small constraint set and an
 iterative solver with broadphase and narrowphase collision detection. The goal
 is to be educational, hackable, lightweight and fast enough for real-time
 applications.
@@ -35,9 +35,9 @@ and not relying on pure pointer arithmetic.
 
 ## Installation
 If used in a Zig-project, then simply add it to the target project's build.zig.zon
-via `$ zig fetch --save https://github.com/nilsblix/zigics.git`.
+via `$ zig fetch --save https://github.com/nilsblix/resolve2d.git`.
 
-If used in a web-environment, then add the zigics-wasm-binary to the target
+If used in a web-environment, then add the resolve2d-wasm-binary to the target
 project and instantiate a WASM module. See demos/web for an example on how to
 package the WASM module.
 

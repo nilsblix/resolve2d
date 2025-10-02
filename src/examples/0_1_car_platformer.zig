@@ -162,7 +162,7 @@ pub fn setup(solver: *Solver) !void {
     _ = try fac.makeRectangleBody(opt, .{ .width = 3, .height = 3 });
     opt.mass_prop = .{ .density = 1 };
 
-    // rect_opt = zigics.EntityFactory.RectangleOptions {
+    // rect_opt = r2d.EntityFactory.RectangleOptions {
     //     .width = 0.6,
     //     .height = 0.4,
     // };

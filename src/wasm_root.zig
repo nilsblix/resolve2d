@@ -2,10 +2,10 @@ const std = @import("std");
 const Allocator = std.mem.Allocator;
 const nmath = @import("core/nmath.zig");
 const Vector2 = nmath.Vector2;
-const zigics = @import("root.zig");
-const RigidBody = zigics.RigidBody;
-const Solver = zigics.Solver; // What should I do with this?
-const examples = zigics.examples;
+const r2d = @import("root.zig");
+const RigidBody = r2d.RigidBody;
+const Solver = r2d.Solver; // What should I do with this?
+const examples = r2d.examples;
 
 // Most allocators seem to work. They have to be posix and thread independant though.
 var gpa = std.heap.GeneralPurposeAllocator(.{}){};

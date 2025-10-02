@@ -8,7 +8,7 @@ pub fn build(b: *std.Build) void {
     _ = b.standardTargetOptions(.{});
     _ = b.standardOptimizeOption(.{});
 
-    _ = b.addModule("zigics", .{
+    _ = b.addModule("resolve2d", .{
         .root_source_file = b.path("src/root.zig"),
     });
 
@@ -19,7 +19,7 @@ pub fn build(b: *std.Build) void {
     });
 
     const exe = b.addExecutable(.{
-        .name = "zigics",
+        .name = "resolve2d",
         .root_source_file = b.path("src/wasm_root.zig"),
         .target = target,
         .optimize = .ReleaseFast,
