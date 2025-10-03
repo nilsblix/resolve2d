@@ -1,6 +1,6 @@
 # Resolve2D
 
-2D rigid-body realtime physics engine written in Zig, with both WebAssemblw and
+2D rigid-body realtime physics engine written in Zig, with both WebAssembly and
 native demos. Resolve2D provides simple primitives, a small constraint set and an
 iterative solver with broadphase and narrowphase collision detection. The goal
 is to be educational, hackable, lightweight and fast enough for real-time

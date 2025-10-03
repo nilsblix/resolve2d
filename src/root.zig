@@ -1,5 +1,5 @@
 const std = @import("std");
-const r2d = @import("core/resolve2d.zig");
+const r2d = @import("core/lib.zig");
 
 pub const nmath = @import("core/nmath.zig");
 pub const Solver = r2d.Solver;
