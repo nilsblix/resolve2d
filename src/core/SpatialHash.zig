@@ -5,7 +5,7 @@ const nmath = @import("nmath.zig");
 const Vector2 = nmath.Vector2;
 const Allocator = std.mem.Allocator;
 const RigidBody = @import("Bodies/RigidBody.zig");
-const AABB = @import("aabb.zig").AABB;
+const AABB = @import("AABB.zig").AABB;
 
 // This is a dense implementation of spatial-hashing.
 table: std.ArrayList(usize),
